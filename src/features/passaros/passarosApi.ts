@@ -1,0 +1,324 @@
+/**
+ * API Service para Pássaros
+ * Hooks do TanStack Query para fetch de dados
+ */
+
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/lib/api'
+import type { Passaro, PassaroFilters, CreatePassaroPayload, UpdatePassaroPayload } from '@/types'
+
+// Tipo da resposta da API
+interface PassarosResponse {
+    passaros?: Passaro[]
+    data?: Passaro[]
+    meta?: {
+        page?: number | number[]
+        current_page?: number | number[]
+        last_page?: number | number[]
+        per_page?: number | number[]
+        total?: number | number[]
+    }
+}
+
+/**
+ * Busca a lista de pássaros com filtros
+ */
+async function fetchPassaros(filters: PassaroFilters = {}): Promise<Passaro[]> {
+    const params = new URLSearchParams()
+
+    // Adiciona filtros apenas se definidos
+    if (filters.sit !== undefined) {
+        params.append('sit', filters.sit.toString())
+    }
+    if (filters.sexo !== undefined) {
+        params.append('sexo', filters.sexo.toString())
+    }
+    if (filters.ano !== undefined) {
+        params.append('ano', filters.ano.toString())
+    }
+    if (filters.passaro_pai_id !== undefined) {
+        params.append('passaro_pai_id', filters.passaro_pai_id.toString())
+    }
+    if (filters.passaro_mae_id !== undefined) {
+        params.append('passaro_mae_id', filters.passaro_mae_id.toString())
+    }
+
+    const response = await api.get<PassarosResponse | Passaro[]>(`/api/v1/passaros?${params.toString()}`)
+
+    // API pode retornar:
+    // - { passaros: [...] }
+    // - { data: [...] }
+    // - [...]
+    const data = response.data
+
+    if (Array.isArray(data)) {
+        return data
+    }
+
+    if (data.passaros) {
+        return data.passaros
+    }
+
+    if (data.data) {
+        return data.data
+    }
+
+    return []
+}
+
+/**
+ * Hook para buscar lista de pássaros (sem paginação)
+ */
+export function usePassaros(filters: PassaroFilters = {}) {
+    return useQuery({
+        queryKey: ['passaros', filters],
+        queryFn: () => fetchPassaros(filters),
+        staleTime: 5 * 60 * 1000, // 5 minutos
+        refetchOnWindowFocus: true,
+    })
+}
+
+/**
+ * Busca pássaros com paginação
+ */
+async function fetchPassarosPaginated(filters: PassaroFilters = {}, page: number = 1): Promise<{ passaros: Passaro[]; nextPage: number | null; total: number }> {
+    const params = new URLSearchParams()
+    params.append('page', page.toString())
+    params.append('per_page', '20')
+
+    if (filters.sit !== undefined) {
+        params.append('sit', filters.sit.toString())
+    }
+    if (filters.sexo !== undefined) {
+        params.append('sexo', filters.sexo.toString())
+    }
+    if (filters.ano !== undefined) {
+        params.append('ano', filters.ano.toString())
+    }
+
+    const response = await api.get<PassarosResponse>(`/api/v1/passaros?${params.toString()}`)
+    const data = response.data
+
+    const passaros = data.data ?? data.passaros ?? []
+    const meta = data.meta
+
+    // Extrai valores do meta (pode vir como array ou número devido a bug na API)
+    const extractNumber = (val: unknown): number => {
+        if (Array.isArray(val)) return Number(val[0]) || 0
+        return Number(val) || 0
+    }
+
+    // Calcula se há mais páginas
+    const currentPage = extractNumber(meta?.page) || extractNumber(meta?.current_page) || page
+    const total = extractNumber(meta?.total)
+    const perPage = extractNumber(meta?.per_page) || 20
+    const lastPage = extractNumber(meta?.last_page) || Math.ceil(total / perPage)
+    const hasMore = currentPage < lastPage
+    const nextPage = hasMore ? page + 1 : null
+
+    return { passaros, nextPage, total }
+}
+
+/**
+ * Hook para buscar lista de pássaros com infinite scroll
+ */
+export function usePassarosInfinite(filters: PassaroFilters = {}) {
+    return useInfiniteQuery({
+        queryKey: ['passaros-infinite', filters],
+        queryFn: ({ pageParam = 1 }) => fetchPassarosPaginated(filters, pageParam),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
+    })
+}
+
+/**
+ * Busca pássaros para autocomplete (machos ou fêmeas)
+ * Busca todos os pássaros ativos do sexo especificado (sem paginação limitada)
+ */
+async function fetchPassarosAutocomplete(sexo?: number): Promise<Passaro[]> {
+    const params = new URLSearchParams()
+    params.append('sit', '1') // Apenas ativos
+    params.append('per_page', '1000') // Busca todos para autocomplete
+    if (sexo !== undefined) {
+        params.append('sexo', sexo.toString())
+    }
+
+    const response = await api.get<PassarosResponse | Passaro[]>(`/api/v1/passaros?${params.toString()}`)
+    const data = response.data
+
+    if (Array.isArray(data)) {
+        return data
+    }
+
+    return data.passaros ?? data.data ?? []
+}
+
+/**
+ * Hook para buscar machos para autocomplete
+ */
+export function useMachos() {
+    return useQuery({
+        queryKey: ['passaros', 'machos'],
+        queryFn: () => fetchPassarosAutocomplete(1),
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
+ * Hook para buscar fêmeas para autocomplete
+ */
+export function useFemeas() {
+    return useQuery({
+        queryKey: ['passaros', 'femeas'],
+        queryFn: () => fetchPassarosAutocomplete(2),
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
+ * Busca um pássaro específico por ID
+ */
+async function fetchPassaro(id: number): Promise<Passaro> {
+    const response = await api.get<{ data: Passaro } | Passaro>(`/api/v1/passaros/${id}`)
+
+    // API retorna { data: {...} } (Laravel Resource)
+    const responseData = response.data
+
+    // Verifica se a resposta está encapsulada em 'data'
+    if (responseData && 'data' in responseData && responseData.data && typeof responseData.data === 'object') {
+        return responseData.data as Passaro
+    }
+
+    // Resposta direta
+    return responseData as Passaro
+}
+
+/**
+ * Hook para buscar um pássaro específico
+ */
+export function usePassaro(id: number | null) {
+    return useQuery({
+        queryKey: ['passaro', id],
+        queryFn: () => fetchPassaro(id!),
+        enabled: id !== null,
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
+ * Cria um novo pássaro
+ */
+async function createPassaro(payload: CreatePassaroPayload): Promise<Passaro> {
+    const response = await api.post<Passaro | { data: Passaro }>('/api/v1/passaros', payload)
+
+    if ('data' in response.data && typeof response.data.data === 'object') {
+        return response.data.data as Passaro
+    }
+    return response.data as Passaro
+}
+
+/**
+ * Hook para criar pássaro
+ */
+export function useCreatePassaro() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: createPassaro,
+        onSuccess: () => {
+            // Invalida cache da lista de pássaros e relacionados
+            queryClient.invalidateQueries({ queryKey: ['passaros'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+            queryClient.invalidateQueries({ queryKey: ['machos'] })
+            queryClient.invalidateQueries({ queryKey: ['femeas'] })
+        },
+    })
+}
+
+/**
+ * Atualiza um pássaro existente
+ */
+async function updatePassaro(payload: UpdatePassaroPayload): Promise<Passaro> {
+    const { passaro_id, ...data } = payload
+    const response = await api.put<Passaro | { data: Passaro }>(`/api/v1/passaros/${passaro_id}`, data)
+
+    if ('data' in response.data && typeof response.data.data === 'object') {
+        return response.data.data as Passaro
+    }
+    return response.data as Passaro
+}
+
+/**
+ * Hook para atualizar pássaro
+ */
+export function useUpdatePassaro() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: updatePassaro,
+        onSuccess: (data) => {
+            // Atualiza cache do pássaro específico
+            queryClient.setQueryData(['passaro', data.passaro_id], data)
+            // Invalida cache da lista e relacionados
+            queryClient.invalidateQueries({ queryKey: ['passaros'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+            queryClient.invalidateQueries({ queryKey: ['machos'] })
+            queryClient.invalidateQueries({ queryKey: ['femeas'] })
+        },
+    })
+}
+
+/**
+ * Deleta um pássaro
+ */
+async function deletePassaro(id: number): Promise<void> {
+    await api.delete(`/api/v1/passaros/${id}`)
+}
+
+/**
+ * Hook para deletar pássaro
+ */
+export function useDeletePassaro() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: deletePassaro,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['passaros'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+            queryClient.invalidateQueries({ queryKey: ['machos'] })
+            queryClient.invalidateQueries({ queryKey: ['femeas'] })
+        },
+    })
+}
+
+// ============================================
+// ÁRVORE GENEALÓGICA
+// ============================================
+
+/**
+ * Busca árvore genealógica completa de um pássaro
+ */
+async function fetchArvoreGenealogica(id: number): Promise<Passaro> {
+    const response = await api.get<string | Passaro>(`/api/v1/passaros/${id}/arvore-completa`)
+
+    // A API pode retornar string JSON ou objeto
+    if (typeof response.data === 'string') {
+        return JSON.parse(response.data) as Passaro
+    }
+    return response.data
+}
+
+/**
+ * Hook para buscar árvore genealógica
+ */
+export function useArvoreGenealogica(id: number | null) {
+    return useQuery({
+        queryKey: ['passaro', 'arvore', id],
+        queryFn: () => fetchArvoreGenealogica(id!),
+        enabled: !!id,
+        staleTime: 1000 * 60 * 10, // 10 minutos
+    })
+}
