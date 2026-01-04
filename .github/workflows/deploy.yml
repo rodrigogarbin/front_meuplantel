@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 jobs:
@@ -65,4 +65,4 @@ jobs:
           port: 2222
           script: |
             rm -rf ./cache/*
-            
+
