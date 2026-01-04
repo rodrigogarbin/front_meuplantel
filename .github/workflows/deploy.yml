@@ -51,6 +51,6 @@ jobs:
         with:
           server: 192.185.215.242
           username: ftp_front
-          password: ${{ secrets.ftp_password }}
+          password: ${{ secrets.SSH_PASSWORD }}
           server-dir: ./
           local-dir: ./dist/
