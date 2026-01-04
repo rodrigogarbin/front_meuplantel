@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react'
-import { Topbar, SearchInput, EmptyState, ErrorState } from '@/components/ui'
+import { Topbar, SearchInput, EmptyState, ErrorState, PullToRefresh } from '@/components/ui'
 import { usePosturas, type PosturaListItem } from './posturasApi'
 import { SitPostura } from '@/types'
 import { EditPosturaSheet } from '@/features/casais'
@@ -350,146 +350,151 @@ export function PosturasPage() {
         <>
             <Topbar title="Posturas" />
 
-            <div className="px-4 py-4 max-w-4xl mx-auto">
-                {/* Barra de busca */}
-                <div className="mb-4">
-                    <SearchInput
-                        value={searchTerm}
-                        onChange={setSearchTerm}
-                        placeholder="Buscar por casal ou anel..."
-                    />
-                </div>
-
-                {/* Filtros por tipo de alerta */}
-                <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-                    <button
-                        onClick={() => setFilterType('todas')}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'todas'
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}
-                    >
-                        Todas
-                    </button>
-                    <button
-                        onClick={() => setFilterType('descascando')}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'descascando'
-                            ? 'bg-yellow-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}
-                    >
-                        🐣 Descascando
-                    </button>
-                    <button
-                        onClick={() => setFilterType('anilhar')}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'anilhar'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}
-                    >
-                        💍 Anilhar
-                    </button>
-                    <button
-                        onClick={() => setFilterType('separar')}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'separar'
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}
-                    >
-                        🏠 Separar
-                    </button>
-                    <button
-                        onClick={() => setFilterType('verificar')}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'verificar'
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}
-                    >
-                        ⚠️ Verificar
-                    </button>
-                </div>
-
-                {/* Loading */}
-                {isLoading && (
-                    <div className="space-y-3">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <PosturaCardSkeleton key={i} />
-                        ))}
+            <PullToRefresh
+                onRefresh={async () => { await refetch() }}
+                disabled={isLoading}
+            >
+                <div className="px-4 py-4 max-w-4xl mx-auto">
+                    {/* Barra de busca */}
+                    <div className="mb-4">
+                        <SearchInput
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Buscar por casal ou anel..."
+                        />
                     </div>
-                )}
 
-                {/* Erro */}
-                {error && (
-                    <ErrorState
-                        title="Erro ao carregar posturas"
-                        message="Não foi possível carregar a lista de posturas."
-                        onRetry={refetch}
-                    />
-                )}
+                    {/* Filtros por tipo de alerta */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+                        <button
+                            onClick={() => setFilterType('todas')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'todas'
+                                ? 'bg-primary-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                        >
+                            Todas
+                        </button>
+                        <button
+                            onClick={() => setFilterType('descascando')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'descascando'
+                                ? 'bg-yellow-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                        >
+                            🐣 Descascando
+                        </button>
+                        <button
+                            onClick={() => setFilterType('anilhar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'anilhar'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                        >
+                            💍 Anilhar
+                        </button>
+                        <button
+                            onClick={() => setFilterType('separar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'separar'
+                                ? 'bg-cyan-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                        >
+                            🏠 Separar
+                        </button>
+                        <button
+                            onClick={() => setFilterType('verificar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'verificar'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                        >
+                            ⚠️ Verificar
+                        </button>
+                    </div>
 
-                {/* Lista vazia */}
-                {!isLoading && !error && filteredPosturas.length === 0 && (
-                    <EmptyState
-                        title="Nenhuma postura encontrada"
-                        description={
-                            searchTerm
-                                ? 'Tente alterar os filtros de busca.'
-                                : 'Adicione posturas nos casais para vê-las aqui.'
-                        }
-                        icon={
-                            <svg className="w-16 h-16 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 2C6.5 2 4 6 4 10c0 4.5 2.5 8 6 8s6-3.5 6-8c0-4-2.5-8-6-8z" />
-                            </svg>
-                        }
-                    />
-                )}
-
-                {/* Lista de posturas com alertas (prioridade) */}
-                {!isLoading && !error && posturasComAlerta.length > 0 && (
-                    <div className="mb-6">
-                        <h2 className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                            Atenção Necessária ({posturasComAlerta.length})
-                        </h2>
+                    {/* Loading */}
+                    {isLoading && (
                         <div className="space-y-3">
-                            {posturasComAlerta.map((postura) => (
-                                <PosturaCard
-                                    key={postura.id}
-                                    postura={postura}
-                                    onClick={() => handlePosturaClick(postura)}
-                                />
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <PosturaCardSkeleton key={i} />
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Lista de posturas sem alertas */}
-                {!isLoading && !error && posturasSemAlerta.length > 0 && (
-                    <div>
-                        {posturasComAlerta.length > 0 && (
-                            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
-                                Outras Posturas ({posturasSemAlerta.length})
+                    {/* Erro */}
+                    {error && (
+                        <ErrorState
+                            title="Erro ao carregar posturas"
+                            message="Não foi possível carregar a lista de posturas."
+                            onRetry={refetch}
+                        />
+                    )}
+
+                    {/* Lista vazia */}
+                    {!isLoading && !error && filteredPosturas.length === 0 && (
+                        <EmptyState
+                            title="Nenhuma postura encontrada"
+                            description={
+                                searchTerm
+                                    ? 'Tente alterar os filtros de busca.'
+                                    : 'Adicione posturas nos casais para vê-las aqui.'
+                            }
+                            icon={
+                                <svg className="w-16 h-16 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 2C6.5 2 4 6 4 10c0 4.5 2.5 8 6 8s6-3.5 6-8c0-4-2.5-8-6-8z" />
+                                </svg>
+                            }
+                        />
+                    )}
+
+                    {/* Lista de posturas com alertas (prioridade) */}
+                    {!isLoading && !error && posturasComAlerta.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                                Atenção Necessária ({posturasComAlerta.length})
                             </h2>
-                        )}
-                        <div className="space-y-3">
-                            {posturasSemAlerta.map((postura) => (
-                                <PosturaCard
-                                    key={postura.id}
-                                    postura={postura}
-                                    onClick={() => handlePosturaClick(postura)}
-                                />
-                            ))}
+                            <div className="space-y-3">
+                                {posturasComAlerta.map((postura) => (
+                                    <PosturaCard
+                                        key={postura.id}
+                                        postura={postura}
+                                        onClick={() => handlePosturaClick(postura)}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Contador total */}
-                {!isLoading && !error && filteredPosturas.length > 0 && (
-                    <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                        {filteredPosturas.length} postura{filteredPosturas.length !== 1 ? 's' : ''} encontrada{filteredPosturas.length !== 1 ? 's' : ''}
-                    </div>
-                )}
-            </div>
+                    {/* Lista de posturas sem alertas */}
+                    {!isLoading && !error && posturasSemAlerta.length > 0 && (
+                        <div>
+                            {posturasComAlerta.length > 0 && (
+                                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
+                                    Outras Posturas ({posturasSemAlerta.length})
+                                </h2>
+                            )}
+                            <div className="space-y-3">
+                                {posturasSemAlerta.map((postura) => (
+                                    <PosturaCard
+                                        key={postura.id}
+                                        postura={postura}
+                                        onClick={() => handlePosturaClick(postura)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Contador total */}
+                    {!isLoading && !error && filteredPosturas.length > 0 && (
+                        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                            {filteredPosturas.length} postura{filteredPosturas.length !== 1 ? 's' : ''} encontrada{filteredPosturas.length !== 1 ? 's' : ''}
+                        </div>
+                    )}
+                </div>
+            </PullToRefresh>
 
             {/* Sheet de edição da postura */}
             <EditPosturaSheet

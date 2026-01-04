@@ -8,6 +8,7 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { useCasais } from './casaisApi'
 import { CasalCard } from './CasalCard'
 import { CasalDetailsSheet } from './CasalDetailsSheet'
@@ -104,75 +105,80 @@ export function CasaisPage() {
             />
 
             <main className="page-content">
-                {/* Campo de busca */}
-                <div className="px-4 pt-4">
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <SearchIcon />
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Buscar casal..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                        />
-                    </div>
-                </div>
-
-                {/* Loading */}
-                {isLoading && (
-                    <div className="p-4 space-y-4">
-                        {[1, 2, 3, 4].map((i) => (
-                            <Skeleton key={i} className="h-40" />
-                        ))}
-                    </div>
-                )}
-
-                {/* Erro */}
-                {error && !isLoading && (
-                    <ErrorState
-                        title="Erro ao carregar casais"
-                        message="Não foi possível carregar a lista de casais."
-                        onRetry={() => refetch()}
-                    />
-                )}
-
-                {/* Lista vazia */}
-                {!isLoading && !error && filteredCasais.length === 0 && (
-                    <EmptyState
-                        title={searchTerm ? 'Nenhum casal encontrado' : 'Nenhum casal ativo'}
-                        description={
-                            searchTerm
-                                ? 'Tente buscar com outros termos.'
-                                : 'Você ainda não tem casais ativos cadastrados.'
-                        }
-                        icon={
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        }
-                    />
-                )}
-
-                {/* Lista de casais */}
-                {!isLoading && !error && filteredCasais.length > 0 && (
-                    <div className="p-4 space-y-4">
-                        {/* Contador */}
-                        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                            <span>{filteredCasais.length} {filteredCasais.length === 1 ? 'casal' : 'casais'}</span>
-                        </div>
-
-                        {/* Cards */}
-                        {filteredCasais.map((casal) => (
-                            <CasalCard
-                                key={casal.id ?? casal.gaiola_id}
-                                casal={casal}
-                                onClick={() => handleSelectCasal(casal)}
+                <PullToRefresh
+                    onRefresh={async () => { await refetch() }}
+                    disabled={isLoading}
+                >
+                    {/* Campo de busca */}
+                    <div className="px-4 pt-4">
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <SearchIcon />
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Buscar casal..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                             />
-                        ))}
+                        </div>
                     </div>
-                )}
+
+                    {/* Loading */}
+                    {isLoading && (
+                        <div className="p-4 space-y-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <Skeleton key={i} className="h-40" />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Erro */}
+                    {error && !isLoading && (
+                        <ErrorState
+                            title="Erro ao carregar casais"
+                            message="Não foi possível carregar a lista de casais."
+                            onRetry={() => refetch()}
+                        />
+                    )}
+
+                    {/* Lista vazia */}
+                    {!isLoading && !error && filteredCasais.length === 0 && (
+                        <EmptyState
+                            title={searchTerm ? 'Nenhum casal encontrado' : 'Nenhum casal ativo'}
+                            description={
+                                searchTerm
+                                    ? 'Tente buscar com outros termos.'
+                                    : 'Você ainda não tem casais ativos cadastrados.'
+                            }
+                            icon={
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                            }
+                        />
+                    )}
+
+                    {/* Lista de casais */}
+                    {!isLoading && !error && filteredCasais.length > 0 && (
+                        <div className="p-4 space-y-4">
+                            {/* Contador */}
+                            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                                <span>{filteredCasais.length} {filteredCasais.length === 1 ? 'casal' : 'casais'}</span>
+                            </div>
+
+                            {/* Cards */}
+                            {filteredCasais.map((casal) => (
+                                <CasalCard
+                                    key={casal.id ?? casal.gaiola_id}
+                                    casal={casal}
+                                    onClick={() => handleSelectCasal(casal)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </PullToRefresh>
             </main>
 
             {/* FAB - Botão Flutuante para Adicionar */}

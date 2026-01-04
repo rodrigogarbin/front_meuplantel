@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, ErrorState } from '@/components/ui'
+import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, ErrorState, PullToRefresh } from '@/components/ui'
 import { BirdCard } from './BirdCard'
 import { BirdDetailsSheet } from './BirdDetailsSheet'
 import { usePassarosInfinite } from './passarosApi'
@@ -192,62 +192,67 @@ export function PassarosPage() {
 
             {/* Lista de pássaros */}
             <main className="flex-1 px-4 py-4 pb-safe-bottom">
-                {isLoading ? (
-                    <BirdListSkeleton count={6} />
-                ) : isError ? (
-                    <ErrorState
-                        title="Erro ao carregar"
-                        message="Não foi possível carregar a lista de pássaros."
-                        onRetry={() => refetch()}
-                    />
-                ) : filteredPassaros.length === 0 ? (
-                    <EmptyState
-                        icon={
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        }
-                        title="Nenhum pássaro encontrado"
-                        description={searchQuery ? 'Tente ajustar os filtros ou a busca.' : 'Não há pássaros cadastrados com estes filtros.'}
-                    />
-                ) : (
-                    <>
-                        {/* Contador de resultados */}
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            {searchQuery
-                                ? `${filteredPassaros.length} ${filteredPassaros.length === 1 ? 'resultado' : 'resultados'}`
-                                : `${passaros.length} de ${totalPassaros} ${totalPassaros === 1 ? 'pássaro' : 'pássaros'}`
+                <PullToRefresh
+                    onRefresh={async () => { await refetch() }}
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <BirdListSkeleton count={6} />
+                    ) : isError ? (
+                        <ErrorState
+                            title="Erro ao carregar"
+                            message="Não foi possível carregar a lista de pássaros."
+                            onRetry={() => refetch()}
+                        />
+                    ) : filteredPassaros.length === 0 ? (
+                        <EmptyState
+                            icon={
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
                             }
-                        </p>
+                            title="Nenhum pássaro encontrado"
+                            description={searchQuery ? 'Tente ajustar os filtros ou a busca.' : 'Não há pássaros cadastrados com estes filtros.'}
+                        />
+                    ) : (
+                        <>
+                            {/* Contador de resultados */}
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                                {searchQuery
+                                    ? `${filteredPassaros.length} ${filteredPassaros.length === 1 ? 'resultado' : 'resultados'}`
+                                    : `${passaros.length} de ${totalPassaros} ${totalPassaros === 1 ? 'pássaro' : 'pássaros'}`
+                                }
+                            </p>
 
-                        {/* Grid de cards */}
-                        <div className="space-y-3">
-                            {filteredPassaros.map((bird) => (
-                                <BirdCard
-                                    key={bird.passaro_id}
-                                    bird={bird}
-                                    onClick={() => handleCardClick(bird)}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Elemento para detectar scroll infinito (só quando não há busca) */}
-                        {!searchQuery && (
-                            <div ref={loadMoreRef} className="py-4">
-                                {isFetchingNextPage && (
-                                    <div className="flex justify-center">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent" />
-                                    </div>
-                                )}
-                                {!hasNextPage && passaros.length > 0 && (
-                                    <p className="text-center text-sm text-gray-400 dark:text-gray-500">
-                                        Fim da lista
-                                    </p>
-                                )}
+                            {/* Grid de cards */}
+                            <div className="space-y-3">
+                                {filteredPassaros.map((bird) => (
+                                    <BirdCard
+                                        key={bird.passaro_id}
+                                        bird={bird}
+                                        onClick={() => handleCardClick(bird)}
+                                    />
+                                ))}
                             </div>
-                        )}
-                    </>
-                )}
+
+                            {/* Elemento para detectar scroll infinito (só quando não há busca) */}
+                            {!searchQuery && (
+                                <div ref={loadMoreRef} className="py-4">
+                                    {isFetchingNextPage && (
+                                        <div className="flex justify-center">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent" />
+                                        </div>
+                                    )}
+                                    {!hasNextPage && passaros.length > 0 && (
+                                        <p className="text-center text-sm text-gray-400 dark:text-gray-500">
+                                            Fim da lista
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </PullToRefresh>
             </main>
 
             {/* Modal de detalhes */}
