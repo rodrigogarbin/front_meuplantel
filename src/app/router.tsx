@@ -7,6 +7,7 @@ import { LoginPage, RegisterPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
+import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage } from '@/features/config'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
             {
                 path: '/casais',
                 element: <CasaisPage />,
+            },
+            {
+                path: '/posturas',
+                element: <PosturasPage />,
             },
             {
                 path: '/config',
