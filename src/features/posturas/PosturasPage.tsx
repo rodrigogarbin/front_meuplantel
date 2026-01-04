@@ -11,9 +11,15 @@ import { EditPosturaSheet } from '@/features/casais'
 import { useCasal } from '@/features/casais/casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
 
-// Função para calcular alertas
-function getPosturaAlerts(postura: PosturaListItem): string[] {
-    const alerts: string[] = []
+// Tipo para resultado dos alertas
+interface PosturaAlertResult {
+    alerts: string[]
+    previsao?: Date // Data prevista para nascimento (quando em CHOCO)
+}
+
+// Função para calcular alertas e previsão
+function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
+    const result: PosturaAlertResult = { alerts: [] }
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
 
@@ -28,8 +34,11 @@ function getPosturaAlerts(postura: PosturaListItem): string[] {
         const dataDescascando = new Date(dataPostura)
         dataDescascando.setDate(dataDescascando.getDate() + diasChoco)
 
+        // Guarda a previsão de nascimento
+        result.previsao = dataDescascando
+
         if (dataDescascando <= hoje) {
-            alerts.push('🐣 Descascando')
+            result.alerts.push('🐣 Descascando')
         }
     }
 
@@ -46,7 +55,7 @@ function getPosturaAlerts(postura: PosturaListItem): string[] {
             if (dataAnilhar <= hoje) {
                 // Verifica se tem anel preenchido
                 if (!postura.nro_anel && !postura.ano_anel) {
-                    alerts.push('💍 Hora de Anilhar')
+                    result.alerts.push('💍 Hora de Anilhar')
                 }
             }
 
@@ -55,12 +64,20 @@ function getPosturaAlerts(postura: PosturaListItem): string[] {
             dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
 
             if (dataSeparar <= hoje) {
-                alerts.push('🏠 Hora de Separar')
+                result.alerts.push('🏠 Hora de Separar')
+            }
+
+            // Se data_nasc + 30 dias <= hoje => "Verificar" (postura antiga sem resolução)
+            const dataVerificar = new Date(dataNasc)
+            dataVerificar.setDate(dataVerificar.getDate() + 30)
+
+            if (dataVerificar <= hoje) {
+                result.alerts.push('⚠️ Verificar')
             }
         }
     }
 
-    return alerts
+    return result
 }
 
 // Função para formatar data
@@ -122,6 +139,8 @@ function AlertBadge({ text }: { text: string }) {
         className = 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 animate-pulse'
     } else if (text.includes('Separar')) {
         className = 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 animate-pulse'
+    } else if (text.includes('Verificar')) {
+        className = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 animate-pulse'
     }
 
     return (
@@ -133,12 +152,18 @@ function AlertBadge({ text }: { text: string }) {
 
 // Componente do card de postura
 function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: () => void }) {
-    const alerts = getPosturaAlerts(postura)
+    const { alerts, previsao } = getPosturaAlerts(postura)
 
     // Formata info do casal
     const casalNro = postura.casal?.nro ?? '?'
     const machoAnel = formatRingComplete(postura.casal?.macho?.anel)
     const femeaAnel = formatRingComplete(postura.casal?.femea?.anel)
+
+    // Formata previsão de nascimento
+    const formatPrevisao = (date: Date | undefined): string | null => {
+        if (!date) return null
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    }
 
     return (
         <div
@@ -168,6 +193,15 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
                     <div>
                         <span className="text-gray-500 dark:text-gray-400">Nasc:</span>
                         <span className="ml-1 text-gray-900 dark:text-gray-100">{formatDate(postura.data_nasc)}</span>
+                    </div>
+                )}
+                {/* Previsão de nascimento para posturas em CHOCO */}
+                {postura.sit === SitPostura.CHOCO && previsao && (
+                    <div>
+                        <span className="text-gray-500 dark:text-gray-400">Previsão:</span>
+                        <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
+                            🥚 {formatPrevisao(previsao)}
+                        </span>
                     </div>
                 )}
                 {postura.nro_rodada && (
@@ -218,7 +252,7 @@ function PosturaCardSkeleton() {
 }
 
 // Tipos de filtro
-type FilterType = 'todas' | 'descascando' | 'anilhar' | 'separar'
+type FilterType = 'todas' | 'descascando' | 'anilhar' | 'separar' | 'verificar'
 
 // Página principal
 export function PosturasPage() {
@@ -233,8 +267,8 @@ export function PosturasPage() {
     const { data: casalData } = useCasal(selectedPostura?.casal?.id ?? null)
 
     // Função para verificar se postura tem alerta específico
-    const hasAlert = (postura: PosturaListItem, alertType: 'descascando' | 'anilhar' | 'separar'): boolean => {
-        const alerts = getPosturaAlerts(postura)
+    const hasAlert = (postura: PosturaListItem, alertType: 'descascando' | 'anilhar' | 'separar' | 'verificar'): boolean => {
+        const { alerts } = getPosturaAlerts(postura)
         switch (alertType) {
             case 'descascando':
                 return alerts.some(a => a.includes('Descascando'))
@@ -242,13 +276,15 @@ export function PosturasPage() {
                 return alerts.some(a => a.includes('Anilhar'))
             case 'separar':
                 return alerts.some(a => a.includes('Separar'))
+            case 'verificar':
+                return alerts.some(a => a.includes('Verificar'))
             default:
                 return false
         }
     }
 
     // Filtra posturas pelo termo de busca e tipo de filtro
-    const filteredPosturas = posturas?.filter((postura) => {
+    const filteredPosturas: PosturaListItem[] = posturas?.filter((postura: PosturaListItem) => {
         // Filtro por tipo de alerta
         if (filterType !== 'todas') {
             if (!hasAlert(postura, filterType)) {
@@ -274,8 +310,8 @@ export function PosturasPage() {
     }) ?? []
 
     // Agrupa por prioridade de alerta
-    const posturasComAlerta = filteredPosturas.filter(p => getPosturaAlerts(p).length > 0)
-    const posturasSemAlerta = filteredPosturas.filter(p => getPosturaAlerts(p).length === 0)
+    const posturasComAlerta = filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length > 0)
+    const posturasSemAlerta = filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length === 0)
 
     // Abre o detalhe da postura
     const handlePosturaClick = (postura: PosturaListItem) => {
@@ -361,6 +397,15 @@ export function PosturasPage() {
                             }`}
                     >
                         🏠 Separar
+                    </button>
+                    <button
+                        onClick={() => setFilterType('verificar')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'verificar'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            }`}
+                    >
+                        ⚠️ Verificar
                     </button>
                 </div>
 
