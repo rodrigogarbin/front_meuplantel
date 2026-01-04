@@ -50,7 +50,7 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
           server: 192.185.215.242
-          username: ftp_front
+          username: ftp_front@agapornis.com.br
           password: ${{ secrets.SSH_PASSWORD }}
           server-dir: ./
           local-dir: ./dist/
