@@ -4,16 +4,17 @@
  * Mobile-first design com formulário de autenticação
  */
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useRef } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
-import { HCaptchaWrapper } from '@/components/HCaptcha'
+import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
 
 export function LoginPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const login = useAuthStore((state) => state.login)
+    const captchaRef = useRef<HCaptchaRef>(null)
 
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
@@ -42,13 +43,16 @@ export function LoginPage() {
         } catch (err) {
             const axiosError = err as AxiosError<{ error?: string; message?: string }>
 
+            // Reset captcha para permitir nova tentativa
+            captchaRef.current?.resetCaptcha()
+            setCaptchaToken(null)
+
             if (axiosError.response?.status === 401) {
                 setError('Usuário ou senha inválidos')
             } else if (axiosError.response?.status === 422) {
                 setError('Preencha todos os campos corretamente')
             } else if (axiosError.response?.status === 400) {
                 setError('Captcha inválido. Tente novamente.')
-                setCaptchaToken(null)
             } else if (axiosError.message === 'Network Error') {
                 setError('Sem conexão com o servidor')
             } else {
@@ -154,6 +158,7 @@ export function LoginPage() {
 
                         {/* hCaptcha */}
                         <HCaptchaWrapper
+                            ref={captchaRef}
                             onVerify={(token) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}

@@ -84,10 +84,35 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
         ?? casal.femea?.especieUsuario?.dias_choco
         ?? null
 
-    // Agrupa posturas por status - Choco = 0
+    const diasAnilha = casal.macho?.especie_usuario?.dias_anilha
+        ?? casal.macho?.especieUsuario?.dias_anilha
+        ?? casal.femea?.especie_usuario?.dias_anilha
+        ?? casal.femea?.especieUsuario?.dias_anilha
+        ?? 7
+
+    const diasSepara = casal.macho?.especie_usuario?.dias_separa
+        ?? casal.macho?.especieUsuario?.dias_separa
+        ?? casal.femea?.especie_usuario?.dias_separa
+        ?? casal.femea?.especieUsuario?.dias_separa
+        ?? 45
+
+    // Verifica se uma postura NASCIDA precisa de ação (não tem pássaro vinculado ainda)
+    const posturaPrecisaAcao = (postura: Postura): boolean => {
+        if (postura.sit !== SitPostura.NASCIDO) return false
+        // Se já tem pássaro vinculado, não precisa de ação
+        if (postura.passaro_id) return false
+        return true
+    }
+
+    // Agrupa posturas por status
     const posturas = casal.posturas ?? []
-    const posturasChocando = posturas.filter(p => p.sit === SitPostura.CHOCO)
-    const posturasConcluidas = posturas.filter(p => p.sit !== SitPostura.CHOCO)
+    // Ovos ativos = chocando ou nascidos que precisam de ação
+    const ovosAtivos = posturas.filter(p =>
+        p.sit === SitPostura.CHOCO || posturaPrecisaAcao(p)
+    )
+    const posturasConcluidas = posturas.filter(p =>
+        p.sit !== SitPostura.CHOCO && !posturaPrecisaAcao(p)
+    )
 
     // Contadores
     const totalOvos = posturas.length
@@ -227,19 +252,21 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     </div>
                 )}
 
-                {/* Ovos Chocando */}
-                {posturasChocando.length > 0 && (
+                {/* Ovos Ativos (chocando ou com ação pendente) */}
+                {ovosAtivos.length > 0 && (
                     <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-4 space-y-3">
                         <h3 className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
                             <EggIcon className="w-5 h-5" />
-                            Ovos Chocando ({posturasChocando.length})
+                            Ovos ({ovosAtivos.length})
                         </h3>
                         <div className="space-y-2">
-                            {posturasChocando.map((postura) => (
-                                <PosturaChip
+                            {ovosAtivos.map((postura) => (
+                                <PosturaOvoChip
                                     key={postura.postura_id}
                                     postura={postura}
                                     diasChoco={diasChoco}
+                                    diasAnilha={diasAnilha}
+                                    diasSepara={diasSepara}
                                     onClick={() => handleEditPostura(postura)}
                                 />
                             ))}
@@ -326,8 +353,14 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     )
 }
 
-// Chip individual de postura chocando
-function PosturaChip({ postura, diasChoco, onClick }: { postura: Postura; diasChoco: number | null; onClick?: () => void }) {
+// Chip unificado de ovo (chocando ou com ação pendente)
+function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
+    postura: Postura
+    diasChoco: number | null
+    diasAnilha: number
+    diasSepara: number
+    onClick?: () => void
+}) {
     // Formata data curta (DD/MM)
     const formatShortDate = (dateStr: string | null | undefined): string => {
         if (!dateStr) return '—'
@@ -342,9 +375,12 @@ function PosturaChip({ postura, diasChoco, onClick }: { postura: Postura; diasCh
         }
     }
 
-    // Calcula previsão de nascimento
+    const isChocando = postura.sit === SitPostura.CHOCO
+    const isNascido = postura.sit === SitPostura.NASCIDO
+
+    // Calcula previsão de nascimento (para ovos chocando)
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if (!postura.data || !diasChoco) return null
+        if (!isChocando || !postura.data || !diasChoco) return null
         try {
             const dataPostura = new Date(postura.data)
             if (isNaN(dataPostura.getTime())) return null
@@ -368,42 +404,107 @@ function PosturaChip({ postura, diasChoco, onClick }: { postura: Postura; diasCh
         }
     }
 
+    // Calcula alertas (para ovos nascidos)
+    const getAlerts = (): string[] => {
+        const alerts: string[] = []
+        if (!isNascido || !postura.data_nasc) return alerts
+
+        const hoje = new Date()
+        hoje.setHours(0, 0, 0, 0)
+        const dataNasc = new Date(postura.data_nasc)
+        dataNasc.setHours(0, 0, 0, 0)
+
+        const diffTime = hoje.getTime() - dataNasc.getTime()
+        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+        if (diasDesdeNasc >= diasAnilha && !postura.nro_anel && !postura.ano_anel) {
+            alerts.push('💍 Anilhar')
+        }
+        if (diasDesdeNasc >= diasSepara) {
+            alerts.push('🏠 Separar')
+        }
+        if (diasDesdeNasc >= 30) {
+            alerts.push('⚠️ Verificar')
+        }
+
+        return alerts
+    }
+
     const previsao = calcPrevisaoNascimento()
+    const alerts = getAlerts()
+
+    // Cor do ícone e borda baseada no status
+    const iconColor = isChocando ? 'text-amber-500' : 'text-emerald-500'
+    const borderColor = isChocando
+        ? 'border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500'
+        : 'border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 dark:hover:border-emerald-500'
 
     return (
         <button
             onClick={onClick}
-            className="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-sm transition-all active:scale-[0.98] w-full text-left"
+            className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
         >
-            <EggIcon className="w-8 h-8 text-amber-500 flex-shrink-0" />
+            <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <span>Postura:</span>
-                    <span className="font-medium">{formatShortDate(postura.data)}</span>
-                </div>
-                {previsao && (
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">Nasce:</span>
-                        <span className="font-semibold text-amber-700 dark:text-amber-300">{previsao.data}</span>
-                        {previsao.diasRestantes > 0 ? (
-                            <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
-                                {previsao.diasRestantes}d
-                            </span>
-                        ) : previsao.diasRestantes === 0 ? (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded font-semibold">
-                                Hoje!
-                            </span>
-                        ) : (
-                            <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded">
-                                {Math.abs(previsao.diasRestantes)}d atraso
-                            </span>
+                {/* Info principal */}
+                {isChocando ? (
+                    <>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span>Postura:</span>
+                            <span className="font-medium">{formatShortDate(postura.data)}</span>
+                        </div>
+                        {previsao && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Nasce:</span>
+                                <span className="font-semibold text-amber-700 dark:text-amber-300">{previsao.data}</span>
+                                {previsao.diasRestantes > 0 ? (
+                                    <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
+                                        {previsao.diasRestantes}d
+                                    </span>
+                                ) : previsao.diasRestantes === 0 ? (
+                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded font-semibold">
+                                        Hoje!
+                                    </span>
+                                ) : (
+                                    <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded animate-pulse">
+                                        🐣 Descascando
+                                    </span>
+                                )}
+                            </div>
                         )}
-                    </div>
-                )}
-                {!previsao && diasChoco && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                        Choco: {diasChoco} dias
-                    </div>
+                        {!previsao && diasChoco && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500">
+                                Choco: {diasChoco} dias
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span>Nasceu:</span>
+                            <span className="font-medium">{formatShortDate(postura.data_nasc)}</span>
+                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                Nascido
+                            </span>
+                        </div>
+                        {alerts.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {alerts.map((alert, idx) => (
+                                    <span
+                                        key={idx}
+                                        className={`px-1.5 py-0.5 rounded text-xs font-medium animate-pulse ${alert.includes('Anilhar')
+                                                ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+                                                : alert.includes('Separar')
+                                                    ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300'
+                                                    : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+                                            }`}
+                                    >
+                                        {alert}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
