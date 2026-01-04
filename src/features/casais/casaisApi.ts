@@ -166,6 +166,33 @@ export function usePostura(id: number | null) {
 // ============================================
 
 /**
+ * Busca todas as posturas de um casal
+ */
+async function fetchPosturasByCasal(casalId: number): Promise<Postura[]> {
+    const response = await api.get<Postura[] | { data: Postura[] }>(`/api/v1/casais/${casalId}/posturas`)
+
+    if ('data' in response.data && Array.isArray(response.data.data)) {
+        return response.data.data
+    }
+    if (Array.isArray(response.data)) {
+        return response.data
+    }
+    return []
+}
+
+/**
+ * Hook para buscar posturas de um casal específico
+ */
+export function usePosturasByCasal(casalId: number | null, enabled = false) {
+    return useQuery({
+        queryKey: ['posturas', 'casal', casalId],
+        queryFn: () => fetchPosturasByCasal(casalId!),
+        enabled: enabled && casalId !== null,
+        staleTime: 2 * 60 * 1000,
+    })
+}
+
+/**
  * Cria uma nova postura (ovo) para um casal
  */
 async function createPostura(casalId: number, payload: CreatePosturaPayload): Promise<Postura> {

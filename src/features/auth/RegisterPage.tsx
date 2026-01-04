@@ -4,11 +4,11 @@
  * Mobile-first design com formulário de cadastro de novo usuário
  */
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios, { AxiosError } from 'axios'
 import { API_BASE_URL } from '@/lib/api'
-import { HCaptchaWrapper } from '@/components/HCaptcha'
+import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
 
 interface RegisterForm {
     nome: string
@@ -24,6 +24,7 @@ interface ValidationErrors {
 }
 
 export function RegisterPage() {
+    const captchaRef = useRef<HCaptchaRef>(null)
     const [formData, setFormData] = useState<RegisterForm>({
         nome: '',
         email: '',
@@ -73,13 +74,16 @@ export function RegisterPage() {
         } catch (err) {
             const axiosError = err as AxiosError<{ message?: ValidationErrors | string }>
 
+            // Reset captcha para permitir nova tentativa
+            captchaRef.current?.resetCaptcha()
+            setCaptchaToken(null)
+
             if (axiosError.response?.status === 400) {
                 const message = axiosError.response.data?.message
                 if (typeof message === 'object') {
                     setFieldErrors(message)
                 } else if (message === 'Captcha inválido') {
                     setError('Captcha inválido. Tente novamente.')
-                    setCaptchaToken(null)
                 } else {
                     setError(message || 'Erro de validação')
                 }
@@ -337,6 +341,7 @@ export function RegisterPage() {
 
                         {/* hCaptcha */}
                         <HCaptchaWrapper
+                            ref={captchaRef}
                             onVerify={(token) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}
