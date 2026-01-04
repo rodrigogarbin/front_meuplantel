@@ -46,23 +46,11 @@ jobs:
           VITE_API_URL: "https://apih.agapornis.com.br"
           VITE_HCAPTCHA_SITEKEY: "bbc0cbf8-ae7a-40c2-a870-959019e6a484"
 
-      - name: Deploy to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: 📂 Sync files
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
-          host: 192.185.215.242
+          server: 192.185.215.242
           username: ftp_front
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 2222
-          source: "dist/*"
-          target: "./"
-      
-      - name: Clear cache on server
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: 192.185.215.242
-          username: ftp_front
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 2222
-          script: |
-            rm -rf ./cache/*
-
+          password: ${{ secrets.ftp_password }}
+          server-dir: ./
+          local-dir: ./dist/
