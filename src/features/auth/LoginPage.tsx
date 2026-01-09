@@ -192,6 +192,11 @@ export function LoginPage() {
                     {/* Footer */}
                     <div className="text-center mt-6 space-y-2">
                         <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <Link to="/forgot-password" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                                Esqueci minha senha
+                            </Link>
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Não tem uma conta?{' '}
                             <Link to="/register" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
                                 Cadastre-se

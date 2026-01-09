@@ -3,7 +3,7 @@
  */
 
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { LoginPage, RegisterPage } from '@/features/auth'
+import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
@@ -44,6 +44,10 @@ export const router = createBrowserRouter([
     {
         path: '/register',
         element: <RegisterPage />,
+    },
+    {
+        path: '/forgot-password',
+        element: <ForgotPasswordPage />,
     },
     {
         // Rotas autenticadas com layout compartilhado (bottom nav)

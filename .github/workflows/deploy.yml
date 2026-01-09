@@ -54,3 +54,4 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           server-dir: ./
           local-dir: ./dist/
+          timeout: 60000 
