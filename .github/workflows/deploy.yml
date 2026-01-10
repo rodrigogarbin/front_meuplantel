@@ -55,3 +55,13 @@ jobs:
           server-dir: ./
           local-dir: ./dist/
           timeout: 60000 
+
+      - name: 📂 Sync files meuplantel
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: 192.185.215.244
+          username: meuplantel_agapornis@meuplantel.com
+          password: ${{ secrets.ftp_password_mp }}
+          server-dir: app2.meuplantel.com/
+          local-dir: ./dist/
+          timeout: 60000 
