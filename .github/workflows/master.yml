@@ -46,12 +46,12 @@ jobs:
           VITE_API_URL: "https://apih.agapornis.com.br"
           VITE_HCAPTCHA_SITEKEY: "bbc0cbf8-ae7a-40c2-a870-959019e6a484"
 
-      - name: 📂 Sync files
+      - name: 📂 Sync files meuplantel
         uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
-          server: 192.185.215.242
-          username: ftp_front@agapornis.com.br
-          password: ${{ secrets.SSH_PASSWORD }}
-          server-dir: ./
+          server: 192.185.215.244
+          username: app2@meuplantel.com
+          password: ${{ secrets.FTP_APP2 }}
+          server-dir: ./app2.meuplantel.com/
           local-dir: ./dist/
           timeout: 60000 
