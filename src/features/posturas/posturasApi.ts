@@ -37,6 +37,7 @@ export interface PosturaListItem {
         macho?: {
             id: number
             especie_usuario_id: number | null
+            descr?: string | null
             anel?: {
                 ano: number
                 nro: number
@@ -46,6 +47,7 @@ export interface PosturaListItem {
         femea?: {
             id: number
             especie_usuario_id: number | null
+            descr?: string | null
             anel?: {
                 ano: number
                 nro: number
