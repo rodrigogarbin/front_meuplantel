@@ -263,7 +263,7 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                         </div>
 
                         {/* Botão Registrar Pássaro */}
-                        {postura.sit === SitPostura.NASCIDO && !postura.passaro_id && (
+                        {postura.sit === SitPostura.NASCIDO && !postura.passaro_id && postura.nro_anel && postura.ano_anel && (
                             <button
                                 onClick={() => {
                                     // Passa apenas o ID da postura - os demais dados serão buscados

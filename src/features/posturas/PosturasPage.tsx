@@ -40,38 +40,36 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
         if (dataDescascando <= hoje) {
             result.alerts.push('🐣 Descascando')
         }
+
+        // Se era para nascer e não nasceu após 30 dias
+        const dataVerificar = new Date(dataDescascando)
+        dataVerificar.setDate(dataVerificar.getDate() + 30)
+        if (!postura.data_nasc && dataVerificar <= hoje) {
+            result.alerts.push('⚠️ Verificar')
+        }
     }
 
     // Se status é NASCIDO e não tem passaro_id (ainda não gerou filhote)
     if (postura.sit === SitPostura.NASCIDO && !postura.passaro) {
-        // Se data_nasc + dias_anilha <= hoje => "Hora de Anilhar"
         if (postura.data_nasc) {
             const dataNasc = new Date(postura.data_nasc)
             dataNasc.setHours(0, 0, 0, 0)
             const dataAnilhar = new Date(dataNasc)
             dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
 
-            // Mostrar se já passou a data ou está no dia
-            if (dataAnilhar <= hoje) {
-                // Verifica se tem anel preenchido
-                if (!postura.nro_anel && !postura.ano_anel) {
-                    result.alerts.push('💍 Hora de Anilhar')
-                }
+            // Se era pra anilhar e não anilhou após 30 dias
+            const dataVerificarAnilhar = new Date(dataAnilhar)
+            dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
+            if ((!postura.nro_anel || !postura.ano_anel) && dataVerificarAnilhar <= hoje) {
+                result.alerts.push('⚠️ Verificar')
             }
 
-            // Se data_nasc + dias_separa <= hoje => "Hora de Separar"
+            // Se era pra separar e não separou após 30 dias
             const dataSeparar = new Date(dataNasc)
             dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
-
-            if (dataSeparar <= hoje) {
-                result.alerts.push('🏠 Hora de Separar')
-            }
-
-            // Se data_nasc + 30 dias <= hoje => "Verificar" (postura antiga sem resolução)
-            const dataVerificar = new Date(dataNasc)
-            dataVerificar.setDate(dataVerificar.getDate() + 30)
-
-            if (dataVerificar <= hoje) {
+            const dataVerificarSeparar = new Date(dataSeparar)
+            dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
+            if (dataVerificarSeparar <= hoje) {
                 result.alerts.push('⚠️ Verificar')
             }
         }
@@ -158,6 +156,8 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
     const casalNro = postura.casal?.nro ?? '?'
     const machoAnel = formatRingComplete(postura.casal?.macho?.anel)
     const femeaAnel = formatRingComplete(postura.casal?.femea?.anel)
+    const machoDescr = postura.casal?.macho?.descr ?? ''
+    const femeaDescr = postura.casal?.femea?.descr ?? ''
 
     // Formata previsão de nascimento
     const formatPrevisao = (date: Date | undefined): string | null => {
@@ -176,9 +176,10 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                         Casal #{casalNro}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        ♂ {machoAnel} × ♀ {femeaAnel}
-                    </p>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div>♂ {machoAnel}{machoDescr ? ` - ${machoDescr}` : ''}</div>
+                        <div>♀ {femeaAnel}{femeaDescr ? ` - ${femeaDescr}` : ''}</div>
+                    </div>
                 </div>
                 <StatusBadge sit={postura.sit ?? 0} />
             </div>

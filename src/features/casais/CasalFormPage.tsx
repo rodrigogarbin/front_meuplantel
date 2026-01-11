@@ -140,11 +140,16 @@ export function CasalFormPage() {
     // Preenche o formulário quando carregar um casal existente
     useEffect(() => {
         if (casal && isEditing) {
+            // Garante formato YYYY-MM-DD para o input date
+            let vigen_inicial = casal.vigen_inicial || ''
+            if (vigen_inicial && vigen_inicial.length > 10) {
+                vigen_inicial = vigen_inicial.slice(0, 10)
+            }
             setFormData({
                 nro: casal.nro?.toString() || '',
                 passaro_macho_id: casal.passaro_macho_id ?? null,
                 passaro_femea_id: casal.passaro_femea_id ?? null,
-                vigen_inicial: casal.vigen_inicial || '',
+                vigen_inicial,
                 descr_pai: casal.descr_pai || '',
                 descr_mae: casal.descr_mae || '',
             })
