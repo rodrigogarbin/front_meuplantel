@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: pnpm run build
         env:
-          VITE_API_URL: "https://apih.agapornis.com.br"
+          VITE_API_URL: "https://api.agapornis.com.br"
           VITE_HCAPTCHA_SITEKEY: "bbc0cbf8-ae7a-40c2-a870-959019e6a484"
 
       - name: 📂 Sync files meuplantel
