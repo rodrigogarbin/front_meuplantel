@@ -60,8 +60,8 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
           server: 192.185.215.244
-          username: meuplantel_agapornis@meuplantel.com
-          password: ${{ secrets.ftp_password_mp }}
+          username: app2@meuplantel.com
+          password: ${{ secrets.FTP_APP2 }}
           server-dir: app2.meuplantel.com/
           local-dir: ./dist/
           timeout: 60000 
