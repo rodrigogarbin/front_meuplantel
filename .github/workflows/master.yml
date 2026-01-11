@@ -54,4 +54,3 @@ jobs:
           password: ${{ secrets.FTP_APP2 }}
           server-dir: ./app2.meuplantel.com/
           local-dir: ./dist/
-          timeout: 60000 
