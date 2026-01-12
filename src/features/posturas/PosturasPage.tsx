@@ -56,31 +56,48 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
         if (postura.data_nasc) {
             const dataNasc = new Date(postura.data_nasc)
             dataNasc.setHours(0, 0, 0, 0)
-            const dataAnilhar = new Date(dataNasc)
-            dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
 
-            // Data da próxima ação é a data de anilhar
-            result.proximaAcao = dataAnilhar
+            // Verifica se já foi anilhado (tem nro_anel e ano_anel)
+            const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
 
-            // Se chegou a hora de anilhar
-            if (dataAnilhar <= hoje) {
-                result.alerts.push('💍 Hora de anilhar')
-            }
+            if (!jaAnilhado) {
+                // Se ainda não foi anilhado, verifica a data de anilhar
+                const dataAnilhar = new Date(dataNasc)
+                dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
 
-            // Se era pra anilhar e não anilhou após 30 dias
-            const dataVerificarAnilhar = new Date(dataAnilhar)
-            dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
-            if ((!postura.nro_anel || !postura.ano_anel) && dataVerificarAnilhar <= hoje) {
-                result.alerts.push('⚠️ Verificar')
-            }
+                // Data da próxima ação é a data de anilhar
+                result.proximaAcao = dataAnilhar
 
-            // Se era pra separar e não separou após 30 dias
-            const dataSeparar = new Date(dataNasc)
-            dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
-            const dataVerificarSeparar = new Date(dataSeparar)
-            dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
-            if (dataVerificarSeparar <= hoje) {
-                result.alerts.push('⚠️ Verificar')
+                // Se chegou a hora de anilhar
+                if (dataAnilhar <= hoje) {
+                    result.alerts.push('💍 Hora de anilhar')
+                }
+
+                // Se era pra anilhar e não anilhou após 30 dias
+                const dataVerificarAnilhar = new Date(dataAnilhar)
+                dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
+                if (dataVerificarAnilhar <= hoje) {
+                    result.alerts.push('⚠️ Verificar')
+                }
+            } else {
+                // Se já foi anilhado, verifica se está na hora de separar
+                const dataSeparar = new Date(dataNasc)
+                dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
+
+                // Data da próxima ação é a data de separar
+                result.proximaAcao = dataSeparar
+
+                // Se chegou a hora de separar
+                if (dataSeparar <= hoje) {
+                    result.alerts.push('🔀 Separar')
+                }
+
+                // Se era pra separar e não separou após 30 dias
+                const dataVerificarSeparar = new Date(dataSeparar)
+                dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
+                if (dataVerificarSeparar <= hoje) {
+                    result.alerts.push('⚠️ Verificar')
+                }
             }
         }
     }
@@ -97,17 +114,17 @@ function formatDate(dateStr: string | null): string {
 
 // Componente de alerta badge
 function AlertBadge({ text }: { text: string }) {
-    // Determinar cor baseado no tipo de alerta
+    // Determinar cor baseado no tipo de alerta (mesmas cores dos filtros)
     let className = 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300'
 
     if (text.includes('Nascendo')) {
-        className = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 animate-pulse'
+        className = 'bg-yellow-500 text-white animate-pulse'
     } else if (text.includes('Hora de anilhar')) {
-        className = 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 animate-pulse'
+        className = 'bg-purple-500 text-white animate-pulse'
     } else if (text.includes('Separar')) {
-        className = 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 animate-pulse'
+        className = 'bg-cyan-500 text-white animate-pulse'
     } else if (text.includes('Verificar')) {
-        className = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 animate-pulse'
+        className = 'bg-red-500 text-white animate-pulse'
     }
 
     return (
