@@ -31,6 +31,8 @@ export interface PosturaListItem {
     casal?: {
         id: number
         nro: number | null
+        descr_pai?: string | null
+        descr_mae?: string | null
         dias_choco: number | null
         dias_anilha: number | null
         dias_separa: number | null

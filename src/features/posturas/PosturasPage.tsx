@@ -15,6 +15,7 @@ import { formatRingComplete } from '@/lib/passaro'
 interface PosturaAlertResult {
     alerts: string[]
     previsao?: Date // Data prevista para nascimento (quando em CHOCO)
+    proximaAcao?: Date // Data da próxima ação necessária (para ordenação)
 }
 
 // Função para calcular alertas e previsão
@@ -27,22 +28,23 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
     const diasAnilha = postura.casal?.dias_anilha ?? 7
     const diasSepara = postura.casal?.dias_separa ?? 45
 
-    // Se status é CHOCO e data + dias_choco >= hoje => "Descascando"
+    // Se status é CHOCO e data + dias_choco >= hoje => "Nascendo"
     if (postura.sit === SitPostura.CHOCO && postura.data) {
         const dataPostura = new Date(postura.data)
         dataPostura.setHours(0, 0, 0, 0)
-        const dataDescascando = new Date(dataPostura)
-        dataDescascando.setDate(dataDescascando.getDate() + diasChoco)
+        const dataNascendo = new Date(dataPostura)
+        dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
 
         // Guarda a previsão de nascimento
-        result.previsao = dataDescascando
+        result.previsao = dataNascendo
+        result.proximaAcao = dataNascendo
 
-        if (dataDescascando <= hoje) {
-            result.alerts.push('🐣 Descascando')
+        if (dataNascendo <= hoje) {
+            result.alerts.push('🐣 Nascendo')
         }
 
         // Se era para nascer e não nasceu após 30 dias
-        const dataVerificar = new Date(dataDescascando)
+        const dataVerificar = new Date(dataNascendo)
         dataVerificar.setDate(dataVerificar.getDate() + 30)
         if (!postura.data_nasc && dataVerificar <= hoje) {
             result.alerts.push('⚠️ Verificar')
@@ -56,6 +58,14 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
             dataNasc.setHours(0, 0, 0, 0)
             const dataAnilhar = new Date(dataNasc)
             dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
+
+            // Data da próxima ação é a data de anilhar
+            result.proximaAcao = dataAnilhar
+
+            // Se chegou a hora de anilhar
+            if (dataAnilhar <= hoje) {
+                result.alerts.push('💍 Hora de anilhar')
+            }
 
             // Se era pra anilhar e não anilhou após 30 dias
             const dataVerificarAnilhar = new Date(dataAnilhar)
@@ -85,55 +95,14 @@ function formatDate(dateStr: string | null): string {
     return date.toLocaleDateString('pt-BR')
 }
 
-// Componente de status badge
-function StatusBadge({ sit }: { sit: number }) {
-    const config: Record<number, { label: string; className: string }> = {
-        [SitPostura.CHOCO]: {
-            label: 'Chocando',
-            className: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
-        },
-        [SitPostura.NASCIDO]: {
-            label: 'Nascido',
-            className: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
-        },
-        [SitPostura.BRANCO]: {
-            label: 'Infértil',
-            className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
-        },
-        [SitPostura.EMBRIAO_MORTO]: {
-            label: 'Embrião Morto',
-            className: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
-        },
-        [SitPostura.FILHOTE_MORTO]: {
-            label: 'Filhote Morto',
-            className: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
-        },
-        [SitPostura.FERTIL]: {
-            label: 'Fértil',
-            className: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
-        },
-    }
-
-    const { label, className } = config[sit] || {
-        label: 'Desconhecido',
-        className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
-    }
-
-    return (
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${className}`}>
-            {label}
-        </span>
-    )
-}
-
 // Componente de alerta badge
 function AlertBadge({ text }: { text: string }) {
     // Determinar cor baseado no tipo de alerta
     let className = 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300'
 
-    if (text.includes('Descascando')) {
+    if (text.includes('Nascendo')) {
         className = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 animate-pulse'
-    } else if (text.includes('Anilhar')) {
+    } else if (text.includes('Hora de anilhar')) {
         className = 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 animate-pulse'
     } else if (text.includes('Separar')) {
         className = 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 animate-pulse'
@@ -156,8 +125,10 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
     const casalNro = postura.casal?.nro ?? '?'
     const machoAnel = formatRingComplete(postura.casal?.macho?.anel)
     const femeaAnel = formatRingComplete(postura.casal?.femea?.anel)
-    const machoDescr = postura.casal?.macho?.descr ?? ''
-    const femeaDescr = postura.casal?.femea?.descr ?? ''
+    // Usa descr_pai/descr_mae do casal, que são as descrições cadastradas no casal
+    // Se não houver, usa a descr do pássaro individual
+    const machoDescr = postura.casal?.descr_pai || postura.casal?.macho?.descr || ''
+    const femeaDescr = postura.casal?.descr_mae || postura.casal?.femea?.descr || ''
 
     // Formata previsão de nascimento
     const formatPrevisao = (date: Date | undefined): string | null => {
@@ -165,23 +136,35 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
         return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     }
 
+    // Separa alertas principais (Nascendo, Hora de anilhar, Separar) de Verificar
+    const alertasPrincipais = alerts.filter(a => !a.includes('Verificar'))
+    const alertaVerificar = alerts.find(a => a.includes('Verificar'))
+
     return (
         <div
             onClick={onClick}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 active:scale-[0.98] transition-transform cursor-pointer"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 active:scale-[0.98] transition-transform cursor-pointer relative"
         >
-            {/* Header: Casal + Status */}
+            {/* Alertas principais no canto superior direito */}
+            {alertasPrincipais.length > 0 && (
+                <div className="absolute top-4 right-4 flex flex-wrap gap-1 justify-end">
+                    {alertasPrincipais.map((alert, idx) => (
+                        <AlertBadge key={idx} text={alert} />
+                    ))}
+                </div>
+            )}
+
+            {/* Header: Casal */}
             <div className="flex items-start justify-between mb-3">
-                <div>
+                <div className={alertasPrincipais.length > 0 ? 'pr-24' : ''}>
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                         Casal #{casalNro}
                     </h3>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                        <div>♂ {machoAnel}{machoDescr ? ` - ${machoDescr}` : ''}</div>
-                        <div>♀ {femeaAnel}{femeaDescr ? ` - ${femeaDescr}` : ''}</div>
+                        <div>♂ {machoDescr || machoAnel}</div>
+                        <div>♀ {femeaDescr || femeaAnel}</div>
                     </div>
                 </div>
-                <StatusBadge sit={postura.sit ?? 0} />
             </div>
 
             {/* Info da postura */}
@@ -221,12 +204,10 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
                 )}
             </div>
 
-            {/* Alertas */}
-            {alerts.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                    {alerts.map((alert, idx) => (
-                        <AlertBadge key={idx} text={alert} />
-                    ))}
+            {/* Alerta Verificar no canto inferior esquerdo */}
+            {alertaVerificar && (
+                <div className="flex">
+                    <AlertBadge text={alertaVerificar} />
                 </div>
             )}
         </div>
@@ -253,7 +234,7 @@ function PosturaCardSkeleton() {
 }
 
 // Tipos de filtro
-type FilterType = 'todas' | 'descascando' | 'anilhar' | 'separar' | 'verificar'
+type FilterType = 'todas' | 'nascendo' | 'anilhar' | 'separar' | 'verificar'
 
 // Página principal
 export function PosturasPage() {
@@ -268,13 +249,13 @@ export function PosturasPage() {
     const { data: casalData } = useCasal(selectedPostura?.casal?.id ?? null)
 
     // Função para verificar se postura tem alerta específico
-    const hasAlert = (postura: PosturaListItem, alertType: 'descascando' | 'anilhar' | 'separar' | 'verificar'): boolean => {
+    const hasAlert = (postura: PosturaListItem, alertType: 'nascendo' | 'anilhar' | 'separar' | 'verificar'): boolean => {
         const { alerts } = getPosturaAlerts(postura)
         switch (alertType) {
-            case 'descascando':
-                return alerts.some(a => a.includes('Descascando'))
+            case 'nascendo':
+                return alerts.some(a => a.includes('Nascendo'))
             case 'anilhar':
-                return alerts.some(a => a.includes('Anilhar'))
+                return alerts.some(a => a.includes('Hora de anilhar'))
             case 'separar':
                 return alerts.some(a => a.includes('Separar'))
             case 'verificar':
@@ -310,9 +291,39 @@ export function PosturasPage() {
         return true
     }) ?? []
 
-    // Agrupa por prioridade de alerta
-    const posturasComAlerta = filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length > 0)
-    const posturasSemAlerta = filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length === 0)
+    // Função para ordenar posturas por data da próxima ação (mais antigas primeiro)
+    const sortPosturasByProximaAcao = (posturas: PosturaListItem[]): PosturaListItem[] => {
+        return [...posturas].sort((a, b) => {
+            const alertsA = getPosturaAlerts(a)
+            const alertsB = getPosturaAlerts(b)
+
+            // Se ambas têm próxima ação, ordena pela data (mais antiga primeiro)
+            if (alertsA.proximaAcao && alertsB.proximaAcao) {
+                return alertsA.proximaAcao.getTime() - alertsB.proximaAcao.getTime()
+            }
+
+            // Se só A tem próxima ação, A vem primeiro
+            if (alertsA.proximaAcao) return -1
+
+            // Se só B tem próxima ação, B vem primeiro
+            if (alertsB.proximaAcao) return 1
+
+            // Se nenhuma tem, mantém ordem original (ou ordena por data de postura)
+            if (a.data && b.data) {
+                return new Date(b.data).getTime() - new Date(a.data).getTime()
+            }
+
+            return 0
+        })
+    }
+
+    // Agrupa por prioridade de alerta e ordena
+    const posturasComAlerta = sortPosturasByProximaAcao(
+        filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length > 0)
+    )
+    const posturasSemAlerta = sortPosturasByProximaAcao(
+        filteredPosturas.filter((p: PosturaListItem) => getPosturaAlerts(p).alerts.length === 0)
+    )
 
     // Abre o detalhe da postura
     const handlePosturaClick = (postura: PosturaListItem) => {
@@ -377,13 +388,13 @@ export function PosturasPage() {
                             Todas
                         </button>
                         <button
-                            onClick={() => setFilterType('descascando')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'descascando'
+                            onClick={() => setFilterType('nascendo')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'nascendo'
                                 ? 'bg-yellow-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
                         >
-                            🐣 Descascando
+                            🐣 Nascendo
                         </button>
                         <button
                             onClick={() => setFilterType('anilhar')}

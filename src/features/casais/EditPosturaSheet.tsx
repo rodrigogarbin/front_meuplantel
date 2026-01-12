@@ -9,6 +9,7 @@ import type { Casal, Postura } from '@/types'
 import { SitPostura, SitPosturaLabels } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { useUpdatePostura, useDeletePostura } from './casaisApi'
+import { formatRingComplete } from '@/lib/passaro'
 
 interface EditPosturaSheetProps {
     casal: Casal | null
@@ -144,9 +145,24 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
 
     const isLoading = updatePostura.isPending || deletePostura.isPending
 
+    // Formata info do casal
+    const casalNro = casal.nro ?? '?'
+    const machoAnel = formatRingComplete(casal.macho?.anel)
+    const femeaAnel = formatRingComplete(casal.femea?.anel)
+    // Usa descr_pai/descr_mae do casal, que são as descrições cadastradas no casal
+    // Se não houver, usa a descr do pássaro individual
+    const machoDescr = casal.descr_pai || casal.macho?.descr || ''
+    const femeaDescr = casal.descr_mae || casal.femea?.descr || ''
+
     return (
-        <BottomSheet isOpen={isOpen} onClose={onClose} title="Editar Ovo">
+        <BottomSheet isOpen={isOpen} onClose={onClose} title={`Editar Ovo (Casal #${casalNro})`}>
             <div className="space-y-6">
+                {/* Informações do casal - fora do card */}
+                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 px-1">
+                    <div>♂ {machoDescr || machoAnel || 'Sem descrição'}</div>
+                    <div>♀ {femeaDescr || femeaAnel || 'Sem descrição'}</div>
+                </div>
+
                 {/* Header visual */}
                 <div className="flex items-center justify-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg">
