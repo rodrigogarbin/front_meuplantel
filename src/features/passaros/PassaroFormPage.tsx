@@ -165,26 +165,16 @@ export function PassaroFormPage() {
             }
 
             setFormData({
-                ano: passaro.anel?.ano?.toString()
-                    || passaro.ano?.toString()
-                    || '',
-                nro: passaro.anel?.nro?.toString()
-                    || passaro.nro?.toString()
-                    || '',
-                nro_criador: passaro.anel?.nro_criador
-                    || passaro.nro_criador
-                    || '',
-                sg_clube: passaro.anel?.sg_clube
-                    || passaro.sg_clube
-                    || '',
+                ano: passaro.anel?.ano?.toString() || '',
+                nro: passaro.anel?.nro?.toString() || '',
+                nro_criador: passaro.anel?.nro_criador || '',
+                sg_clube: passaro.anel?.sg_clube || '',
                 sexo: passaro.sexo ?? SexoEnum.INDEFINIDO,
                 dt_nasc: passaro.dt_nasc ? passaro.dt_nasc.slice(0, 10) : '',
                 especie_usuario_id:
                     (passaro.especie_usuario_id
                         ?? passaro.especie_usuario?.especie_usuario_id
                         ?? passaro.especieUsuario?.especie_usuario_id
-                        ?? passaro.especie?.especie_usuario_id
-                        ?? passaro.especie?.id
                     )?.toString() || '',
                 descr: passaro.mutacao?.descr
                     || passaro.descr
