@@ -238,9 +238,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         className="w-full flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl transition-all hover:bg-blue-100 dark:hover:bg-blue-900/50 active:scale-[0.98] disabled:hover:bg-blue-50 dark:disabled:hover:bg-blue-900/30 disabled:active:scale-100"
                     >
                         <span className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-md">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 4C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2-4h5v2h-2.59L21 8.59 19.59 10 15 5.41V8h-2V2h1z" />
-                            </svg>
+                            <span className="text-lg">♂</span>
                         </span>
                         <div className="flex-1 text-left">
                             <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Macho</p>
@@ -267,9 +265,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         className="w-full flex items-center gap-3 p-4 bg-pink-50 dark:bg-pink-900/30 rounded-xl transition-all hover:bg-pink-100 dark:hover:bg-pink-900/50 active:scale-[0.98] disabled:hover:bg-pink-50 dark:disabled:hover:bg-pink-900/30 disabled:active:scale-100"
                     >
                         <span className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-md">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 4C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm1 8h-2v3H8v2h3v3h2v-3h3v-2h-3v-3z" />
-                            </svg>
+                            <span className="text-lg">♀</span>
                         </span>
                         <div className="flex-1 text-left">
                             <p className="text-xs text-pink-600 dark:text-pink-400 font-medium">Fêmea</p>

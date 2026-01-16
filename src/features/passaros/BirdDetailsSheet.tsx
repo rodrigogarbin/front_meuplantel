@@ -148,32 +148,22 @@ export function BirdDetailsSheet({ bird, isOpen, onClose }: BirdDetailsSheetProp
                             Ver Árvore
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="grid grid-cols-1 gap-3">
+                        <div className="bg-blue-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                             <span className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 mb-1">
                                 <span className="text-lg">♂</span> Pai
                             </span>
                             <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                                 {bird.pai ? formatPassaroCompleto(bird.pai) : '—'}
                             </p>
-                            {bird.pai?.descr && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {bird.pai.descr}
-                                </p>
-                            )}
                         </div>
-                        <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                        <div className="bg-pink-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                             <span className="text-xs text-pink-600 dark:text-pink-400 font-medium flex items-center gap-1 mb-1">
                                 <span className="text-lg">♀</span> Mãe
                             </span>
                             <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                                 {bird.mae ? formatPassaroCompleto(bird.mae) : '—'}
                             </p>
-                            {bird.mae?.descr && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {bird.mae.descr}
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

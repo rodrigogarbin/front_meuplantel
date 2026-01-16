@@ -24,12 +24,12 @@ interface PassarosDadosResponse {
         embriaoMorto: number
         filhoteMorto: number
     }>
-    totais?: {
-        anos: number[]
-        nascidos: number[]
-        gaiolas: number[]
-        posturas: number[]
-    }
+    totais?: Array<{
+        ano: number
+        nascidos: number
+        gaiolas: number
+        posturas: number
+    }>
 }
 
 // Estrutura para o dashboard do frontend
@@ -87,7 +87,7 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
         // Encontra dados do ano selecionado
         const dadosAnoSelecionado = data.passaros?.find(p => p.ano === anoFiltro)
         const posturasAnoSelecionado = data.posturas?.find(p => p.ano === anoFiltro)
-
+        const totaisAnoSelecionado = data.totais?.find(t => t.ano === anoFiltro)
         // Calcula total de nascidos de todos os anos
         const totalNascidos = data.passaros?.reduce((sum, p) => sum + (p.nascidos || 0), 0) || 0
 
@@ -110,8 +110,8 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
                 mortos: 0,
                 emprestados: 0,
             },
-            totalCasais: data.totais?.gaiolas?.reduce((sum, g) => sum + g, 0) || 0,
-            casaisAtivos: data.totais?.gaiolas?.[data.totais.gaiolas.length - 1] || 0,
+            totalCasais: totaisAnoSelecionado?.gaiolas || 0,
+            casaisAtivos: totaisAnoSelecionado?.gaiolas || 0,
             posturasAno: posturasAnoSelecionado?.total || 0,
             filhotesAno: dadosAnoSelecionado?.nascidos || 0,
             aniversariantes: [], // A API dados não retorna aniversariantes
