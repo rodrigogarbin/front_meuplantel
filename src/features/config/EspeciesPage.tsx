@@ -3,6 +3,7 @@
  */
 
 import { useState } from 'react'
+import { MainLayout } from '@/components/layout'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -80,7 +81,7 @@ export function EspeciesPage() {
     }
 
     return (
-        <>
+        <MainLayout>
             <Topbar title="Espécies" showBack />
 
             <main className="page-content">
@@ -218,6 +219,6 @@ export function EspeciesPage() {
                 onClose={handleCloseForm}
                 especie={selectedEspecie}
             />
-        </>
+        </MainLayout>
     )
 }

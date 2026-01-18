@@ -3,9 +3,119 @@
  */
 
 import { useState, useEffect, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { Input } from '@/components/ui/Input'
+import api from '@/lib/api'
+
+// Hook para buscar mutações por especie_usuario_id usando React Query
+function useMutacoesPorEspecie(especie_usuario_id: string | number | null) {
+    return useQuery({
+        queryKey: ['mutacoes', especie_usuario_id],
+        queryFn: async () => {
+            if (!especie_usuario_id) return []
+            const res = await api.get<any>(`/api/v1/mutacoes?especie_usuario_id=${especie_usuario_id}`)
+
+            if (res.status !== 200) return []
+            const data = await res.data
+            if (!Array.isArray(data)) return []
+            return data.map((m: any) => ({ descr: m.descricao || '' })).filter((m: any) => m.descr)
+        },
+        enabled: !!especie_usuario_id,
+        staleTime: 1000 * 60,
+    })
+}
+
+interface AutocompleteMutacaoProps {
+    label?: string
+    name?: string
+    value: string
+    onChange: (value: string) => void
+    placeholder?: string
+    hint?: string
+    options: { descr: string }[]
+}
+
+function AutocompleteMutacao({ label, name, value, onChange, placeholder, hint, options }: AutocompleteMutacaoProps) {
+    const [isOpen, setIsOpen] = useState(false)
+    const [inputValue, setInputValue] = useState(value || '')
+    const [highlighted, setHighlighted] = useState<number>(-1)
+    const ref = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        setInputValue(value || '')
+    }, [value])
+
+    const filtered = inputValue
+        ? options.filter(opt => opt.descr.toLowerCase().includes(inputValue.toLowerCase()))
+        : options
+
+    const handleSelect = (descr: string) => {
+        setInputValue(descr)
+        onChange(descr)
+        setIsOpen(false)
+        setHighlighted(-1)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!isOpen || filtered.length === 0) return
+        if (e.key === 'ArrowDown') {
+            setHighlighted(h => Math.min(h + 1, filtered.length - 1))
+        } else if (e.key === 'ArrowUp') {
+            setHighlighted(h => Math.max(h - 1, 0))
+        } else if (e.key === 'Enter' && highlighted >= 0) {
+            handleSelect(filtered[highlighted].descr)
+        } else if (e.key === 'Escape') {
+            setIsOpen(false)
+        }
+    }
+
+    return (
+        <div className="w-full relative">
+            {label && (
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {label}
+                </label>
+            )}
+            <input
+                ref={ref}
+                name={name}
+                value={inputValue}
+                onChange={e => {
+                    setInputValue(e.target.value)
+                    onChange(e.target.value)
+                    setIsOpen(true)
+                    setHighlighted(-1)
+                }}
+                onFocus={() => setIsOpen(true)}
+                onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary border-gray-300 dark:border-gray-600"
+                autoComplete="off"
+            />
+            {isOpen && filtered.length > 0 && (
+                <div className="absolute z-[9999] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-auto">
+                    {filtered.map((opt, idx) => (
+                        <button
+                            key={opt.descr}
+                            type="button"
+                            onMouseDown={() => handleSelect(opt.descr)}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${highlighted === idx ? 'bg-primary/10 text-primary' : inputValue === opt.descr ? 'bg-primary/10 text-primary' : 'text-gray-900 dark:text-gray-100'}`}
+                        >
+                            {opt.descr}
+                        </button>
+                    ))}
+                </div>
+            )}
+            {hint && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+            )}
+        </div>
+    )
+}
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -85,6 +195,8 @@ export function PassaroFormPage() {
 
     // Form state
     const [formData, setFormData] = useState<FormData>(initialFormData)
+    // Buscar mutações da espécie selecionada (deve ser depois de formData)
+    const { data: mutacoesSugestoes = [], isLoading: loadingMutacoes } = useMutacoesPorEspecie(formData.especie_usuario_id)
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
     const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -107,18 +219,10 @@ export function PassaroFormPage() {
     // Pré-preenche o formulário com dados da postura (quando vem de registro de filhote)
     useEffect(() => {
         if (!isEditing && postura && posturaId) {
-            // Debug: mostra dados da postura
-            console.log('Postura recebida:', postura)
-            console.log('Casal:', postura.casal)
-
             // Extrai dados do casal (pais e espécie)
             const paiId = postura.casal?.macho?.id
             const maeId = postura.casal?.femea?.id
             const especieId = postura.casal?.macho?.especie_usuario_id ?? postura.casal?.femea?.especie_usuario_id
-
-            console.log('Pai ID:', paiId, 'Mãe ID:', maeId, 'Espécie ID:', especieId)
-            console.log('Machos disponíveis:', machos.length, machos.map(m => m.passaro_id))
-            console.log('Fêmeas disponíveis:', femeas.length, femeas.map(f => f.passaro_id))
 
             setFormData(prev => ({
                 ...prev,
@@ -373,7 +477,7 @@ export function PassaroFormPage() {
                 )}
 
                 {/* Card: Identificação */}
-                <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600">
                         <h2 className="text-white font-semibold flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -413,13 +517,15 @@ export function PassaroFormPage() {
                             />
                         )}
 
-                        <Input
+                        {/* Autocomplete de mutação para descrição */}
+                        <AutocompleteMutacao
                             label="Descrição/Mutação"
                             name="descr"
                             value={formData.descr}
-                            onChange={(e) => updateField('descr', e.target.value)}
-                            placeholder="Ex: Verde Pastel"
+                            onChange={(value: string) => updateField('descr', value)}
+                            placeholder={loadingMutacoes ? 'Carregando mutações...' : 'Ex: Verde Pastel'}
                             hint="Digite a mutação ou descrição do pássaro"
+                            options={mutacoesSugestoes}
                         />
                     </div>
                 </section>
