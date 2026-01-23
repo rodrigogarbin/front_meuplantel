@@ -188,6 +188,7 @@ export interface Postura {
     nro_anel?: number | null
     ano_anel?: number | null
     obs?: string | null
+    data_separa?: string | null // Adicionada a propriedade data_separa
 }
 
 // Situação da postura
