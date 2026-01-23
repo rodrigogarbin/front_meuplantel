@@ -97,24 +97,13 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
     }
 
     return (
-        <BottomSheet isOpen={isOpen} onClose={onClose} title="Adicionar Ovo">
+        <BottomSheet isOpen={isOpen} onClose={onClose} title={`Adicionar Ovo - Casal #${casal.nro}`}>
             <div className="space-y-6">
                 {/* Header visual */}
                 <div className="flex items-center justify-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg">
-                        <EggIcon className="w-10 h-10 text-white" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                        <EggIcon className="w-5 h-5 text-white" />
                     </div>
-                </div>
-
-                {/* Info do Casal */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Casal</p>
-                    <p className="text-xl font-bold text-gray-800 dark:text-gray-100">Nº {casal.nro}</p>
-                    {casal.nro_rodadas !== undefined && casal.nro_rodadas !== null && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Rodada atual: {casal.nro_rodadas}
-                        </p>
-                    )}
                 </div>
 
                 {/* Campo: Data da Postura */}

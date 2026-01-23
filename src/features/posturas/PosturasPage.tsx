@@ -8,8 +8,10 @@ import { Topbar, SearchInput, EmptyState, ErrorState, PullToRefresh } from '@/co
 import { usePosturas, type PosturaListItem } from './posturasApi'
 import { SitPostura } from '@/types'
 import { EditPosturaSheet } from '@/features/casais'
-import { useCasal } from '@/features/casais/casaisApi'
+import { AddPosturaSheet } from '@/features/casais/AddPosturaSheet';
+import { useCasal, useCasais } from '@/features/casais/casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
+import type { Casal } from '@/types';
 
 // Tipo para resultado dos alertas
 interface PosturaAlertResult {
@@ -259,8 +261,11 @@ export function PosturasPage() {
     const [filterType, setFilterType] = useState<FilterType>('todas')
     const [selectedPostura, setSelectedPostura] = useState<PosturaListItem | null>(null)
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+    const [isAddPosturaOpen, setIsAddPosturaOpen] = useState(false);
+    const [casalSelecionado, setCasalSelecionado] = useState<Casal | null>(null);
 
     const { data: posturas, isLoading, error, refetch } = usePosturas()
+    const { data: casais = [] } = useCasais({ sit: 1 });
 
     // Busca o casal completo quando uma postura é selecionada
     const { data: casalData } = useCasal(selectedPostura?.casal?.id ?? null)
@@ -532,6 +537,78 @@ export function PosturasPage() {
                 isOpen={isEditSheetOpen}
                 onClose={handleCloseSheet}
                 onSuccess={handleEditSuccess}
+            />
+
+            {/* Botão flutuante para adicionar nova postura */}
+            <button
+                onClick={() => setIsAddPosturaOpen(true)}
+                className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-amber-500 text-white rounded-full shadow-xl shadow-amber-500/30 flex items-center justify-center hover:bg-amber-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                aria-label="Nova Postura"
+            >
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
+
+            {/* Modal para selecionar casal */}
+            {isAddPosturaOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-lg relative">
+                        <button
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                            onClick={() => setIsAddPosturaOpen(false)}
+                        >
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h2 className="text-lg font-bold mb-4">Selecione o casal</h2>
+                        <div className="space-y-2 max-h-72 overflow-y-auto">
+                            {casais.length === 0 && <div className="text-gray-500">Nenhum casal ativo</div>}
+                            {casais.map((casal) => (
+                                <button
+                                    key={casal.id ?? casal.gaiola_id}
+                                    className="w-full text-left px-4 py-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all border border-gray-100 dark:border-gray-700 mb-1"
+                                    onClick={() => {
+                                        setCasalSelecionado(casal);
+                                        setIsAddPosturaOpen(false);
+                                    }}
+                                >
+                                    <div className="font-bold dark:text-gray-400 mb-1">
+                                        Casal: #{casal.nro}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                            ♂
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-200 truncate flex-1">
+                                            {casal.macho?.descr || casal.descr_pai || '—'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                            ♀
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-200 truncate flex-1">
+                                            {casal.femea?.descr || casal.descr_mae || '—'}
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Sheet para adicionar postura */}
+            <AddPosturaSheet
+                casal={casalSelecionado}
+                isOpen={!!casalSelecionado}
+                onClose={() => setCasalSelecionado(null)}
+                onSuccess={() => {
+                    setCasalSelecionado(null);
+                    refetch();
+                }}
             />
         </>
     )

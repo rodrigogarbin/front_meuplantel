@@ -52,7 +52,7 @@ function getSitPosturaColor(sit: number | null | undefined): string {
         case SitPostura.FILHOTE_MORTO:
             return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
         case SitPostura.FERTIL:
-            return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+            return 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
         default:
             return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
     }
@@ -119,7 +119,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const posturas = casal.posturas ?? []
     // Ovos ativos = chocando ou nascidos que precisam de ação
     const ovosAtivos = posturas.filter(p =>
-        p.sit === SitPostura.CHOCO || posturaPrecisaAcao(p)
+        p.sit === SitPostura.CHOCO || p.sit === SitPostura.FERTIL || posturaPrecisaAcao(p)
     )
     const posturasConcluidas = posturas.filter(p =>
         p.sit !== SitPostura.CHOCO && !posturaPrecisaAcao(p)
@@ -555,59 +555,57 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
         }
     }
 
-    const isChocando = postura.sit === SitPostura.CHOCO
+    const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
     const isNascido = postura.sit === SitPostura.NASCIDO
+    const isFertil = postura.sit === SitPostura.FERTIL;
 
     // Calcula previsão de nascimento (para ovos chocando)
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if (!isChocando || !postura.data || !diasChoco) return null
+        if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null;
         try {
-            const dataPostura = new Date(postura.data)
-            if (isNaN(dataPostura.getTime())) return null
+            const dataPostura = new Date(postura.data);
+            if (isNaN(dataPostura.getTime())) return null;
 
-            const previsao = new Date(dataPostura)
-            previsao.setDate(previsao.getDate() + diasChoco)
+            const previsao = new Date(dataPostura);
+            previsao.setDate(previsao.getDate() + diasChoco);
 
-            const hoje = new Date()
-            hoje.setHours(0, 0, 0, 0)
-            previsao.setHours(0, 0, 0, 0)
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            previsao.setHours(0, 0, 0, 0);
 
-            const diffTime = previsao.getTime() - hoje.getTime()
-            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            const diffTime = previsao.getTime() - hoje.getTime();
+            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             return {
                 data: formatShortDate(previsao.toISOString()),
                 diasRestantes
-            }
+            };
         } catch {
-            return null
+            return null;
         }
-    }
+    };
 
     // Calcula alertas (para ovos nascidos)
     const getAlerts = (): string[] => {
-        const alerts: string[] = []
-        if (!isNascido || !postura.data_nasc) return alerts
+        const alerts: string[] = [];
+        if ((!isNascido && !isFertil) || !postura.data_nasc) return alerts;
 
-        const hoje = new Date()
-        hoje.setHours(0, 0, 0, 0)
-        const dataNasc = new Date(postura.data_nasc)
-        dataNasc.setHours(0, 0, 0, 0)
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const dataNasc = new Date(postura.data_nasc);
+        dataNasc.setHours(0, 0, 0, 0);
 
-        const diffTime = hoje.getTime() - dataNasc.getTime()
-        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        const diffTime = hoje.getTime() - dataNasc.getTime();
+        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         if (diasDesdeNasc >= diasAnilha && !postura.nro_anel && !postura.ano_anel) {
-            alerts.push('💍 Anilhar')
+            alerts.push('Anilhar filhote');
         }
-        if (diasDesdeNasc >= diasSepara) {
-            alerts.push('🏠 Separar')
-        }
-        if (diasDesdeNasc >= 30) {
-            alerts.push('⚠️ Verificar')
+        if (diasDesdeNasc >= diasSepara && !postura.data_separa) {
+            alerts.push('Separar filhote');
         }
 
-        return alerts
+        return alerts;
     }
 
     const previsao = calcPrevisaoNascimento()
@@ -632,6 +630,11 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                             <span>Postura:</span>
                             <span className="font-medium">{formatShortDate(postura.data)}</span>
+                            {isFertil ? (
+                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Fértil
+                                </span>
+                            ) : null}
                         </div>
                         {previsao && (
                             <div className="flex items-center gap-2 text-sm">
