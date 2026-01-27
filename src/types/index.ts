@@ -130,6 +130,9 @@ export interface PassaroFilters {
     passaro_pai_id?: number
     passaro_mae_id?: number
     ano?: number
+    nro?: string    // Busca parcial por número do anel
+    descr?: string  // Busca parcial por descrição
+    search?: string // Busca por anel OU descrição
 }
 
 // Sexo enum helpers

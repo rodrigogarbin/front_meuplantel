@@ -3,7 +3,7 @@
  * Mobile-first com filtros, busca e infinite scroll
  */
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, ErrorState, PullToRefresh } from '@/components/ui'
 import { BirdCard } from './BirdCard'
@@ -11,7 +11,6 @@ import { BirdDetailsSheet } from './BirdDetailsSheet'
 import { usePassarosInfinite } from './passarosApi'
 import type { Passaro, PassaroFilters } from '@/types'
 import { SexoEnum, SituacaoEnum } from '@/types'
-import { formatRing } from '@/lib/passaro'
 
 // Tipos para os filtros de UI
 type SexoFilter = 'all' | 'macho' | 'femea'
@@ -33,6 +32,16 @@ export function PassarosPage() {
     const [sexoFilter, setSexoFilter] = useState<SexoFilter>('all')
     const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilter>('ativos')
     const [searchQuery, setSearchQuery] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
+
+    // Debounce da busca (aguarda 500ms após digitar)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery)
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [searchQuery])
 
     // Estado do modal de detalhes
     const [selectedBird, setSelectedBird] = useState<Passaro | null>(null)
@@ -54,8 +63,13 @@ export function PassarosPage() {
             filters.sexo = SexoEnum.FEMEA
         }
 
+        // Busca por anel ou descrição (enviado ao backend)
+        if (debouncedSearch.trim()) {
+            filters.search = debouncedSearch.trim()
+        }
+
         return filters
-    }, [sexoFilter, situacaoFilter])
+    }, [sexoFilter, situacaoFilter, debouncedSearch])
 
     // Query de pássaros com infinite scroll
     const {
@@ -91,42 +105,6 @@ export function PassarosPage() {
 
         if (node) observerRef.current.observe(node)
     }, [isFetchingNextPage, hasNextPage, fetchNextPage])
-
-    // Filtro de busca local (client-side)
-    const filteredPassaros = useMemo(() => {
-        if (!passaros) return []
-        if (!searchQuery.trim()) return passaros
-
-        const query = searchQuery.toLowerCase().trim()
-
-        return passaros.filter((bird) => {
-            // Busca por anilha formatada
-            const ring = formatRing(bird.anel).toLowerCase()
-            if (ring.includes(query)) return true
-
-            // Busca por descrição/nome
-            if (bird.descr?.toLowerCase().includes(query)) return true
-
-            // Busca por número da anilha
-            if (bird.anel?.nro?.toString().includes(query)) return true
-
-            // Busca por ano da anilha
-            if (bird.anel?.ano?.toString().includes(query)) return true
-
-            // Busca por mutação
-            const mutacao = bird.mutacao?.descr || bird.mutacao?.descricao
-            if (mutacao?.toLowerCase().includes(query)) return true
-
-            // Busca por espécie
-            const especie = bird.especie_usuario?.descr || bird.especieUsuario?.descr
-            if (especie?.toLowerCase().includes(query)) return true
-
-            // Busca por observações
-            if (bird.obs?.toLowerCase().includes(query)) return true
-
-            return false
-        })
-    }, [passaros, searchQuery])
 
     // Handlers
     const handleCardClick = (bird: Passaro) => {
@@ -204,7 +182,7 @@ export function PassarosPage() {
                             message="Não foi possível carregar a lista de pássaros."
                             onRetry={() => refetch()}
                         />
-                    ) : filteredPassaros.length === 0 ? (
+                    ) : passaros.length === 0 ? (
                         <EmptyState
                             icon={
                                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,15 +196,12 @@ export function PassarosPage() {
                         <>
                             {/* Contador de resultados */}
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                                {searchQuery
-                                    ? `${filteredPassaros.length} ${filteredPassaros.length === 1 ? 'resultado' : 'resultados'}`
-                                    : `${passaros.length} de ${totalPassaros} ${totalPassaros === 1 ? 'pássaro' : 'pássaros'}`
-                                }
+                                {`${passaros.length} de ${totalPassaros} ${totalPassaros === 1 ? 'pássaro' : 'pássaros'}`}
                             </p>
 
                             {/* Grid de cards */}
                             <div className="space-y-3">
-                                {filteredPassaros.map((bird) => (
+                                {passaros.map((bird) => (
                                     <BirdCard
                                         key={bird.passaro_id}
                                         bird={bird}
@@ -235,21 +210,19 @@ export function PassarosPage() {
                                 ))}
                             </div>
 
-                            {/* Elemento para detectar scroll infinito (só quando não há busca) */}
-                            {!searchQuery && (
-                                <div ref={loadMoreRef} className="py-4">
-                                    {isFetchingNextPage && (
-                                        <div className="flex justify-center">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent" />
-                                        </div>
-                                    )}
-                                    {!hasNextPage && passaros.length > 0 && (
-                                        <p className="text-center text-sm text-gray-400 dark:text-gray-500">
-                                            Fim da lista
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                            {/* Elemento para detectar scroll infinito */}
+                            <div ref={loadMoreRef} className="py-4">
+                                {isFetchingNextPage && (
+                                    <div className="flex justify-center">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent" />
+                                    </div>
+                                )}
+                                {!hasNextPage && passaros.length > 0 && (
+                                    <p className="text-center text-sm text-gray-400 dark:text-gray-500">
+                                        Fim da lista
+                                    </p>
+                                )}
+                            </div>
                         </>
                     )}
                 </PullToRefresh>

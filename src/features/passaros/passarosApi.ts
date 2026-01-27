@@ -42,6 +42,15 @@ async function fetchPassaros(filters: PassaroFilters = {}): Promise<Passaro[]> {
     if (filters.passaro_mae_id !== undefined) {
         params.append('passaro_mae_id', filters.passaro_mae_id.toString())
     }
+    if (filters.nro !== undefined && filters.nro.trim()) {
+        params.append('nro', filters.nro.trim())
+    }
+    if (filters.descr !== undefined && filters.descr.trim()) {
+        params.append('descr', filters.descr.trim())
+    }
+    if (filters.search !== undefined && filters.search.trim()) {
+        params.append('search', filters.search.trim())
+    }
 
     const response = await api.get<PassarosResponse | Passaro[]>(`/api/v1/passaros?${params.toString()}`)
 
@@ -94,6 +103,15 @@ async function fetchPassarosPaginated(filters: PassaroFilters = {}, page: number
     }
     if (filters.ano !== undefined) {
         params.append('ano', filters.ano.toString())
+    }
+    if (filters.nro !== undefined && filters.nro.trim()) {
+        params.append('nro', filters.nro.trim())
+    }
+    if (filters.descr !== undefined && filters.descr.trim()) {
+        params.append('descr', filters.descr.trim())
+    }
+    if (filters.search !== undefined && filters.search.trim()) {
+        params.append('search', filters.search.trim())
     }
 
     const response = await api.get<PassarosResponse>(`/api/v1/passaros?${params.toString()}`)
