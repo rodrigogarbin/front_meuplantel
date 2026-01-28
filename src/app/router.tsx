@@ -3,7 +3,7 @@
  */
 
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/features/auth'
+import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
@@ -11,27 +11,32 @@ import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage } from '@/features/config'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
+import { EmailVerificationGuard } from './EmailVerificationGuard'
 
 /**
- * Layout wrapper para rotas autenticadas
+ * Layout wrapper para rotas autenticadas (com verificação de email)
  */
 function AuthenticatedLayout() {
     return (
         <PrivateRoute>
-            <MainLayout>
-                <Outlet />
-            </MainLayout>
+            <EmailVerificationGuard>
+                <MainLayout>
+                    <Outlet />
+                </MainLayout>
+            </EmailVerificationGuard>
         </PrivateRoute>
     )
 }
 
 /**
- * Layout simples para rotas autenticadas sem bottom nav
+ * Layout simples para rotas autenticadas sem bottom nav (com verificação de email)
  */
 function SimpleAuthLayout() {
     return (
         <PrivateRoute>
-            <Outlet />
+            <EmailVerificationGuard>
+                <Outlet />
+            </EmailVerificationGuard>
         </PrivateRoute>
     )
 }
@@ -48,6 +53,15 @@ export const router = createBrowserRouter([
     {
         path: '/forgot-password',
         element: <ForgotPasswordPage />,
+    },
+    {
+        // Rota de verificação de email (requer autenticação, mas sem guard de email)
+        path: '/verificar-email',
+        element: (
+            <PrivateRoute>
+                <EmailVerificationPage />
+            </PrivateRoute>
+        ),
     },
     {
         // Rotas autenticadas com layout compartilhado (bottom nav)

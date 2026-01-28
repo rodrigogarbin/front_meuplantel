@@ -104,6 +104,8 @@ export interface User {
     nome: string
     username: string
     email?: string | null
+    needs_email?: boolean
+    email_verified?: boolean
     sg_clube?: string | null
     nro_criador?: string | null
 }

@@ -115,7 +115,6 @@ export function ProfileEditPage() {
 
         const data: UpdateProfileData = {
             nome,
-            email,
             sg_clube: sgClube,
             nro_criador: nroRriador,
         }
@@ -205,7 +204,7 @@ export function ProfileEditPage() {
                                 </div>
                             </div>
 
-                            {/* Email */}
+                            {/* Email - Somente leitura, alteração via verificação */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Email
@@ -217,11 +216,18 @@ export function ProfileEditPage() {
                                     <input
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="input pl-10"
-                                        placeholder="seu@email.com"
+                                        readOnly
+                                        className="input pl-10 bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                                        placeholder="Nenhum e-mail cadastrado"
                                     />
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/verificar-email?alterar=true')}
+                                    className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+                                >
+                                    {email ? 'Alterar e-mail' : 'Cadastrar e-mail'}
+                                </button>
                             </div>
                         </div>
                     </section>

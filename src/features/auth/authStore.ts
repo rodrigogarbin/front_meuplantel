@@ -106,6 +106,9 @@ export const useAuthStore = create<AuthState>()(
                         isLoading: false,
                     })
 
+                    // Limpa flag de verificação de email mostrada
+                    sessionStorage.removeItem('email_verification_shown')
+
                     // Limpa todo o cache do React Query para evitar dados do usuário anterior
                     queryClient.clear()
                 }

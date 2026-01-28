@@ -27,6 +27,26 @@ export interface UpdateProfileData {
     nro_criador?: string
 }
 
+// Tipos para verificação de email
+export interface EmailVerificationStatus {
+    needs_email: boolean
+    email_verified: boolean
+    email: string | null
+    pending_email: string | null
+}
+
+interface EmailVerificationStatusResponse {
+    data: EmailVerificationStatus
+}
+
+interface EmailVerificationResponse {
+    message: string
+    data?: {
+        email: string
+        email_verified_at: string
+    }
+}
+
 /**
  * Busca dados do perfil do usuário logado
  */
@@ -65,5 +85,90 @@ export function useUpdateProfile() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['user', 'profile'] })
         }
+    })
+}
+
+// ============================================
+// Verificação de E-mail
+// ============================================
+
+/**
+ * Busca status da verificação de email
+ */
+async function fetchEmailVerificationStatus(): Promise<EmailVerificationStatus> {
+    const response = await api.get<EmailVerificationStatusResponse>('/api/v1/email/status')
+    return response.data.data
+}
+
+/**
+ * Solicita verificação de email
+ */
+async function requestEmailVerification(email: string): Promise<EmailVerificationResponse> {
+    const response = await api.post<EmailVerificationResponse>('/api/v1/email/request', { email })
+    return response.data
+}
+
+/**
+ * Verifica o código de email
+ */
+async function verifyEmailCode(code: string): Promise<EmailVerificationResponse> {
+    const response = await api.post<EmailVerificationResponse>('/api/v1/email/verify', { code })
+    return response.data
+}
+
+/**
+ * Reenvia código de verificação
+ */
+async function resendEmailVerification(): Promise<EmailVerificationResponse> {
+    const response = await api.post<EmailVerificationResponse>('/api/v1/email/resend')
+    return response.data
+}
+
+/**
+ * Hook para buscar status de verificação de email
+ */
+export function useEmailVerificationStatus() {
+    return useQuery({
+        queryKey: ['email', 'verification', 'status'],
+        queryFn: fetchEmailVerificationStatus,
+        staleTime: 1000 * 60 * 5, // 5 minutos
+    })
+}
+
+/**
+ * Hook para solicitar verificação de email
+ */
+export function useRequestEmailVerification() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: requestEmailVerification,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['email', 'verification', 'status'] })
+        }
+    })
+}
+
+/**
+ * Hook para verificar código de email
+ */
+export function useVerifyEmailCode() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: verifyEmailCode,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['email', 'verification', 'status'] })
+            queryClient.invalidateQueries({ queryKey: ['user', 'profile'] })
+        }
+    })
+}
+
+/**
+ * Hook para reenviar código de verificação
+ */
+export function useResendEmailVerification() {
+    return useMutation({
+        mutationFn: resendEmailVerification,
     })
 }

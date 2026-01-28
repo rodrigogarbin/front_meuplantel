@@ -1,5 +1,6 @@
 export { LoginPage } from './LoginPage'
 export { RegisterPage } from './RegisterPage'
 export { ForgotPasswordPage } from './ForgotPasswordPage'
+export { EmailVerificationPage } from './EmailVerificationPage'
 export { useAuthStore, useIsAuthenticated, useUser, useAuthLoading, useHasHydrated } from './authStore'
-export { useUserProfile } from './userApi'
+export { useUserProfile, useEmailVerificationStatus, useRequestEmailVerification, useVerifyEmailCode, useResendEmailVerification } from './userApi'
