@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
 import api from '@/lib/api'
 import { AxiosError } from 'axios'
+import { BirdLogo } from '@/components/BirdLogo'
 
 type Step = 'email' | 'code' | 'password'
 
@@ -172,10 +173,8 @@ export function ForgotPasswordPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 animate-fade-in">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/40">
-                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                            </svg>
+                        <div className="flex justify-center mb-4">
+                            <BirdLogo size="lg" />
                         </div>
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                             {step === 'email' && 'Recuperar Senha'}
@@ -195,10 +194,10 @@ export function ForgotPasswordPage() {
                             <div
                                 key={s}
                                 className={`h-2 rounded-full transition-all ${s === step
-                                        ? 'w-8 bg-primary-500'
-                                        : i < ['email', 'code', 'password'].indexOf(step)
-                                            ? 'w-4 bg-primary-300'
-                                            : 'w-4 bg-gray-200 dark:bg-gray-700'
+                                    ? 'w-8 bg-primary-500'
+                                    : i < ['email', 'code', 'password'].indexOf(step)
+                                        ? 'w-4 bg-primary-300'
+                                        : 'w-4 bg-gray-200 dark:bg-gray-700'
                                     }`}
                             />
                         ))}

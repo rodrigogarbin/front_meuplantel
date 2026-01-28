@@ -9,6 +9,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
 import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
+import { BirdLogo } from '@/components/BirdLogo'
 
 export function LoginPage() {
     const navigate = useNavigate()
@@ -73,11 +74,8 @@ export function LoginPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 animate-fade-in">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/40">
-                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
-                            </svg>
+                        <div className="flex justify-center mb-4">
+                            <BirdLogo size="lg" />
                         </div>
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">MeuPlantel</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1">Entre na sua conta para continuar</p>
