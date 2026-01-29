@@ -134,8 +134,8 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     )
 
     // Separa ovos ativos entre nativos e recebidos de outros casais
-    const ovosNativos = ovosAtivos.filter(p => !p.casal_origem_id)
-    const ovosRecebidos = ovosAtivos.filter(p => p.casal_origem_id)
+    const ovosNativos = ovosAtivos.filter(p => !p.casal_origem)
+    const ovosRecebidos = ovosAtivos.filter(p => !!p.casal_origem)
 
     const posturasConcluidas = posturas.filter(p =>
         p.sit !== SitPostura.CHOCO && !posturaPrecisaAcao(p)
@@ -704,91 +704,91 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick, o
                 className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
             >
                 <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
-            <div className="flex-1 min-w-0">
-                {/* Info principal */}
-                {isChocando ? (
-                    <>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                            <span>Postura:</span>
-                            <span className="font-medium">{formatShortDate(postura.data)}</span>
-                            {isFertil ? (
+                <div className="flex-1 min-w-0">
+                    {/* Info principal */}
+                    {isChocando ? (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <span>Postura:</span>
+                                <span className="font-medium">{formatShortDate(postura.data)}</span>
+                                {isFertil ? (
+                                    <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                        Fértil
+                                    </span>
+                                ) : null}
+                            </div>
+                            {previsao && (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-500 dark:text-gray-400">Nasce:</span>
+                                    <span className="font-semibold text-amber-700 dark:text-amber-300">{previsao.data}</span>
+                                    {previsao.diasRestantes > 0 ? (
+                                        <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
+                                            {previsao.diasRestantes}d
+                                        </span>
+                                    ) : previsao.diasRestantes === 0 ? (
+                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded font-semibold">
+                                            Hoje!
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded animate-pulse">
+                                            🐣 Descascando
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {!previsao && diasChoco && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                    Choco: {diasChoco} dias
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <span>Nasceu:</span>
+                                <span className="font-medium">{formatShortDate(postura.data_nasc)}</span>
                                 <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                                    Fértil
+                                    Nascido
                                 </span>
-                            ) : null}
-                        </div>
-                        {previsao && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Nasce:</span>
-                                <span className="font-semibold text-amber-700 dark:text-amber-300">{previsao.data}</span>
-                                {previsao.diasRestantes > 0 ? (
-                                    <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
-                                        {previsao.diasRestantes}d
-                                    </span>
-                                ) : previsao.diasRestantes === 0 ? (
-                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded font-semibold">
-                                        Hoje!
-                                    </span>
-                                ) : (
-                                    <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded animate-pulse">
-                                        🐣 Descascando
-                                    </span>
-                                )}
                             </div>
-                        )}
-                        {!previsao && diasChoco && (
-                            <div className="text-xs text-gray-400 dark:text-gray-500">
-                                Choco: {diasChoco} dias
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                            <span>Nasceu:</span>
-                            <span className="font-medium">{formatShortDate(postura.data_nasc)}</span>
-                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                                Nascido
-                            </span>
-                        </div>
-                        {alerts.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {alerts.map((alert, idx) => (
-                                    <span
-                                        key={idx}
-                                        className={`px-1.5 py-0.5 rounded text-xs font-medium animate-pulse ${alert.includes('Anilhar')
-                                            ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
-                                            : alert.includes('Separar')
-                                                ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300'
-                                                : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
-                                            }`}
-                                    >
-                                        {alert}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-        </button>
-        {/* Botão de transferir */}
-        {podeTransferir && (
-            <button
-                onClick={(e) => {
-                    e.stopPropagation()
-                    onTransfer?.()
-                }}
-                className="absolute top-2 right-2 p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
-                title="Transferir ovo para outro casal"
-            >
-                <TransferIcon className="w-4 h-4" />
-                <span className="text-xs font-medium">Transferir</span>
+                            {alerts.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {alerts.map((alert, idx) => (
+                                        <span
+                                            key={idx}
+                                            className={`px-1.5 py-0.5 rounded text-xs font-medium animate-pulse ${alert.includes('Anilhar')
+                                                ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+                                                : alert.includes('Separar')
+                                                    ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300'
+                                                    : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+                                                }`}
+                                        >
+                                            {alert}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
             </button>
-        )}
+            {/* Botão de transferir */}
+            {podeTransferir && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onTransfer?.()
+                    }}
+                    className="absolute top-2 right-2 p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
+                    title="Transferir ovo para outro casal"
+                >
+                    <TransferIcon className="w-4 h-4" />
+                    <span className="text-xs font-medium">Transferir</span>
+                </button>
+            )}
         </div>
     )
 }

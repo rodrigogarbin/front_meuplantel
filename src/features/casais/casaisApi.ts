@@ -302,10 +302,10 @@ export function useTransferirPostura() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: ({ casalOrigemId, posturaId, payload }: { 
+        mutationFn: ({ casalOrigemId, posturaId, payload }: {
             casalOrigemId: number
             posturaId: number
-            payload: TransferPosturaPayload 
+            payload: TransferPosturaPayload
         }) => transferirPostura(casalOrigemId, posturaId, payload),
         onSuccess: (_data, variables) => {
             // Invalida cache do casal de origem e destino

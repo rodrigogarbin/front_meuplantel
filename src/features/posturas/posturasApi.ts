@@ -18,6 +18,7 @@ export interface PosturaListItem {
     nro_anel: number | null
     ano_anel: number | null
     obs: string | null
+    casal_origem_id: number | null
     passaro?: {
         id: number
         sexo: number | null
@@ -29,6 +30,35 @@ export interface PosturaListItem {
         } | null
     } | null
     casal?: {
+        id: number
+        nro: number | null
+        descr_pai?: string | null
+        descr_mae?: string | null
+        dias_choco: number | null
+        dias_anilha: number | null
+        dias_separa: number | null
+        macho?: {
+            id: number
+            especie_usuario_id: number | null
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube: string
+            } | null
+        } | null
+        femea?: {
+            id: number
+            especie_usuario_id: number | null
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube: string
+            } | null
+        } | null
+    } | null
+    casal_origem?: {
         id: number
         nro: number | null
         descr_pai?: string | null
