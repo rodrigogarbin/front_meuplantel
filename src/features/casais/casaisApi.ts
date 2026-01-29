@@ -272,6 +272,51 @@ export function useDeletePostura() {
     })
 }
 
+/**
+ * Payload para transferir postura
+ */
+export interface TransferPosturaPayload {
+    gaiola_destino_id: number
+    nro_rodada?: number | null
+}
+
+/**
+ * Transfere uma postura para outro casal
+ */
+async function transferirPostura(casalOrigemId: number, posturaId: number, payload: TransferPosturaPayload): Promise<Postura> {
+    const response = await api.post<Postura | { data: Postura }>(
+        `/api/v1/casais/${casalOrigemId}/posturas/${posturaId}/transferir`,
+        payload
+    )
+
+    if ('data' in response.data && typeof response.data.data === 'object') {
+        return response.data.data as Postura
+    }
+    return response.data as Postura
+}
+
+/**
+ * Hook para transferir postura (ovo) para outro casal
+ */
+export function useTransferirPostura() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ casalOrigemId, posturaId, payload }: { 
+            casalOrigemId: number
+            posturaId: number
+            payload: TransferPosturaPayload 
+        }) => transferirPostura(casalOrigemId, posturaId, payload),
+        onSuccess: (_data, variables) => {
+            // Invalida cache do casal de origem e destino
+            queryClient.invalidateQueries({ queryKey: ['casal', variables.casalOrigemId] })
+            queryClient.invalidateQueries({ queryKey: ['casal', variables.payload.gaiola_destino_id] })
+            queryClient.invalidateQueries({ queryKey: ['casais'] })
+            queryClient.invalidateQueries({ queryKey: ['posturas'] })
+        },
+    })
+}
+
 // ============================================
 // CRUD DE CASAIS
 // ============================================

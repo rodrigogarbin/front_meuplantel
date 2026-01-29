@@ -38,7 +38,7 @@ export function EmailVerificationGuard({ children }: EmailVerificationGuardProps
     // Se está carregando, mostra loading
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 safe-top safe-bottom">
                 <div className="text-center">
                     <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-gray-400">Verificando...</p>

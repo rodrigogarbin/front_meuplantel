@@ -184,6 +184,8 @@ export const PortadorTipo = {
 export interface Postura {
     postura_id: number
     gaiola_id: number
+    gaiola_origem_id?: number | null // ID do casal de origem (quando transferido)
+    transferido?: boolean // Flag indicando se foi transferido
     nro?: number | null
     data?: string | null
     data_nasc?: string | null
@@ -193,7 +195,51 @@ export interface Postura {
     nro_anel?: number | null
     ano_anel?: number | null
     obs?: string | null
-    data_separa?: string | null // Adicionada a propriedade data_separa
+    data_separa?: string | null
+    casal?: {
+        id: number
+        nro: number
+        macho?: {
+            id: number
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube?: string | null
+            }
+        }
+        femea?: {
+            id: number
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube?: string | null
+            }
+        }
+    } | null
+    casal_origem?: {
+        id: number
+        nro: number
+        macho?: {
+            id: number
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube?: string | null
+            }
+        }
+        femea?: {
+            id: number
+            descr?: string | null
+            anel?: {
+                ano: number
+                nro: number
+                sg_clube?: string | null
+            }
+        }
+    } | null
 }
 
 // Situação da postura
@@ -245,6 +291,7 @@ export interface Casal {
     macho?: Passaro | null
     femea?: Passaro | null
     posturas?: Postura[]
+    posturas_transferidas?: Postura[] // Ovos que foram transferidos DESTE casal para outro
     ativo?: boolean
     // Campos calculados que a API pode retornar
     total_ovos?: number

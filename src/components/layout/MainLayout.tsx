@@ -15,14 +15,14 @@ export function MainLayout({ children }: MainLayoutProps) {
     const isActive = (path: string) => location.pathname === path
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col safe-top">
             {/* Conteúdo principal */}
             <main className="flex-1 pb-20">
                 {children}
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 safe-bottom z-50">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50">
                 <div className="flex justify-around max-w-md mx-auto">
                     <button
                         onClick={() => navigate('/')}

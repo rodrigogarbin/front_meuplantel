@@ -12,6 +12,7 @@ import { formatPassaroCompleto } from '@/lib/passaro'
 import { formatDate } from '@/lib/date'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
+import { TransferPosturaSheet } from './TransferPosturaSheet'
 import { usePosturasByCasal } from './casaisApi'
 
 interface CasalDetailsSheetProps {
@@ -67,11 +68,21 @@ function EggIcon({ className }: { className?: string }) {
     )
 }
 
+// Ícone de transferência
+function TransferIcon({ className }: { className?: string }) {
+    return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+    )
+}
+
 export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDetailsSheetProps) {
     const navigate = useNavigate()
     const [isAddPosturaOpen, setIsAddPosturaOpen] = useState(false)
     const [selectedPostura, setSelectedPostura] = useState<Postura | null>(null)
     const [isEditPosturaOpen, setIsEditPosturaOpen] = useState(false)
+    const [isTransferPosturaOpen, setIsTransferPosturaOpen] = useState(false)
     const [showHistorico, setShowHistorico] = useState(false)
 
     // Obtém o ID do casal
@@ -121,12 +132,17 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const ovosAtivos = posturas.filter(p =>
         p.sit === SitPostura.CHOCO || p.sit === SitPostura.FERTIL || posturaPrecisaAcao(p)
     )
+
+    // Separa ovos ativos entre nativos e recebidos de outros casais
+    const ovosNativos = ovosAtivos.filter(p => !p.casal_origem_id)
+    const ovosRecebidos = ovosAtivos.filter(p => p.casal_origem_id)
+
     const posturasConcluidas = posturas.filter(p =>
         p.sit !== SitPostura.CHOCO && !posturaPrecisaAcao(p)
     )
 
-    // Agrupa ovos ativos por rodada
-    const ovosAtivosPorRodada = ovosAtivos.reduce((acc, postura) => {
+    // Agrupa ovos nativos por rodada
+    const ovosNativosPorRodada = ovosNativos.reduce((acc, postura) => {
         const rodada = postura.nro_rodada ?? 0
         if (!acc[rodada]) {
             acc[rodada] = []
@@ -136,7 +152,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     }, {} as Record<number, Postura[]>)
 
     // Ordena as rodadas (mais recente primeiro)
-    const rodadasAtivas = Object.keys(ovosAtivosPorRodada)
+    const rodadasAtivas = Object.keys(ovosNativosPorRodada)
         .map(Number)
         .sort((a, b) => b - a)
 
@@ -173,6 +189,11 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const handleEditPostura = (postura: Postura) => {
         setSelectedPostura(postura)
         setIsEditPosturaOpen(true)
+    }
+
+    const handleTransferPostura = (postura: Postura) => {
+        setSelectedPostura(postura)
+        setIsTransferPosturaOpen(true)
     }
 
     const handlePosturaSuccess = () => {
@@ -312,11 +333,11 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 )}
 
                 {/* Ovos Ativos (chocando ou com ação pendente) */}
-                {ovosAtivos.length > 0 && (
+                {ovosNativos.length > 0 && (
                     <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-4 space-y-3">
                         <h3 className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
                             <EggIcon className="w-5 h-5" />
-                            Ovos ({ovosAtivos.length})
+                            Ovos ({ovosNativos.length})
                         </h3>
                         <div className="space-y-2">
                             {rodadasAtivas.map((rodada, rodadaIdx) => (
@@ -341,7 +362,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                     )}
                                     {/* Ovos da rodada */}
                                     <div className="space-y-2">
-                                        {ovosAtivosPorRodada[rodada].map((postura) => (
+                                        {ovosNativosPorRodada[rodada].map((postura) => (
                                             <PosturaOvoChip
                                                 key={postura.postura_id}
                                                 postura={postura}
@@ -349,10 +370,53 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                                 diasAnilha={diasAnilha}
                                                 diasSepara={diasSepara}
                                                 onClick={() => handleEditPostura(postura)}
+                                                onTransfer={() => handleTransferPostura(postura)}
                                             />
                                         ))}
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Ovos Recebidos de Outros Casais */}
+                {ovosRecebidos.length > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 space-y-3">
+                        <h3 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                            </svg>
+                            Ovos Recebidos ({ovosRecebidos.length})
+                        </h3>
+                        <div className="space-y-2">
+                            {ovosRecebidos.map((postura) => (
+                                <PosturaRecebidaChip
+                                    key={postura.postura_id}
+                                    postura={postura}
+                                    diasChoco={diasChoco}
+                                    diasAnilha={diasAnilha}
+                                    diasSepara={diasSepara}
+                                    onClick={() => handleEditPostura(postura)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Ovos Transferidos para Outros Casais */}
+                {(casal.posturas_transferidas && casal.posturas_transferidas.length > 0) && (
+                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4 space-y-3">
+                        <h3 className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                            <TransferIcon className="w-5 h-5" />
+                            Ovos Transferidos ({casal.posturas_transferidas.length})
+                        </h3>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {casal.posturas_transferidas.map((postura) => (
+                                <PosturaTransferidaChip
+                                    key={postura.postura_id}
+                                    postura={postura}
+                                />
                             ))}
                         </div>
                     </div>
@@ -529,17 +593,30 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 }}
                 onSuccess={handlePosturaSuccess}
             />
+
+            {/* Sheet para transferir ovo */}
+            <TransferPosturaSheet
+                casal={casal}
+                postura={selectedPostura}
+                isOpen={isTransferPosturaOpen}
+                onClose={() => {
+                    setIsTransferPosturaOpen(false)
+                    setSelectedPostura(null)
+                }}
+                onSuccess={handlePosturaSuccess}
+            />
         </BottomSheet>
     )
 }
 
 // Chip unificado de ovo (chocando ou com ação pendente)
-function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
+function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick, onTransfer }: {
     postura: Postura
     diasChoco: number | null
     diasAnilha: number
     diasSepara: number
     onClick?: () => void
+    onTransfer?: () => void
 }) {
     // Formata data curta (DD/MM)
     const formatShortDate = (dateStr: string | null | undefined): string => {
@@ -614,15 +691,19 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
     // Cor do ícone e borda baseada no status
     const iconColor = isChocando ? 'text-amber-500' : 'text-emerald-500'
     const borderColor = isChocando
-        ? 'border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500'
-        : 'border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 dark:hover:border-emerald-500'
+        ? 'border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500'
+        : 'border border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 dark:hover:border-emerald-500'
+
+    // Verifica se pode transferir (não tem pássaro vinculado)
+    const podeTransferir = !postura.passaro_id && onTransfer
 
     return (
-        <button
-            onClick={onClick}
-            className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
-        >
-            <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
+        <div className="relative">
+            <button
+                onClick={onClick}
+                className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
+            >
+                <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
             <div className="flex-1 min-w-0">
                 {/* Info principal */}
                 {isChocando ? (
@@ -694,6 +775,21 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
         </button>
+        {/* Botão de transferir */}
+        {podeTransferir && (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation()
+                    onTransfer?.()
+                }}
+                className="absolute top-2 right-2 p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
+                title="Transferir ovo para outro casal"
+            >
+                <TransferIcon className="w-4 h-4" />
+                <span className="text-xs font-medium">Transferir</span>
+            </button>
+        )}
+        </div>
     )
 }
 
@@ -726,10 +822,12 @@ function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?
         }
     }
 
+    const borderClass = 'border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+
     return (
         <button
             onClick={onClick}
-            className="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-sm transition-all active:scale-[0.98] w-full text-left"
+            className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg ${borderClass} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
         >
             <EggIcon className={`w-8 h-8 ${getIconColor()} flex-shrink-0`} />
             <div className="flex-1 min-w-0">
@@ -748,5 +846,235 @@ function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
         </button>
+    )
+}
+
+// Chip para postura recebida de outro casal (ovo que está chocando aqui mas veio de outro casal)
+function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
+    postura: Postura
+    diasChoco: number | null
+    diasAnilha: number
+    diasSepara: number
+    onClick?: () => void
+}) {
+    // Formata data curta (DD/MM)
+    const formatShortDate = (dateStr: string | null | undefined): string => {
+        if (!dateStr) return '—'
+        try {
+            const date = new Date(dateStr)
+            if (isNaN(date.getTime())) return '—'
+            const day = date.getDate().toString().padStart(2, '0')
+            const month = (date.getMonth() + 1).toString().padStart(2, '0')
+            return `${day}/${month}`
+        } catch {
+            return '—'
+        }
+    }
+
+    const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
+    const isNascido = postura.sit === SitPostura.NASCIDO
+    const isFertil = postura.sit === SitPostura.FERTIL
+
+    // Calcula previsão de nascimento (para ovos chocando)
+    const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
+        if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null
+        try {
+            const dataPostura = new Date(postura.data)
+            if (isNaN(dataPostura.getTime())) return null
+
+            const previsao = new Date(dataPostura)
+            previsao.setDate(previsao.getDate() + diasChoco)
+
+            const hoje = new Date()
+            hoje.setHours(0, 0, 0, 0)
+            previsao.setHours(0, 0, 0, 0)
+
+            const diffTime = previsao.getTime() - hoje.getTime()
+            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+            return {
+                data: formatShortDate(previsao.toISOString()),
+                diasRestantes
+            }
+        } catch {
+            return null
+        }
+    }
+
+    // Calcula alertas (para ovos nascidos)
+    const getAlerts = (): string[] => {
+        const alerts: string[] = []
+        if ((!isNascido && !isFertil) || !postura.data_nasc) return alerts
+
+        const hoje = new Date()
+        hoje.setHours(0, 0, 0, 0)
+        const dataNasc = new Date(postura.data_nasc)
+        dataNasc.setHours(0, 0, 0, 0)
+
+        const diffTime = hoje.getTime() - dataNasc.getTime()
+        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+        if (diasDesdeNasc >= diasAnilha && !postura.nro_anel && !postura.ano_anel) {
+            alerts.push('Anilhar filhote')
+        }
+        if (diasDesdeNasc >= diasSepara && !postura.data_separa) {
+            alerts.push('Separar filhote')
+        }
+
+        return alerts
+    }
+
+    const previsao = calcPrevisaoNascimento()
+    const alerts = getAlerts()
+
+    // Cor do ícone baseada no status
+    const iconColor = isChocando ? 'text-amber-500' : 'text-emerald-500'
+
+    return (
+        <button
+            onClick={onClick}
+            className="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border-2 border-dashed border-blue-400 dark:border-blue-500 hover:shadow-sm transition-all active:scale-[0.98] w-full text-left"
+        >
+            <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
+            <div className="flex-1 min-w-0">
+                {/* Badge indicando de qual casal veio */}
+                {postura.casal_origem && (
+                    <div className="mb-1">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                            </svg>
+                            Do casal {postura.casal_origem.nro}
+                        </span>
+                    </div>
+                )}
+                {/* Info principal */}
+                {isChocando ? (
+                    <>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span>Postura:</span>
+                            <span className="font-medium">{formatShortDate(postura.data)}</span>
+                            {isFertil ? (
+                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Fértil
+                                </span>
+                            ) : null}
+                        </div>
+                        {previsao && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Nasce:</span>
+                                <span className="font-semibold text-amber-700 dark:text-amber-300">{previsao.data}</span>
+                                {previsao.diasRestantes > 0 ? (
+                                    <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
+                                        {previsao.diasRestantes}d
+                                    </span>
+                                ) : previsao.diasRestantes === 0 ? (
+                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded font-semibold">
+                                        Hoje!
+                                    </span>
+                                ) : (
+                                    <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded animate-pulse">
+                                        🐣 Descascando
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span>Nasceu:</span>
+                            <span className="font-medium">{formatShortDate(postura.data_nasc)}</span>
+                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                Nascido
+                            </span>
+                        </div>
+                        {alerts.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {alerts.map((alert, idx) => (
+                                    <span
+                                        key={idx}
+                                        className={`px-1.5 py-0.5 rounded text-xs font-medium animate-pulse ${alert.includes('Anilhar')
+                                            ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+                                            : alert.includes('Separar')
+                                                ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300'
+                                                : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+                                            }`}
+                                    >
+                                        {alert}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+    )
+}
+
+// Chip para postura transferida para outro casal
+function PosturaTransferidaChip({ postura }: { postura: Postura }) {
+    // Formata data curta (DD/MM)
+    const formatShortDate = (dateStr: string | null | undefined): string => {
+        if (!dateStr) return '—'
+        try {
+            const date = new Date(dateStr)
+            if (isNaN(date.getTime())) return '—'
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        } catch {
+            return '—'
+        }
+    }
+
+    // Cor do ícone baseada no status
+    const getIconColor = () => {
+        switch (postura.sit) {
+            case SitPostura.CHOCO:
+            case SitPostura.FERTIL:
+                return 'text-amber-500'
+            case SitPostura.NASCIDO:
+                return 'text-emerald-500'
+            case SitPostura.BRANCO:
+                return 'text-gray-400'
+            case SitPostura.EMBRIAO_MORTO:
+            case SitPostura.FILHOTE_MORTO:
+                return 'text-red-400'
+            default:
+                return 'text-gray-400'
+        }
+    }
+
+    return (
+        <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border-2 border-dashed border-purple-400 dark:border-purple-500">
+            <EggIcon className={`w-8 h-8 ${getIconColor()} flex-shrink-0`} />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <span>Postura:</span>
+                    <span className="font-medium">{formatShortDate(postura.data)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSitPosturaColor(postura.sit)}`}>
+                        {getSitPosturaLabel(postura.sit)}
+                    </span>
+                </div>
+                {/* Badge indicando para qual casal foi transferido */}
+                {postura.casal && (
+                    <div className="mt-1">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                            <TransferIcon className="w-3 h-3" />
+                            Transferido para casal {postura.casal.nro}
+                        </span>
+                    </div>
+                )}
+            </div>
+            <svg className="w-4 h-4 text-purple-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
+            </svg>
+        </div>
     )
 }
