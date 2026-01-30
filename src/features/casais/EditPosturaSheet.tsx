@@ -195,7 +195,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
     }
 
     // Verifica se pode transferir (não tem pássaro vinculado e está em situação válida)
-    const podeTransferir = !postura.passaro_id && [SitPostura.CHOCO, SitPostura.FERTIL, SitPostura.NASCIDO].includes(postura.sit ?? 0)
+    const situracoesTransferiveis = [SitPostura.CHOCO, SitPostura.FERTIL, SitPostura.NASCIDO] as number[]
+    const podeTransferir = !postura.passaro_id && situracoesTransferiveis.includes(postura.sit ?? -1)
 
     // Verifica se pode desfazer transferência
     const podeDesfazerTransferencia = postura.gaiola_origem_id && !postura.passaro_id
@@ -502,8 +503,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                                                                 key={cId}
                                                                 onClick={() => setSelectedCasalDestinoId(cId ?? null)}
                                                                 className={`w-full p-2 rounded-lg border text-left transition-all ${isSelected
-                                                                        ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
-                                                                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
+                                                                    ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
+                                                                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
                                                                     }`}
                                                             >
                                                                 <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
