@@ -206,7 +206,7 @@ export function EspeciesPage() {
             {!isLoading && !isError && (
                 <button
                     onClick={handleAdd}
-                    className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-blue-500 text-white rounded-full shadow-xl shadow-blue-500/30 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                    className="fixed right-4 bottom-24 z-40 w-14 h-14 bg-blue-500 text-white rounded-full shadow-xl shadow-blue-500/30 flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900 mb-[env(safe-area-inset-bottom)]"
                     aria-label="Nova Espécie"
                 >
                     <PlusIcon className="w-6 h-6" />

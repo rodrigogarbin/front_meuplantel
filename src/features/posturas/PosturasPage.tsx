@@ -542,7 +542,7 @@ export function PosturasPage() {
             {/* Botão flutuante para adicionar nova postura */}
             <button
                 onClick={() => setIsAddPosturaOpen(true)}
-                className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-amber-500 text-white rounded-full shadow-xl shadow-amber-500/30 flex items-center justify-center hover:bg-amber-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                className="fixed right-4 bottom-24 z-40 w-14 h-14 bg-amber-500 text-white rounded-full shadow-xl shadow-amber-500/30 flex items-center justify-center hover:bg-amber-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900 mb-[env(safe-area-inset-bottom)]"
                 aria-label="Nova Postura"
             >
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

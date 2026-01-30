@@ -87,6 +87,10 @@ export const router = createBrowserRouter([
                 path: '/config',
                 element: <ConfigPage />,
             },
+            {
+                path: '/passaros/:id/arvore',
+                element: <ArvoreGenealogicaPage />,
+            },
         ],
     },
     {
@@ -100,10 +104,6 @@ export const router = createBrowserRouter([
             {
                 path: '/passaros/:id/editar',
                 element: <PassaroFormPage />,
-            },
-            {
-                path: '/passaros/:id/arvore',
-                element: <ArvoreGenealogicaPage />,
             },
             {
                 path: '/casais/novo',
