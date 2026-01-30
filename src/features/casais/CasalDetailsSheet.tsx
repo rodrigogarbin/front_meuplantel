@@ -12,7 +12,6 @@ import { formatPassaroCompleto } from '@/lib/passaro'
 import { formatDate } from '@/lib/date'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
-import { TransferPosturaSheet } from './TransferPosturaSheet'
 import { usePosturasByCasal } from './casaisApi'
 
 interface CasalDetailsSheetProps {
@@ -82,7 +81,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const [isAddPosturaOpen, setIsAddPosturaOpen] = useState(false)
     const [selectedPostura, setSelectedPostura] = useState<Postura | null>(null)
     const [isEditPosturaOpen, setIsEditPosturaOpen] = useState(false)
-    const [isTransferPosturaOpen, setIsTransferPosturaOpen] = useState(false)
     const [showHistorico, setShowHistorico] = useState(false)
 
     // Obtém o ID do casal
@@ -189,11 +187,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const handleEditPostura = (postura: Postura) => {
         setSelectedPostura(postura)
         setIsEditPosturaOpen(true)
-    }
-
-    const handleTransferPostura = (postura: Postura) => {
-        setSelectedPostura(postura)
-        setIsTransferPosturaOpen(true)
     }
 
     const handlePosturaSuccess = () => {
@@ -370,7 +363,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                                 diasAnilha={diasAnilha}
                                                 diasSepara={diasSepara}
                                                 onClick={() => handleEditPostura(postura)}
-                                                onTransfer={() => handleTransferPostura(postura)}
                                             />
                                         ))}
                                     </div>
@@ -593,30 +585,17 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 }}
                 onSuccess={handlePosturaSuccess}
             />
-
-            {/* Sheet para transferir ovo */}
-            <TransferPosturaSheet
-                casal={casal}
-                postura={selectedPostura}
-                isOpen={isTransferPosturaOpen}
-                onClose={() => {
-                    setIsTransferPosturaOpen(false)
-                    setSelectedPostura(null)
-                }}
-                onSuccess={handlePosturaSuccess}
-            />
         </BottomSheet>
     )
 }
 
 // Chip unificado de ovo (chocando ou com ação pendente)
-function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick, onTransfer }: {
+function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
     postura: Postura
     diasChoco: number | null
     diasAnilha: number
     diasSepara: number
     onClick?: () => void
-    onTransfer?: () => void
 }) {
     // Formata data curta (DD/MM)
     const formatShortDate = (dateStr: string | null | undefined): string => {
@@ -694,14 +673,11 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick, o
         ? 'border border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500'
         : 'border border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 dark:hover:border-emerald-500'
 
-    // Verifica se pode transferir (não tem pássaro vinculado)
-    const podeTransferir = !postura.passaro_id && onTransfer
-
     return (
-        <div className="relative">
+        <div className="flex items-stretch gap-2">
             <button
                 onClick={onClick}
-                className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] w-full text-left`}
+                className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg ${borderColor} hover:shadow-sm transition-all active:scale-[0.98] flex-1 text-left min-w-0`}
             >
                 <EggIcon className={`w-8 h-8 ${iconColor} flex-shrink-0`} />
                 <div className="flex-1 min-w-0">
@@ -775,19 +751,11 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick, o
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </button>
-            {/* Botão de transferir */}
-            {podeTransferir && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        onTransfer?.()
-                    }}
-                    className="absolute top-2 right-2 p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
-                    title="Transferir ovo para outro casal"
-                >
+            {/* Indicador de ovo transferido */}
+            {postura.gaiola_origem_id && (
+                <div className="flex items-center justify-center px-2 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded-lg" title="Ovo transferido de outro casal">
                     <TransferIcon className="w-4 h-4" />
-                    <span className="text-xs font-medium">Transferir</span>
-                </button>
+                </div>
             )}
         </div>
     )

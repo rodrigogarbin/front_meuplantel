@@ -317,6 +317,40 @@ export function useTransferirPostura() {
     })
 }
 
+/**
+ * Desfaz a transferência de uma postura, retornando ao casal de origem
+ */
+async function desfazerTransferencia(casalAtualId: number, posturaId: number): Promise<Postura> {
+    const response = await api.post<Postura | { data: Postura }>(
+        `/api/v1/casais/${casalAtualId}/posturas/${posturaId}/desfazer-transferencia`
+    )
+
+    if ('data' in response.data && typeof response.data.data === 'object') {
+        return response.data.data as Postura
+    }
+    return response.data as Postura
+}
+
+/**
+ * Hook para desfazer transferência de postura (ovo)
+ */
+export function useDesfazerTransferencia() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ casalAtualId, posturaId }: {
+            casalAtualId: number
+            posturaId: number
+        }) => desfazerTransferencia(casalAtualId, posturaId),
+        onSuccess: (_data, variables) => {
+            // Invalida caches relevantes
+            queryClient.invalidateQueries({ queryKey: ['casal', variables.casalAtualId] })
+            queryClient.invalidateQueries({ queryKey: ['casais'] })
+            queryClient.invalidateQueries({ queryKey: ['posturas'] })
+        },
+    })
+}
+
 // ============================================
 // CRUD DE CASAIS
 // ============================================

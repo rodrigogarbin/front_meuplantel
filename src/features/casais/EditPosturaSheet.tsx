@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Casal, Postura } from '@/types'
 import { SitPostura, SitPosturaLabels } from '@/types'
 import { BottomSheet } from '@/components/ui'
-import { useUpdatePostura, useDeletePostura } from './casaisApi'
+import { useUpdatePostura, useDeletePostura, useCasais, useTransferirPostura, useDesfazerTransferencia } from './casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
 
 interface EditPosturaSheetProps {
@@ -42,6 +42,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
     const navigate = useNavigate()
     const updatePostura = useUpdatePostura()
     const deletePostura = useDeletePostura()
+    const transferirMutation = useTransferirPostura()
+    const desfazerTransferenciaMutation = useDesfazerTransferencia()
 
     // Estado do formulário
     const [data, setData] = useState('')
@@ -49,6 +51,9 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
     const [dataNasc, setDataNasc] = useState('')
     const [obs, setObs] = useState('')
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showTransferSection, setShowTransferSection] = useState(false)
+    const [selectedCasalDestinoId, setSelectedCasalDestinoId] = useState<number | null>(null)
+    const [nroRodadaDestino, setNroRodadaDestino] = useState<string>('')
 
     // Campos do anel (para nascidos)
     const [nroAnel, setNroAnel] = useState<string>('')
@@ -56,6 +61,9 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
 
     // Data atual formatada para input date (YYYY-MM-DD)
     const hoje = new Date().toISOString().split('T')[0]
+
+    // Busca todos os casais ativos para transferência
+    const { data: casais = [], isLoading: isLoadingCasais } = useCasais({ sit: 1 })
 
     // Preenche o form quando abre com dados da postura
     useEffect(() => {
@@ -66,6 +74,9 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
             setDataNasc(postura.data_nasc?.split('T')[0] ?? hoje)
             setObs(postura.obs ?? '')
             setShowDeleteConfirm(false)
+            setShowTransferSection(false)
+            setSelectedCasalDestinoId(null)
+            setNroRodadaDestino('')
 
             // Campos do anel
             setNroAnel(postura.nro_anel?.toString() ?? '')
@@ -143,7 +154,53 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
         }
     }
 
-    const isLoading = updatePostura.isPending || deletePostura.isPending
+    // Filtra casais removendo o casal atual
+    const casaisDisponiveis = casais.filter(c => {
+        const cId = c.id ?? c.gaiola_id
+        return cId !== casalId
+    })
+
+    const handleTransferir = async () => {
+        if (!selectedCasalDestinoId) return
+
+        try {
+            await transferirMutation.mutateAsync({
+                casalOrigemId: casalId,
+                posturaId: postura.postura_id,
+                payload: {
+                    gaiola_destino_id: selectedCasalDestinoId,
+                    nro_rodada: nroRodadaDestino ? parseInt(nroRodadaDestino, 10) : undefined,
+                },
+            })
+
+            onClose()
+            onSuccess?.()
+        } catch (error) {
+            console.error('Erro ao transferir ovo:', error)
+        }
+    }
+
+    const handleDesfazerTransferencia = async () => {
+        try {
+            await desfazerTransferenciaMutation.mutateAsync({
+                casalAtualId: casalId,
+                posturaId: postura.postura_id,
+            })
+
+            onClose()
+            onSuccess?.()
+        } catch (error) {
+            console.error('Erro ao desfazer transferência:', error)
+        }
+    }
+
+    // Verifica se pode transferir (não tem pássaro vinculado e está em situação válida)
+    const podeTransferir = !postura.passaro_id && [SitPostura.CHOCO, SitPostura.FERTIL, SitPostura.NASCIDO].includes(postura.sit ?? 0)
+
+    // Verifica se pode desfazer transferência
+    const podeDesfazerTransferencia = postura.gaiola_origem_id && !postura.passaro_id
+
+    const isLoading = updatePostura.isPending || deletePostura.isPending || transferirMutation.isPending || desfazerTransferenciaMutation.isPending
 
     // Formata info do casal
     const casalNro = casal.nro ?? '?'
@@ -340,8 +397,171 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                     />
                 </div>
 
+                {/* Seção de Transferência */}
+                {(podeTransferir || podeDesfazerTransferencia) && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        {/* Indicador de ovo transferido */}
+                        {postura.gaiola_origem_id && (
+                            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-xl p-3 mb-4">
+                                <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 text-sm">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                    <span className="font-medium">Este ovo foi transferido de outro casal</span>
+                                </div>
+                                {postura.casal_origem && (
+                                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 ml-7">
+                                        Origem: Casal #{postura.casal_origem.nro}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Botão para desfazer transferência */}
+                        {podeDesfazerTransferencia && (
+                            <button
+                                onClick={handleDesfazerTransferencia}
+                                disabled={isLoading}
+                                className="w-full py-3 mb-3 bg-purple-100 dark:bg-purple-900/40 border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-xl font-medium hover:bg-purple-200 dark:hover:bg-purple-900/60 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {desfazerTransferenciaMutation.isPending ? (
+                                    <>
+                                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Desfazendo...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                        Desfazer Transferência (Retornar ao Casal Original)
+                                    </>
+                                )}
+                            </button>
+                        )}
+
+                        {/* Seção expandível de transferir para outro casal */}
+                        {podeTransferir && !postura.gaiola_origem_id && (
+                            <>
+                                {!showTransferSection ? (
+                                    <button
+                                        onClick={() => setShowTransferSection(true)}
+                                        disabled={isLoading}
+                                        className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 rounded-xl font-medium hover:bg-purple-50 dark:hover:bg-purple-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                        Transferir para Outro Casal
+                                    </button>
+                                ) : (
+                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-xl p-4 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                </svg>
+                                                Transferir Ovo
+                                            </h4>
+                                            <button
+                                                onClick={() => setShowTransferSection(false)}
+                                                className="text-purple-500 hover:text-purple-700 dark:hover:text-purple-300"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* Seleção do casal destino */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                Casal de destino
+                                            </label>
+                                            {isLoadingCasais ? (
+                                                <div className="flex items-center justify-center py-4">
+                                                    <svg className="animate-spin w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                    </svg>
+                                                </div>
+                                            ) : casaisDisponiveis.length === 0 ? (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                                                    Não há outros casais ativos disponíveis
+                                                </p>
+                                            ) : (
+                                                <div className="max-h-40 overflow-y-auto space-y-2">
+                                                    {casaisDisponiveis.map((c) => {
+                                                        const cId = c.id ?? c.gaiola_id
+                                                        const isSelected = selectedCasalDestinoId === cId
+                                                        return (
+                                                            <button
+                                                                key={cId}
+                                                                onClick={() => setSelectedCasalDestinoId(cId ?? null)}
+                                                                className={`w-full p-2 rounded-lg border text-left transition-all ${
+                                                                    isSelected
+                                                                        ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
+                                                                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
+                                                                }`}
+                                                            >
+                                                                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                                                    Casal #{c.nro}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                                    {c.descr_pai || formatRingComplete(c.macho?.anel) || '♂ ?'} × {c.descr_mae || formatRingComplete(c.femea?.anel) || '♀ ?'}
+                                                                </div>
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Número da rodada (opcional) */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                Número da rodada (opcional)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={nroRodadaDestino}
+                                                onChange={(e) => setNroRodadaDestino(e.target.value)}
+                                                placeholder="Usar rodada atual do destino"
+                                                min="1"
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                            />
+                                        </div>
+
+                                        {/* Botão de confirmar transferência */}
+                                        <button
+                                            onClick={handleTransferir}
+                                            disabled={!selectedCasalDestinoId || isLoading}
+                                            className="w-full py-2.5 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {transferirMutation.isPending ? (
+                                                <>
+                                                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                    </svg>
+                                                    Transferindo...
+                                                </>
+                                            ) : (
+                                                'Confirmar Transferência'
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+
                 {/* Erro */}
-                {(updatePostura.isError || deletePostura.isError) && (
+                {(updatePostura.isError || deletePostura.isError || transferirMutation.isError || desfazerTransferenciaMutation.isError) && (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
                         Erro ao processar. Tente novamente.
                     </div>
