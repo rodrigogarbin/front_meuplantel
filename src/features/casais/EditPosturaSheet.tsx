@@ -501,11 +501,10 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                                                             <button
                                                                 key={cId}
                                                                 onClick={() => setSelectedCasalDestinoId(cId ?? null)}
-                                                                className={`w-full p-2 rounded-lg border text-left transition-all ${
-                                                                    isSelected
+                                                                className={`w-full p-2 rounded-lg border text-left transition-all ${isSelected
                                                                         ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
                                                                         : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
                                                                     Casal #{c.nro}
