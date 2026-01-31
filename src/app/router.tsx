@@ -2,7 +2,7 @@
  * Router da aplicação
  */
 
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
 import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
@@ -26,6 +26,17 @@ function AuthenticatedLayout() {
             </EmailVerificationGuard>
         </PrivateRoute>
     )
+}
+
+/**
+ * Redireciona /gaiola/:id para /casais?casal=id (deep link do QR code da gaiola).
+ * URL curta para não conflitar com /casais/novo e /casais/:id/editar.
+ */
+function GaiolaRedirect() {
+    const { id } = useParams<{ id: string }>()
+    const numId = Number(id)
+    if (Number.isNaN(numId) || numId < 1) return <Navigate to="/casais" replace />
+    return <Navigate to={`/casais?casal=${id}`} replace />
 }
 
 /**
@@ -78,6 +89,10 @@ export const router = createBrowserRouter([
             {
                 path: '/casais',
                 element: <CasaisPage />,
+            },
+            {
+                path: '/gaiola/:id',
+                element: <GaiolaRedirect />,
             },
             {
                 path: '/posturas',

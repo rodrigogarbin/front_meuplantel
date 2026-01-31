@@ -3,13 +3,16 @@
  * Bottom sheet / Modal com detalhes completos do casal
  */
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Dialog, Transition } from '@headlessui/react'
+import { QRCodeSVG } from 'qrcode.react'
 import type { Casal, Postura } from '@/types'
 import { SitPostura } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { formatPassaroCompleto } from '@/lib/passaro'
 import { formatDate } from '@/lib/date'
+import { getGaiolaAppUrl } from '@/lib/url'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
 import { usePosturasByCasal } from './casaisApi'
@@ -82,6 +85,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const [selectedPostura, setSelectedPostura] = useState<Postura | null>(null)
     const [isEditPosturaOpen, setIsEditPosturaOpen] = useState(false)
     const [showHistorico, setShowHistorico] = useState(false)
+    const [showQrCode, setShowQrCode] = useState(false)
 
     // Obtém o ID do casal
     const casalId = casal?.id ?? casal?.gaiola_id ?? null
@@ -542,6 +546,19 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         Adicionar Ovo
                     </button>
 
+                    {/* QR Code da gaiola */}
+                    {casalId != null && (
+                        <button
+                            onClick={() => setShowQrCode(true)}
+                            className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                            QR Code da Gaiola
+                        </button>
+                    )}
+
                     {/* Editar */}
                     <button
                         onClick={handleEdit}
@@ -585,6 +602,62 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 }}
                 onSuccess={handlePosturaSuccess}
             />
+
+            {/* Modal QR Code da gaiola */}
+            {casalId != null && (
+                <Transition appear show={showQrCode} as={Fragment}>
+                    <Dialog as="div" className="relative z-[60]" onClose={() => setShowQrCode(false)}>
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-200"
+                            enterFrom="opacity-0"
+                            enterTo="opacity-100"
+                            leave="ease-in duration-150"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                        >
+                            <div className="fixed inset-0 bg-black/50" />
+                        </Transition.Child>
+                        <div className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-200"
+                                enterFrom="opacity-0 scale-95"
+                                enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-150"
+                                leaveFrom="opacity-100 scale-100"
+                                leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 flex flex-col items-center gap-4">
+                                    <Dialog.Title className="text-lg font-semibold text-gray-800 dark:text-gray-100 text-center">
+                                        QR Code – Gaiola Nº {casal.nro}
+                                    </Dialog.Title>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                                        Escaneie com a câmera do celular para abrir esta gaiola no MeuPlantel. Se o app estiver instalado, abrirá direto no PWA.
+                                    </p>
+                                    <div className="bg-white p-4 rounded-xl">
+                                        <QRCodeSVG
+                                            value={getGaiolaAppUrl(casalId)}
+                                            size={220}
+                                            level="M"
+                                            bgColor="#ffffff"
+                                            fgColor="#0f172a"
+                                            marginSize={2}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowQrCode(false)}
+                                        className="w-full py-2.5 px-4 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                    >
+                                        Fechar
+                                    </button>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </Dialog>
+                </Transition>
+            )}
         </BottomSheet>
     )
 }
