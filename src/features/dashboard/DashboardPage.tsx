@@ -16,6 +16,7 @@ import {
     CakeIcon,
     HeartIcon,
 } from './icons'
+import { parseLocalDate } from '@/lib/date'
 
 export function DashboardPage() {
     const navigate = useNavigate()
@@ -161,7 +162,7 @@ export function DashboardPage() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm text-purple-600 font-medium">
-                                                {new Date(passaro.nascimento).toLocaleDateString('pt-BR', {
+                                                {(parseLocalDate(passaro.nascimento) ?? new Date(passaro.nascimento)).toLocaleDateString('pt-BR', {
                                                     day: '2-digit',
                                                     month: 'short',
                                                 })}

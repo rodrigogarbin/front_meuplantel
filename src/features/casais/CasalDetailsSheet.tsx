@@ -11,7 +11,7 @@ import type { Casal, Postura } from '@/types'
 import { SitPostura } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { formatPassaroCompleto } from '@/lib/passaro'
-import { formatDate } from '@/lib/date'
+import { formatDate, formatShortDate, parseLocalDate } from '@/lib/date'
 import { getGaiolaAppUrl } from '@/lib/url'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
@@ -670,20 +670,6 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
     diasSepara: number
     onClick?: () => void
 }) {
-    // Formata data curta (DD/MM)
-    const formatShortDate = (dateStr: string | null | undefined): string => {
-        if (!dateStr) return '—'
-        try {
-            const date = new Date(dateStr)
-            if (isNaN(date.getTime())) return '—'
-            const day = date.getDate().toString().padStart(2, '0')
-            const month = (date.getMonth() + 1).toString().padStart(2, '0')
-            return `${day}/${month}`
-        } catch {
-            return '—'
-        }
-    }
-
     const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
     const isNascido = postura.sit === SitPostura.NASCIDO
     const isFertil = postura.sit === SitPostura.FERTIL;
@@ -692,21 +678,23 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
         if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null;
         try {
-            const dataPostura = new Date(postura.data);
-            if (isNaN(dataPostura.getTime())) return null;
+            const dataPostura = parseLocalDate(postura.data);
+            if (!dataPostura) return null;
 
             const previsao = new Date(dataPostura);
             previsao.setDate(previsao.getDate() + diasChoco);
 
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
-            previsao.setHours(0, 0, 0, 0);
 
             const diffTime = previsao.getTime() - hoje.getTime();
             const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+            const day = previsao.getDate().toString().padStart(2, '0');
+            const month = (previsao.getMonth() + 1).toString().padStart(2, '0');
+
             return {
-                data: formatShortDate(previsao.toISOString()),
+                data: `${day}/${month}`,
                 diasRestantes
             };
         } catch {
@@ -721,8 +709,8 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
 
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-        const dataNasc = new Date(postura.data_nasc);
-        dataNasc.setHours(0, 0, 0, 0);
+        const dataNasc = parseLocalDate(postura.data_nasc);
+        if (!dataNasc) return alerts;
 
         const diffTime = hoje.getTime() - dataNasc.getTime();
         const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -836,17 +824,6 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
 
 // Chip individual de postura no histórico (concluída)
 function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?: () => void }) {
-    // Formata data curta (DD/MM)
-    const formatShortDate = (dateStr: string | null | undefined): string => {
-        if (!dateStr) return '—'
-        try {
-            const date = new Date(dateStr)
-            if (isNaN(date.getTime())) return '—'
-            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        } catch {
-            return '—'
-        }
-    }
 
     // Cor do ícone baseada no status
     const getIconColor = () => {
@@ -898,20 +875,6 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
     diasSepara: number
     onClick?: () => void
 }) {
-    // Formata data curta (DD/MM)
-    const formatShortDate = (dateStr: string | null | undefined): string => {
-        if (!dateStr) return '—'
-        try {
-            const date = new Date(dateStr)
-            if (isNaN(date.getTime())) return '—'
-            const day = date.getDate().toString().padStart(2, '0')
-            const month = (date.getMonth() + 1).toString().padStart(2, '0')
-            return `${day}/${month}`
-        } catch {
-            return '—'
-        }
-    }
-
     const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
     const isNascido = postura.sit === SitPostura.NASCIDO
     const isFertil = postura.sit === SitPostura.FERTIL
@@ -920,21 +883,23 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
         if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null
         try {
-            const dataPostura = new Date(postura.data)
-            if (isNaN(dataPostura.getTime())) return null
+            const dataPostura = parseLocalDate(postura.data)
+            if (!dataPostura) return null
 
             const previsao = new Date(dataPostura)
             previsao.setDate(previsao.getDate() + diasChoco)
 
             const hoje = new Date()
             hoje.setHours(0, 0, 0, 0)
-            previsao.setHours(0, 0, 0, 0)
 
             const diffTime = previsao.getTime() - hoje.getTime()
             const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
+            const day = previsao.getDate().toString().padStart(2, '0')
+            const month = (previsao.getMonth() + 1).toString().padStart(2, '0')
+
             return {
-                data: formatShortDate(previsao.toISOString()),
+                data: `${day}/${month}`,
                 diasRestantes
             }
         } catch {
@@ -949,8 +914,8 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
 
         const hoje = new Date()
         hoje.setHours(0, 0, 0, 0)
-        const dataNasc = new Date(postura.data_nasc)
-        dataNasc.setHours(0, 0, 0, 0)
+        const dataNasc = parseLocalDate(postura.data_nasc)
+        if (!dataNasc) return alerts
 
         const diffTime = hoje.getTime() - dataNasc.getTime()
         const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24))
@@ -1059,17 +1024,6 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
 
 // Chip para postura transferida para outro casal
 function PosturaTransferidaChip({ postura }: { postura: Postura }) {
-    // Formata data curta (DD/MM)
-    const formatShortDate = (dateStr: string | null | undefined): string => {
-        if (!dateStr) return '—'
-        try {
-            const date = new Date(dateStr)
-            if (isNaN(date.getTime())) return '—'
-            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        } catch {
-            return '—'
-        }
-    }
 
     // Cor do ícone baseada no status
     const getIconColor = () => {

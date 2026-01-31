@@ -11,6 +11,7 @@ import { EditPosturaSheet } from '@/features/casais'
 import { AddPosturaSheet } from '@/features/casais/AddPosturaSheet';
 import { useCasal, useCasais } from '@/features/casais/casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
+import { parseLocalDate, formatDate as formatDateUtil } from '@/lib/date'
 import type { Casal } from '@/types';
 
 // Tipo para resultado dos alertas
@@ -32,8 +33,8 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
 
     // Se status é CHOCO e data + dias_choco >= hoje => "Nascendo"
     if (postura.sit === SitPostura.CHOCO && postura.data) {
-        const dataPostura = new Date(postura.data)
-        dataPostura.setHours(0, 0, 0, 0)
+        const dataPostura = parseLocalDate(postura.data)
+        if (!dataPostura) return result
         const dataNascendo = new Date(dataPostura)
         dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
 
@@ -56,8 +57,8 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
     // Se status é NASCIDO e não tem passaro_id (ainda não gerou filhote)
     if (postura.sit === SitPostura.NASCIDO && !postura.passaro) {
         if (postura.data_nasc) {
-            const dataNasc = new Date(postura.data_nasc)
-            dataNasc.setHours(0, 0, 0, 0)
+            const dataNasc = parseLocalDate(postura.data_nasc)
+            if (!dataNasc) return result
 
             // Verifica se já foi anilhado (tem nro_anel e ano_anel)
             const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
@@ -108,11 +109,7 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
 }
 
 // Função para formatar data
-function formatDate(dateStr: string | null): string {
-    if (!dateStr) return '—'
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('pt-BR')
-}
+const formatDate = formatDateUtil
 
 // Componente de alerta badge
 function AlertBadge({ text }: { text: string }) {
@@ -332,7 +329,7 @@ export function PosturasPage() {
 
             // Se nenhuma tem, mantém ordem original (ou ordena por data de postura)
             if (a.data && b.data) {
-                return new Date(b.data).getTime() - new Date(a.data).getTime()
+                return (parseLocalDate(b.data)?.getTime() ?? 0) - (parseLocalDate(a.data)?.getTime() ?? 0)
             }
 
             return 0

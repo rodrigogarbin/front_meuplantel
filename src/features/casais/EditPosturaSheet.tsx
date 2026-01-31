@@ -10,6 +10,7 @@ import { SitPostura, SitPosturaLabels } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { useUpdatePostura, useDeletePostura, useCasais, useTransferirPostura, useDesfazerTransferencia } from './casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
+import { parseLocalDate } from '@/lib/date'
 
 interface EditPosturaSheetProps {
     casal: Casal | null
@@ -101,8 +102,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
     const calcPrevisao = (): string | null => {
         if (!data || !diasChoco) return null
         try {
-            const dataPostura = new Date(data)
-            if (isNaN(dataPostura.getTime())) return null
+            const dataPostura = parseLocalDate(data)
+            if (!dataPostura) return null
             dataPostura.setDate(dataPostura.getDate() + diasChoco)
             const day = dataPostura.getDate().toString().padStart(2, '0')
             const month = (dataPostura.getMonth() + 1).toString().padStart(2, '0')

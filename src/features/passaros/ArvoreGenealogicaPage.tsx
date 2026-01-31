@@ -7,6 +7,7 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useArvoreGenealogica } from './passarosApi'
+import { formatDate } from '@/lib/date'
 import { useUserProfile } from '@/features/auth/userApi'
 import { formatRingComplete } from '@/lib/passaro'
 import { SexoEnum } from '@/types'
@@ -178,7 +179,7 @@ function GenealogyTree({ passaro, maxGenerations = 3 }: { passaro: PassaroArvore
                     )}
                     {passaro.dt_nasc && (
                         <div className="text-xs mt-1 opacity-60">
-                            Nasc: {new Date(passaro.dt_nasc).toLocaleDateString('pt-BR')}
+                            Nasc: {formatDate(passaro.dt_nasc)}
                         </div>
                     )}
                 </div>

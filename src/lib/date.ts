@@ -3,20 +3,61 @@
  */
 
 /**
+ * Extrai partes (ano, mês, dia) de uma string de data (YYYY-MM-DD ou ISO)
+ * sem passar por new Date(), evitando problemas de fuso horário.
+ */
+function parseDateParts(dateStr: string): { year: number; month: number; day: number } | null {
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (!match) return null
+    const year = parseInt(match[1], 10)
+    const month = parseInt(match[2], 10)
+    const day = parseInt(match[3], 10)
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null
+    return { year, month, day }
+}
+
+/**
+ * Cria um Date local a partir de uma string YYYY-MM-DD sem deslocamento de fuso.
+ */
+export function parseLocalDate(dateStr: string): Date | null {
+    const parts = parseDateParts(dateStr)
+    if (!parts) return null
+    return new Date(parts.year, parts.month - 1, parts.day)
+}
+
+/**
+ * Formata uma data ISO para dd/mm (curto)
+ */
+export function formatShortDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return '—'
+
+    try {
+        const parts = parseDateParts(dateStr)
+        if (!parts) return '—'
+
+        const day = parts.day.toString().padStart(2, '0')
+        const month = parts.month.toString().padStart(2, '0')
+
+        return `${day}/${month}`
+    } catch {
+        return '—'
+    }
+}
+
+/**
  * Formata uma data ISO para dd/mm/aaaa
  */
 export function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '—'
 
     try {
-        const date = new Date(dateStr)
-        if (isNaN(date.getTime())) return '—'
+        const parts = parseDateParts(dateStr)
+        if (!parts) return '—'
 
-        const day = date.getDate().toString().padStart(2, '0')
-        const month = (date.getMonth() + 1).toString().padStart(2, '0')
-        const year = date.getFullYear()
+        const day = parts.day.toString().padStart(2, '0')
+        const month = parts.month.toString().padStart(2, '0')
 
-        return `${day}/${month}/${year}`
+        return `${day}/${month}/${parts.year}`
     } catch {
         return '—'
     }
@@ -29,8 +70,8 @@ export function calcAgeHuman(dateStr: string | null | undefined): string {
     if (!dateStr) return '—'
 
     try {
-        const birthDate = new Date(dateStr)
-        if (isNaN(birthDate.getTime())) return '—'
+        const birthDate = parseLocalDate(dateStr)
+        if (!birthDate) return '—'
 
         const now = new Date()
 
@@ -80,8 +121,8 @@ export function relativeDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '—'
 
     try {
-        const date = new Date(dateStr)
-        if (isNaN(date.getTime())) return '—'
+        const date = parseLocalDate(dateStr)
+        if (!date) return '—'
 
         const now = new Date()
         const diffMs = now.getTime() - date.getTime()

@@ -8,6 +8,7 @@ import type { Casal } from '@/types'
 import { SitPostura } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { useCreatePostura } from './casaisApi'
+import { parseLocalDate } from '@/lib/date'
 
 interface AddPosturaSheetProps {
     casal: Casal | null
@@ -58,8 +59,8 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
     const calcPrevisao = (): string | null => {
         if (!data || !diasChoco) return null
         try {
-            const dataPostura = new Date(data)
-            if (isNaN(dataPostura.getTime())) return null
+            const dataPostura = parseLocalDate(data)
+            if (!dataPostura) return null
             dataPostura.setDate(dataPostura.getDate() + diasChoco)
             const day = dataPostura.getDate().toString().padStart(2, '0')
             const month = (dataPostura.getMonth() + 1).toString().padStart(2, '0')
