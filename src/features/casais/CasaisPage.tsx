@@ -2,13 +2,14 @@
  * Página de Listagem de Casais Ativos
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
+import { QrScanner } from '@/components/ui/QrScanner'
 import { useCasais } from './casaisApi'
 import { CasalCard } from './CasalCard'
 import { CasalDetailsSheet } from './CasalDetailsSheet'
@@ -38,6 +39,7 @@ export function CasaisPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCasal, setSelectedCasal] = useState<Casal | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [showScanner, setShowScanner] = useState(false)
 
     // Busca apenas casais ativos (sit=1, ou seja, sem vigen_final)
     const { data: casais = [], isLoading, error, refetch } = useCasais({ sit: 1 })
@@ -85,6 +87,15 @@ export function CasaisPage() {
         setIsDetailsOpen(false)
         setTimeout(() => setSelectedCasal(null), 300) // Aguarda animação
     }
+
+    const handleScanResult = useCallback((decodedText: string) => {
+        setShowScanner(false)
+        // Extrai o ID da gaiola da URL (ex: https://app.meuplantel.com/gaiola/123)
+        const match = decodedText.match(/\/gaiola\/(\d+)/)
+        if (match) {
+            navigate(`/gaiola/${match[1]}`)
+        }
+    }, [navigate])
 
     const handleRefresh = async () => {
         const result = await refetch()
@@ -181,14 +192,39 @@ export function CasaisPage() {
                 </PullToRefresh>
             </main>
 
-            {/* FAB - Botão Flutuante para Adicionar */}
-            <button
-                onClick={() => navigate('/casais/novo')}
-                className="fixed right-4 bottom-24 z-40 w-14 h-14 bg-rose-500 text-white rounded-full shadow-xl shadow-rose-500/30 flex items-center justify-center hover:bg-rose-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900 mb-[env(safe-area-inset-bottom)]"
-                aria-label="Novo Casal"
-            >
-                <PlusIcon />
-            </button>
+            {/* FABs */}
+            <div className="fixed right-4 bottom-24 z-40 flex flex-col gap-3 mb-[env(safe-area-inset-bottom)]">
+                {/* Scan QR Code */}
+                <button
+                    onClick={() => setShowScanner(true)}
+                    className="w-14 h-14 bg-indigo-500 text-white rounded-full shadow-xl shadow-indigo-500/30 flex items-center justify-center hover:bg-indigo-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                    aria-label="Escanear QR Code"
+                >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                        <rect x="7" y="7" width="4" height="4" rx="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <rect x="13" y="7" width="4" height="4" rx="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <rect x="7" y="13" width="4" height="4" rx="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 13h4v4h-4" />
+                    </svg>
+                </button>
+                {/* Novo Casal */}
+                <button
+                    onClick={() => navigate('/casais/novo')}
+                    className="w-14 h-14 bg-rose-500 text-white rounded-full shadow-xl shadow-rose-500/30 flex items-center justify-center hover:bg-rose-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                    aria-label="Novo Casal"
+                >
+                    <PlusIcon />
+                </button>
+            </div>
+
+            {/* QR Scanner */}
+            {showScanner && (
+                <QrScanner
+                    onResult={handleScanResult}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
 
             {/* Sheet de Detalhes */}
             <CasalDetailsSheet

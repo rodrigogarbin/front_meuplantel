@@ -11,10 +11,11 @@
     },
     "dependencies": {
         "@hcaptcha/react-hcaptcha": "^1.17.4",
-        "qrcode.react": "^4.1.0",
         "@headlessui/react": "^2.2.0",
         "@tanstack/react-query": "^5.62.0",
         "axios": "^1.7.9",
+        "html5-qrcode": "^2.3.8",
+        "qrcode.react": "^4.1.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-router-dom": "^7.1.0",
