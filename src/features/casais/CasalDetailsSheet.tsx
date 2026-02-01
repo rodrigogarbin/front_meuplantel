@@ -15,7 +15,7 @@ import { formatDate, formatShortDate, parseLocalDate } from '@/lib/date'
 import { getGaiolaAppUrl } from '@/lib/url'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
-import { usePosturasByCasal } from './casaisApi'
+import { usePosturasByCasal, useCasalEndogamia } from './casaisApi'
 
 interface CasalDetailsSheetProps {
     casal: Casal | null
@@ -89,6 +89,9 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 
     // Obtém o ID do casal
     const casalId = casal?.id ?? casal?.gaiola_id ?? null
+
+    // Busca endogamia do casal
+    const { data: endogamia } = useCasalEndogamia(casalId)
 
     // Busca histórico completo de posturas (só quando showHistorico = true)
     const { data: historicoCompleto, isLoading: isLoadingHistorico, refetch: refetchHistorico } = usePosturasByCasal(
@@ -298,6 +301,44 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         )}
                     </button>
                 </div>
+
+                {/* Consanguinidade */}
+                {endogamia !== undefined && endogamia > 0 && (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${
+                        endogamia >= 0.25
+                            ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
+                            : endogamia >= 0.125
+                                ? 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
+                                : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                    }`}>
+                        <svg className={`w-5 h-5 flex-shrink-0 ${
+                            endogamia >= 0.25
+                                ? 'text-red-500'
+                                : endogamia >= 0.125
+                                    ? 'text-amber-500'
+                                    : 'text-gray-500'
+                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Consanguinidade dos filhotes</p>
+                            <p className={`text-lg font-bold ${
+                                endogamia >= 0.25
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : endogamia >= 0.125
+                                        ? 'text-amber-600 dark:text-amber-400'
+                                        : 'text-gray-700 dark:text-gray-200'
+                            }`}>
+                                {(endogamia * 100).toFixed(1)}%
+                            </p>
+                        </div>
+                        {endogamia >= 0.25 && (
+                            <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded text-xs font-medium">
+                                Alto
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Estatísticas */}
                 <div className="grid grid-cols-4 gap-2">

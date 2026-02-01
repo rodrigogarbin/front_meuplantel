@@ -2,13 +2,10 @@
  * Página de Configurações
  */
 
-import { Fragment, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Dialog, Transition } from '@headlessui/react'
 import { Topbar } from '@/components/ui/Topbar'
 import { useThemeStore, type ThemeMode } from '@/lib/theme'
 import { useAuthStore } from '@/features/auth/authStore'
-import { useResetData } from './accountApi'
 
 // Ícones
 function SunIcon({ className }: { className?: string }) {
@@ -51,14 +48,6 @@ function ChevronRightIcon({ className }: { className?: string }) {
     )
 }
 
-function TrashIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-    )
-}
-
 function BirdIcon({ className }: { className?: string }) {
     return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -77,22 +66,9 @@ export function ConfigPage() {
     const navigate = useNavigate()
     const { mode, setMode } = useThemeStore()
     const { user, logout } = useAuthStore()
-    const [showResetConfirm, setShowResetConfirm] = useState(false)
-    const resetDataMutation = useResetData()
-
     const handleLogout = () => {
         logout()
         navigate('/login')
-    }
-
-    const handleResetData = async () => {
-        try {
-            await resetDataMutation.mutateAsync()
-            setShowResetConfirm(false)
-            navigate('/', { replace: true })
-        } catch {
-            // Erro já tratado pelo mutation
-        }
     }
 
     return (
@@ -207,29 +183,6 @@ export function ConfigPage() {
                         </div>
                     </section>
 
-                    {/* Reiniciar sistema */}
-                    <section>
-                        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                            Sistema
-                        </h2>
-                        <div className="section-card">
-                            <button
-                                onClick={() => setShowResetConfirm(true)}
-                                disabled={resetDataMutation.isPending}
-                                className="w-full flex items-center justify-between py-3 text-amber-600 dark:text-amber-400 font-medium disabled:opacity-50"
-                            >
-                                <span className="flex items-center gap-3">
-                                    <TrashIcon className="w-5 h-5" />
-                                    Reiniciar sistema (apagar dados)
-                                </span>
-                                <ChevronRightIcon className="w-5 h-5" />
-                            </button>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 px-1">
-                                Remove pássaros, casais, posturas e espécies. A conta permanece.
-                            </p>
-                        </div>
-                    </section>
-
                     {/* Ações */}
                     <section>
                         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -251,65 +204,6 @@ export function ConfigPage() {
                 </div>
             </main>
 
-            {/* Modal de confirmação: Reiniciar sistema */}
-            <Transition appear show={showResetConfirm} as={Fragment}>
-                <Dialog as="div" className="relative z-50" onClose={() => !resetDataMutation.isPending && setShowResetConfirm(false)}>
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-200"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="ease-in duration-150"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
-                        <div className="fixed inset-0 bg-black/50" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4">
-                        <Transition.Child
-                            as={Fragment}
-                            enter="ease-out duration-200"
-                            enterFrom="opacity-0 scale-95"
-                            enterTo="opacity-100 scale-100"
-                            leave="ease-in duration-150"
-                            leaveFrom="opacity-100 scale-100"
-                            leaveTo="opacity-0 scale-95"
-                        >
-                            <Dialog.Panel className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                                <Dialog.Title className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                                    Reiniciar sistema?
-                                </Dialog.Title>
-                                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                                    Isso apagará <strong>todos</strong> os seus dados: pássaros, casais (gaiolas), posturas e espécies. A conta permanecerá. Esta ação não pode ser desfeita.
-                                </p>
-                                <div className="mt-6 flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowResetConfirm(false)}
-                                        disabled={resetDataMutation.isPending}
-                                        className="flex-1 py-2.5 px-4 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors disabled:opacity-50"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleResetData}
-                                        disabled={resetDataMutation.isPending}
-                                        className="flex-1 py-2.5 px-4 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors disabled:opacity-50"
-                                    >
-                                        {resetDataMutation.isPending ? 'Apagando…' : 'Apagar tudo'}
-                                    </button>
-                                </div>
-                                {resetDataMutation.isError && (
-                                    <p className="mt-3 text-sm text-red-600 dark:text-red-400">
-                                        {resetDataMutation.error instanceof Error ? resetDataMutation.error.message : 'Erro ao apagar dados. Tente novamente.'}
-                                    </p>
-                                )}
-                            </Dialog.Panel>
-                        </Transition.Child>
-                    </div>
-                </Dialog>
-            </Transition>
         </>
     )
 }

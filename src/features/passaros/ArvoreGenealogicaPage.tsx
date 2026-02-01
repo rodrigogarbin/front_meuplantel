@@ -353,7 +353,9 @@ export function ArvoreGenealogicaPage() {
     const navigate = useNavigate()
     const passaroId = id ? Number(id) : null
 
-    const { data: passaro, isLoading, error, refetch } = useArvoreGenealogica(passaroId)
+    const { data: arvoreData, isLoading, error, refetch } = useArvoreGenealogica(passaroId)
+    const passaro = arvoreData?.arvore
+    const endogamia = arvoreData?.endogamia ?? 0
     const { data: userProfile } = useUserProfile()
 
     // Função para gerar PDF do certificado
@@ -712,6 +714,14 @@ export function ArvoreGenealogicaPage() {
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                         Visualize os ancestrais deste pássaro
                     </p>
+                    {endogamia > 0 && (
+                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-lg text-sm font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Consanguinidade: {(endogamia * 100).toFixed(1)}%
+                        </div>
+                    )}
                 </div>
 
                 {/* Árvore Visual */}

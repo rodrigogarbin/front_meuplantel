@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Passaro, Portador } from '@/types'
 import { PortadorTipo } from '@/types'
 import { BottomSheet } from '@/components/ui'
+import { useArvoreGenealogica } from './passarosApi'
 import { formatPassaroCompleto, sexIcon, sexText, sexColor, situacaoText, situacaoColor, getEspecie, getMutacao, getFotoUrl } from '@/lib/passaro'
 import { formatDate, calcAgeHuman } from '@/lib/date'
 import { API_BASE_URL } from '@/lib/api'
@@ -37,6 +38,11 @@ interface BirdDetailsSheetProps {
 export function BirdDetailsSheet({ bird, isOpen, onClose }: BirdDetailsSheetProps) {
     const navigate = useNavigate()
     const [imageError, setImageError] = useState(false)
+
+    // Busca endogamia do pássaro (só se tiver pai e mãe)
+    const hasBothParents = !!(bird?.passaro_pai_id && bird?.passaro_mae_id)
+    const { data: arvoreData } = useArvoreGenealogica(hasBothParents ? (bird?.passaro_id ?? null) : null)
+    const endogamia = arvoreData?.endogamia ?? 0
 
     // Parse dos portadores separando por tipo
     const { portadores, possiveis } = useMemo(
@@ -165,6 +171,38 @@ export function BirdDetailsSheet({ bird, isOpen, onClose }: BirdDetailsSheetProp
                                 {bird.mae ? formatPassaroCompleto(bird.mae) : '—'}
                             </p>
                         </div>
+                        {endogamia > 0 && (
+                            <div className={`rounded-lg p-3 border flex items-center gap-3 ${
+                                endogamia >= 0.25
+                                    ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
+                                    : endogamia >= 0.125
+                                        ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800'
+                                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            }`}>
+                                <svg className={`w-5 h-5 flex-shrink-0 ${
+                                    endogamia >= 0.25 ? 'text-red-500' : endogamia >= 0.125 ? 'text-amber-500' : 'text-gray-500'
+                                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="flex-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Consanguinidade</p>
+                                    <p className={`text-sm font-bold ${
+                                        endogamia >= 0.25
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : endogamia >= 0.125
+                                                ? 'text-amber-600 dark:text-amber-400'
+                                                : 'text-gray-700 dark:text-gray-200'
+                                    }`}>
+                                        {(endogamia * 100).toFixed(1)}%
+                                    </p>
+                                </div>
+                                {endogamia >= 0.25 && (
+                                    <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded text-xs font-medium">
+                                        Alto
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

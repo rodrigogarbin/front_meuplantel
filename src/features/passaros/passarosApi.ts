@@ -317,16 +317,31 @@ export function useDeletePassaro() {
 // ============================================
 
 /**
+ * Resposta da árvore genealógica com endogamia
+ */
+interface ArvoreResponse {
+    arvore: Passaro
+    endogamia: number
+}
+
+/**
  * Busca árvore genealógica completa de um pássaro
  */
-async function fetchArvoreGenealogica(id: number): Promise<Passaro> {
-    const response = await api.get<string | Passaro>(`/api/v1/passaros/${id}/arvore-completa`)
+async function fetchArvoreGenealogica(id: number): Promise<ArvoreResponse> {
+    const response = await api.get<string | Passaro | ArvoreResponse>(`/api/v1/passaros/${id}/arvore-completa`)
 
-    // A API pode retornar string JSON ou objeto
-    if (typeof response.data === 'string') {
-        return JSON.parse(response.data) as Passaro
+    let data = response.data
+    if (typeof data === 'string') {
+        data = JSON.parse(data)
     }
-    return response.data
+
+    // Novo formato: { arvore, endogamia }
+    if (data && typeof data === 'object' && 'arvore' in data && 'endogamia' in data) {
+        return data as ArvoreResponse
+    }
+
+    // Fallback: formato antigo (retorno direto do pássaro)
+    return { arvore: data as Passaro, endogamia: 0 }
 }
 
 /**

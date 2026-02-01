@@ -398,6 +398,26 @@ async function updateCasal(payload: UpdateCasalPayload): Promise<Casal> {
 /**
  * Hook para atualizar casal
  */
+/**
+ * Busca o coeficiente de endogamia de um casal
+ */
+async function fetchCasalEndogamia(id: number): Promise<number> {
+    const response = await api.get<{ endogamia: number }>(`/api/v1/casais/${id}/endogamia`)
+    return response.data.endogamia ?? 0
+}
+
+/**
+ * Hook para buscar endogamia de um casal
+ */
+export function useCasalEndogamia(id: number | null) {
+    return useQuery({
+        queryKey: ['casal', 'endogamia', id],
+        queryFn: () => fetchCasalEndogamia(id!),
+        enabled: id !== null,
+        staleTime: 10 * 60 * 1000,
+    })
+}
+
 export function useUpdateCasal() {
     const queryClient = useQueryClient()
 
