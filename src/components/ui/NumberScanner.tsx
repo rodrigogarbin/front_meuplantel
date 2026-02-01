@@ -1,6 +1,7 @@
 /**
  * Componente NumberScanner
  * Abre a câmera e usa OCR (Tesseract.js) para ler números automaticamente
+ * Requer leituras consecutivas iguais para confirmar o número (estabilidade)
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -12,6 +13,8 @@ interface NumberScannerProps {
 
 type ScanState = 'loading' | 'scanning' | 'result' | 'error'
 
+const REQUIRED_CONSECUTIVE = 3
+
 export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -19,9 +22,13 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     const workerRef = useRef<Awaited<ReturnType<typeof import('tesseract.js')['createWorker']>> | null>(null)
     const scanningRef = useRef(false)
     const cancelledRef = useRef(false)
+    const lastNumberRef = useRef<number | null>(null)
+    const consecutiveCountRef = useRef(0)
     const [state, setState] = useState<ScanState>('loading')
     const [detectedNumber, setDetectedNumber] = useState<number | null>(null)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
+    const [confidence, setConfidence] = useState(0) // 0 to REQUIRED_CONSECUTIVE
+    const [previewNumber, setPreviewNumber] = useState<number | null>(null)
 
     // Inicia câmera + worker
     useEffect(() => {
@@ -131,9 +138,27 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 const numero = parseInt(digits, 10)
 
                 if (numero && numero > 0) {
-                    setDetectedNumber(numero)
-                    setState('result')
-                    return // Para o loop
+                    if (numero === lastNumberRef.current) {
+                        consecutiveCountRef.current++
+                    } else {
+                        lastNumberRef.current = numero
+                        consecutiveCountRef.current = 1
+                    }
+
+                    setPreviewNumber(numero)
+                    setConfidence(consecutiveCountRef.current)
+
+                    if (consecutiveCountRef.current >= REQUIRED_CONSECUTIVE) {
+                        setDetectedNumber(numero)
+                        setState('result')
+                        return
+                    }
+                } else {
+                    // Leitura falhou - reseta a contagem
+                    lastNumberRef.current = null
+                    consecutiveCountRef.current = 0
+                    setPreviewNumber(null)
+                    setConfidence(0)
                 }
             } catch {
                 // Ignora erros de frames individuais, continua escaneando
@@ -142,7 +167,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
             }
 
             if (!cancelledRef.current) {
-                timeoutId = setTimeout(scanFrame, 1500)
+                timeoutId = setTimeout(scanFrame, 800)
             }
         }
 
@@ -154,7 +179,11 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
 
     const handleRetry = () => {
         setDetectedNumber(null)
+        setPreviewNumber(null)
+        setConfidence(0)
         setErrorMsg(null)
+        lastNumberRef.current = null
+        consecutiveCountRef.current = 0
         scanningRef.current = false
         setState('scanning')
     }
@@ -195,7 +224,13 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 {/* Guia visual - retângulo centralizado */}
                 {state === 'scanning' && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-[60%] h-[15%] border-2 border-amber-400 rounded-xl relative">
+                        <div className={`w-[60%] h-[15%] border-2 rounded-xl relative transition-colors duration-300 ${
+                            confidence >= REQUIRED_CONSECUTIVE
+                                ? 'border-emerald-400'
+                                : confidence > 0
+                                    ? 'border-amber-400'
+                                    : 'border-amber-400'
+                        }`}>
                             <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-amber-400 rounded-tl-xl" />
                             <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-amber-400 rounded-tr-xl" />
                             <div className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-amber-400 rounded-bl-xl" />
@@ -256,10 +291,29 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
             {/* Footer hint */}
             {state === 'scanning' && (
                 <div className="px-4 py-4 bg-black/80 flex flex-col items-center gap-2 safe-bottom">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                        <p className="text-gray-400 text-sm">Escaneando... Enquadre o número no retângulo</p>
-                    </div>
+                    {previewNumber !== null && confidence > 0 ? (
+                        <>
+                            <div className="flex items-center gap-3">
+                                <span className="text-white font-bold text-lg">{previewNumber}</span>
+                                <div className="flex gap-1">
+                                    {Array.from({ length: REQUIRED_CONSECUTIVE }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                                                i < confidence ? 'bg-amber-400' : 'bg-white/20'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            <p className="text-gray-400 text-xs">Mantenha a câmera parada para confirmar</p>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                            <p className="text-gray-400 text-sm">Enquadre o número no retângulo e mantenha parado</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

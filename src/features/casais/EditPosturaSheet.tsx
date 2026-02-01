@@ -511,9 +511,6 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                                                                 <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
                                                                     Casal #{c.nro}
                                                                 </div>
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                                    {c.descr_pai || formatRingComplete(c.macho?.anel) || '♂ ?'} × {c.descr_mae || formatRingComplete(c.femea?.anel) || '♀ ?'}
-                                                                </div>
                                                             </button>
                                                         )
                                                     })}

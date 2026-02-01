@@ -9,11 +9,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { QrScanner } from '@/components/ui/QrScanner'
 import { NumberScanner } from '@/components/ui/NumberScanner'
 import { useCasais } from './casaisApi'
 import { CasalCard } from './CasalCard'
 import { CasalDetailsSheet } from './CasalDetailsSheet'
+import { formatPassaroCompleto } from '@/lib/passaro'
 import type { Casal } from '@/types'
 
 // Ícone de plus
@@ -42,9 +44,23 @@ export function CasaisPage() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [showScanner, setShowScanner] = useState(false)
     const [showNumberScanner, setShowNumberScanner] = useState(false)
+    const [casaisParaEscolher, setCasaisParaEscolher] = useState<Casal[]>([])
+    const [showChooser, setShowChooser] = useState(false)
 
     // Busca apenas casais ativos (sit=1, ou seja, sem vigen_final)
     const { data: casais = [], isLoading, error, refetch } = useCasais({ sit: 1 })
+
+    // Abre casal(is) por número - usado pelo scanner e query params
+    const openCasaisByNumber = useCallback((nro: number, casaisList: Casal[]) => {
+        const matches = casaisList.filter(c => c.nro === nro)
+        if (matches.length === 1) {
+            setSelectedCasal(matches[0])
+            setIsDetailsOpen(true)
+        } else if (matches.length > 1) {
+            setCasaisParaEscolher(matches)
+            setShowChooser(true)
+        }
+    }, [])
 
     // Abre o casal se vier via query param (ex: ?casal=123 ou ?nro=12)
     useEffect(() => {
@@ -53,21 +69,20 @@ export function CasaisPage() {
         const casalIdParam = searchParams.get('casal')
         const nroParam = searchParams.get('nro')
 
-        let casal: Casal | undefined
         if (casalIdParam) {
             const casalId = Number(casalIdParam)
-            casal = casais.find(c => (c.id ?? c.gaiola_id) === casalId)
+            const casal = casais.find(c => (c.id ?? c.gaiola_id) === casalId)
+            if (casal) {
+                setSelectedCasal(casal)
+                setIsDetailsOpen(true)
+                setSearchParams({})
+            }
         } else if (nroParam) {
             const nro = Number(nroParam)
-            casal = casais.find(c => c.nro === nro)
-        }
-
-        if (casal) {
-            setSelectedCasal(casal)
-            setIsDetailsOpen(true)
             setSearchParams({})
+            openCasaisByNumber(nro, casais)
         }
-    }, [casais, searchParams, setSearchParams])
+    }, [casais, searchParams, setSearchParams, openCasaisByNumber])
 
     // Filtra por busca
     const filteredCasais = casais.filter((casal) => {
@@ -109,11 +124,15 @@ export function CasaisPage() {
 
     const handleNumberScanResult = useCallback((numero: number) => {
         setShowNumberScanner(false)
-        const casal = casais.find(c => c.nro === numero)
-        if (casal) {
-            handleSelectCasal(casal)
-        }
-    }, [casais])
+        openCasaisByNumber(numero, casais)
+    }, [casais, openCasaisByNumber])
+
+    const handleChooseCasal = (casal: Casal) => {
+        setShowChooser(false)
+        setCasaisParaEscolher([])
+        setSelectedCasal(casal)
+        setIsDetailsOpen(true)
+    }
 
     const handleRefresh = async () => {
         const result = await refetch()
@@ -261,6 +280,47 @@ export function CasaisPage() {
                     onClose={() => setShowScanner(false)}
                 />
             )}
+
+            {/* Sheet para escolher entre casais com mesmo número */}
+            <BottomSheet
+                isOpen={showChooser}
+                onClose={() => { setShowChooser(false); setCasaisParaEscolher([]) }}
+                title={`Gaiola Nº ${casaisParaEscolher[0]?.nro ?? ''} — Qual casal?`}
+            >
+                <div className="space-y-3 pb-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Existem {casaisParaEscolher.length} casais com este número. Selecione o desejado:
+                    </p>
+                    {casaisParaEscolher.map((casal) => (
+                        <button
+                            key={casal.id ?? casal.gaiola_id}
+                            onClick={() => handleChooseCasal(casal)}
+                            className="w-full flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98] transition-all text-left"
+                        >
+                            <span className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
+                                {casal.nro ?? '?'}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-blue-500">♂</span>
+                                    <span className="font-medium text-gray-800 dark:text-gray-100 truncate">
+                                        {casal.macho ? formatPassaroCompleto(casal.macho) : casal.descr_pai || '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-pink-500">♀</span>
+                                    <span className="font-medium text-gray-800 dark:text-gray-100 truncate">
+                                        {casal.femea ? formatPassaroCompleto(casal.femea) : casal.descr_mae || '—'}
+                                    </span>
+                                </div>
+                            </div>
+                            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    ))}
+                </div>
+            </BottomSheet>
 
             {/* Sheet de Detalhes */}
             <CasalDetailsSheet
