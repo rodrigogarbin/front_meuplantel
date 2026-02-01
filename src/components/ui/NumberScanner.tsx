@@ -168,7 +168,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     return (
         <div className="fixed inset-0 z-[60] bg-black flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-area-top">
+            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-top">
                 <h2 className="text-white font-semibold text-lg">Ler Número da Gaiola</h2>
                 <button
                     onClick={onClose}
@@ -255,7 +255,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
 
             {/* Footer hint */}
             {state === 'scanning' && (
-                <div className="px-4 py-4 bg-black/80 flex flex-col items-center gap-2 safe-area-bottom">
+                <div className="px-4 py-4 bg-black/80 flex flex-col items-center gap-2 safe-bottom">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
                         <p className="text-gray-400 text-sm">Escaneando... Enquadre o número no retângulo</p>

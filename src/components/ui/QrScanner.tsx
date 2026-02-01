@@ -51,7 +51,7 @@ export function QrScanner({ onResult, onClose }: QrScannerProps) {
     return (
         <div className="fixed inset-0 z-[60] bg-black flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-area-top">
+            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-top">
                 <h2 className="text-white font-semibold text-lg">Escanear Gaiola</h2>
                 <button
                     onClick={onClose}
@@ -87,7 +87,7 @@ export function QrScanner({ onResult, onClose }: QrScannerProps) {
 
             {/* Footer hint */}
             {!error && (
-                <div className="px-4 py-4 bg-black/80 text-center safe-area-bottom">
+                <div className="px-4 py-4 bg-black/80 text-center safe-bottom">
                     <p className="text-gray-400 text-sm">Aponte a câmera para o QR Code da gaiola</p>
                 </div>
             )}
