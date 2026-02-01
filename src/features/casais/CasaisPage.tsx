@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { QrScanner } from '@/components/ui/QrScanner'
+import { NumberScanner } from '@/components/ui/NumberScanner'
 import { useCasais } from './casaisApi'
 import { CasalCard } from './CasalCard'
 import { CasalDetailsSheet } from './CasalDetailsSheet'
@@ -40,6 +41,7 @@ export function CasaisPage() {
     const [selectedCasal, setSelectedCasal] = useState<Casal | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [showScanner, setShowScanner] = useState(false)
+    const [showNumberScanner, setShowNumberScanner] = useState(false)
 
     // Busca apenas casais ativos (sit=1, ou seja, sem vigen_final)
     const { data: casais = [], isLoading, error, refetch } = useCasais({ sit: 1 })
@@ -96,6 +98,14 @@ export function CasaisPage() {
             navigate(`/gaiola/${match[1]}`)
         }
     }, [navigate])
+
+    const handleNumberScanResult = useCallback((numero: number) => {
+        setShowNumberScanner(false)
+        const casal = casais.find(c => c.nro === numero)
+        if (casal) {
+            handleSelectCasal(casal)
+        }
+    }, [casais])
 
     const handleRefresh = async () => {
         const result = await refetch()
@@ -194,6 +204,16 @@ export function CasaisPage() {
 
             {/* FABs */}
             <div className="fixed right-4 bottom-24 z-40 flex flex-col gap-3 mb-[env(safe-area-inset-bottom)]">
+                {/* Ler número da gaiola */}
+                <button
+                    onClick={() => setShowNumberScanner(true)}
+                    className="w-14 h-14 bg-amber-500 text-white rounded-full shadow-xl shadow-amber-500/30 flex items-center justify-center hover:bg-amber-600 active:scale-95 transition-all ring-4 ring-white dark:ring-gray-900"
+                    aria-label="Buscar por número"
+                >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                </button>
                 {/* Scan QR Code */}
                 <button
                     onClick={() => setShowScanner(true)}
@@ -217,6 +237,14 @@ export function CasaisPage() {
                     <PlusIcon />
                 </button>
             </div>
+
+            {/* Number Scanner (OCR) */}
+            {showNumberScanner && (
+                <NumberScanner
+                    onResult={handleNumberScanResult}
+                    onClose={() => setShowNumberScanner(false)}
+                />
+            )}
 
             {/* QR Scanner */}
             {showScanner && (
