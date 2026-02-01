@@ -2,9 +2,9 @@
  * Página do Dashboard
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Topbar, PullToRefresh } from '@/components/ui'
+import { Topbar, PullToRefresh, NumberScanner } from '@/components/ui'
 import { useUser } from '@/features/auth/authStore'
 import { useDashboardStats } from './dashboardApi'
 import { StatCard, StatCardSkeleton } from './StatCard'
@@ -22,6 +22,7 @@ export function DashboardPage() {
     const navigate = useNavigate()
     const user = useUser()
     const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear())
+    const [showNumberScanner, setShowNumberScanner] = useState(false)
     const { data: stats, isLoading, error, refetch } = useDashboardStats(anoSelecionado)
 
     // Dados para o gráfico de sexo
@@ -39,6 +40,11 @@ export function DashboardPage() {
     const anosDisponiveis = stats?.anosDisponiveis?.length
         ? stats.anosDisponiveis
         : [new Date().getFullYear()]
+
+    const handleNumberScanResult = useCallback((numero: number) => {
+        setShowNumberScanner(false)
+        navigate(`/casais?nro=${numero}`)
+    }, [navigate])
 
     return (
         <>
@@ -179,6 +185,25 @@ export function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Ações Rápidas</h2>
 
                         <div className="grid grid-cols-2 gap-4">
+                            {/* Escanear Gaiola */}
+                            <button
+                                onClick={() => setShowNumberScanner(true)}
+                                className="bg-amber-500 text-white rounded-xl p-4 shadow-sm text-left hover:bg-amber-600 transition-colors col-span-2"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Escanear Gaiola</p>
+                                        <p className="text-sm text-white/80">Ler número da gaiola com a câmera</p>
+                                    </div>
+                                </div>
+                            </button>
+
                             <button
                                 onClick={() => navigate('/passaros')}
                                 className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -222,6 +247,14 @@ export function DashboardPage() {
                     </section>
                 </div>
             </PullToRefresh>
+
+            {/* Number Scanner (OCR) */}
+            {showNumberScanner && (
+                <NumberScanner
+                    onResult={handleNumberScanResult}
+                    onClose={() => setShowNumberScanner(false)}
+                />
+            )}
         </>
     )
 }

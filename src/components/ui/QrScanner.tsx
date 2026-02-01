@@ -49,7 +49,7 @@ export function QrScanner({ onResult, onClose }: QrScannerProps) {
     }, [onResult])
 
     return (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-area-top">
                 <h2 className="text-white font-semibold text-lg">Escanear Gaiola</h2>

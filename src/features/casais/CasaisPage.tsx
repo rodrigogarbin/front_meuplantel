@@ -46,18 +46,26 @@ export function CasaisPage() {
     // Busca apenas casais ativos (sit=1, ou seja, sem vigen_final)
     const { data: casais = [], isLoading, error, refetch } = useCasais({ sit: 1 })
 
-    // Abre o casal se vier via query param (ex: ?casal=123)
+    // Abre o casal se vier via query param (ex: ?casal=123 ou ?nro=12)
     useEffect(() => {
+        if (casais.length === 0) return
+
         const casalIdParam = searchParams.get('casal')
-        if (casalIdParam && casais.length > 0) {
+        const nroParam = searchParams.get('nro')
+
+        let casal: Casal | undefined
+        if (casalIdParam) {
             const casalId = Number(casalIdParam)
-            const casal = casais.find(c => (c.id ?? c.gaiola_id) === casalId)
-            if (casal) {
-                setSelectedCasal(casal)
-                setIsDetailsOpen(true)
-                // Remove o param da URL após abrir
-                setSearchParams({})
-            }
+            casal = casais.find(c => (c.id ?? c.gaiola_id) === casalId)
+        } else if (nroParam) {
+            const nro = Number(nroParam)
+            casal = casais.find(c => c.nro === nro)
+        }
+
+        if (casal) {
+            setSelectedCasal(casal)
+            setIsDetailsOpen(true)
+            setSearchParams({})
         }
     }, [casais, searchParams, setSearchParams])
 
