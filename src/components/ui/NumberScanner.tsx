@@ -13,7 +13,7 @@ interface NumberScannerProps {
 
 type ScanState = 'loading' | 'scanning' | 'result' | 'error'
 
-const REQUIRED_CONSECUTIVE = 3
+const REQUIRED_CONSECUTIVE = 2
 
 export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -97,13 +97,14 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
         if (state !== 'scanning') return
 
         let timeoutId: ReturnType<typeof setTimeout>
+        let active = true
 
         async function scanFrame() {
-            if (cancelledRef.current || scanningRef.current || !workerRef.current) return
+            if (cancelledRef.current || !active || scanningRef.current || !workerRef.current) return
             const video = videoRef.current
             const canvas = canvasRef.current
             if (!video || !canvas || video.readyState < 2) {
-                timeoutId = setTimeout(scanFrame, 500)
+                timeoutId = setTimeout(scanFrame, 300)
                 return
             }
 
@@ -123,16 +124,33 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 const cropX = Math.floor((canvas.width - cropW) / 2)
                 const cropY = Math.floor((canvas.height - cropH) / 2)
 
+                // Escala para ~400px de largura para OCR mais rápido
+                const scale = Math.min(1, 400 / cropW)
+                const outW = Math.floor(cropW * scale)
+                const outH = Math.floor(cropH * scale)
+
                 const cropCanvas = document.createElement('canvas')
-                cropCanvas.width = cropW
-                cropCanvas.height = cropH
+                cropCanvas.width = outW
+                cropCanvas.height = outH
                 const cropCtx = cropCanvas.getContext('2d')
                 if (!cropCtx) return
-                cropCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+                cropCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH)
+
+                // Pré-processamento: alto contraste preto/branco para OCR mais rápido
+                const imageData = cropCtx.getImageData(0, 0, outW, outH)
+                const data = imageData.data
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+                    const bw = gray > 128 ? 255 : 0
+                    data[i] = bw
+                    data[i + 1] = bw
+                    data[i + 2] = bw
+                }
+                cropCtx.putImageData(imageData, 0, 0)
 
                 const { data: { text } } = await workerRef.current!.recognize(cropCanvas)
 
-                if (cancelledRef.current) return
+                if (cancelledRef.current || !active) return
 
                 const digits = text.replace(/\D/g, '').trim()
                 const numero = parseInt(digits, 10)
@@ -166,15 +184,19 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 scanningRef.current = false
             }
 
-            if (!cancelledRef.current) {
-                timeoutId = setTimeout(scanFrame, 800)
+            // Sem delay artificial - OCR já leva tempo suficiente como throttle natural
+            if (!cancelledRef.current && active) {
+                timeoutId = setTimeout(scanFrame, 50)
             }
         }
 
         // Começa a escanear
-        timeoutId = setTimeout(scanFrame, 300)
+        timeoutId = setTimeout(scanFrame, 200)
 
-        return () => clearTimeout(timeoutId)
+        return () => {
+            active = false
+            clearTimeout(timeoutId)
+        }
     }, [state])
 
     const handleRetry = () => {
@@ -197,7 +219,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     return (
         <div className="fixed inset-0 z-[60] bg-black flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-top">
+            <div className="flex items-center justify-between px-4 h-14 bg-black/80 safe-top relative z-10">
                 <h2 className="text-white font-semibold text-lg">Ler Número da Gaiola</h2>
                 <button
                     onClick={onClose}
@@ -290,7 +312,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
 
             {/* Footer hint */}
             {state === 'scanning' && (
-                <div className="px-4 py-4 bg-black/80 flex flex-col items-center gap-2 safe-bottom">
+                <div className="px-4 py-4 bg-black/80 flex flex-col items-center gap-2 safe-bottom relative z-10">
                     {previewNumber !== null && confidence > 0 ? (
                         <>
                             <div className="flex items-center gap-3">
