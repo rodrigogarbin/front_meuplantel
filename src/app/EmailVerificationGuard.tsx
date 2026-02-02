@@ -27,8 +27,9 @@ export function EmailVerificationGuard({ children }: EmailVerificationGuardProps
         if (status && !isLoading) {
             const hasShown = sessionStorage.getItem(VERIFICATION_SHOWN_KEY)
 
-            // Se precisa de email e ainda não mostrou a tela nesta sessão
-            if ((status.needs_email || (!status.email_verified && status.email)) && !hasShown) {
+            // Redireciona apenas se o usuário não tem email cadastrado
+            // Se já tem email mas não verificou, mostramos badge nas configurações
+            if (status.needs_email && !hasShown) {
                 sessionStorage.setItem(VERIFICATION_SHOWN_KEY, 'true')
                 setShouldRedirect(true)
             }

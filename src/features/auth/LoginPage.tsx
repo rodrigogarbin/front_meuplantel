@@ -261,6 +261,11 @@ export function LoginPage() {
                                 Cadastre-se
                             </Link>
                         </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <Link to="https://app.meuplantel.com" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                                Ir para a versão antiga
+                            </Link>
+                        </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                             Sistema de gerenciamento de aves
                         </p>

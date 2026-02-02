@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useThemeStore, type ThemeMode } from '@/lib/theme'
 import { useAuthStore } from '@/features/auth/authStore'
+import { useEmailVerificationStatus } from '@/features/auth'
 
 // Ícones
 function SunIcon({ className }: { className?: string }) {
@@ -66,6 +67,8 @@ export function ConfigPage() {
     const navigate = useNavigate()
     const { mode, setMode } = useThemeStore()
     const { user, logout } = useAuthStore()
+    const { data: emailStatus } = useEmailVerificationStatus()
+    const needsEmailVerification = emailStatus && emailStatus.email && !emailStatus.email_verified
     const handleLogout = () => {
         logout()
         navigate('/login')
@@ -103,6 +106,30 @@ export function ConfigPage() {
                                 <ChevronRightIcon className="w-5 h-5 text-gray-400" />
                             </button>
                         </div>
+
+                        {/* Badge de verificação de e-mail */}
+                        {needsEmailVerification && (
+                            <div className="section-card mt-3">
+                                <button
+                                    onClick={() => navigate('/verificar-email')}
+                                    className="w-full flex items-center justify-between py-3 text-gray-700 dark:text-gray-200"
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center relative">
+                                            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">Confirmar e-mail</p>
+                                            <p className="text-sm text-amber-600 dark:text-amber-400">E-mail não verificado</p>
+                                        </div>
+                                    </span>
+                                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                                </button>
+                            </div>
+                        )}
                     </section>
 
                     {/* Cadastros */}

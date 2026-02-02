@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 
+const AUTH_PATHS = ['/login', '/register', '/forgot-password']
+
 export function PWAInstallBanner() {
     const { isInstallable, isInstalled, isIOS, promptInstall } = usePWAInstall()
     const [showBanner, setShowBanner] = useState(false)
@@ -14,6 +16,11 @@ export function PWAInstallBanner() {
         // Não mostra se já está instalado
         if (isInstalled) {
             setShowBanner(false)
+            return
+        }
+
+        // Não mostra em páginas de autenticação
+        if (AUTH_PATHS.includes(window.location.pathname)) {
             return
         }
 
