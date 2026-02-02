@@ -3,6 +3,8 @@
  */
 
 import { useLocation, useNavigate } from 'react-router-dom'
+import { ImpersonationBanner } from '@/features/admin'
+import { useIsImpersonating } from '@/features/auth/authStore'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -11,13 +13,17 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
     const location = useLocation()
     const navigate = useNavigate()
+    const isImpersonating = useIsImpersonating()
 
     const isActive = (path: string) => location.pathname === path
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col safe-top">
+            {/* Banner de impersonação */}
+            <ImpersonationBanner />
+
             {/* Conteúdo principal */}
-            <main className="flex-1 pb-20">
+            <main className={`flex-1 pb-20 ${isImpersonating ? 'pt-10' : ''}`}>
                 {children}
             </main>
 

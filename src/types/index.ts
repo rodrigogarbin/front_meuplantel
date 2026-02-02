@@ -106,8 +106,29 @@ export interface User {
     email?: string | null
     needs_email?: boolean
     email_verified?: boolean
+    is_admin?: boolean
     sg_clube?: string | null
     nro_criador?: string | null
+}
+
+// Usuário retornado pelo endpoint de impersonação (backend usa 'name' em vez de 'nome')
+export interface ImpersonateUser {
+    usuario_id: number
+    name: string
+    email?: string | null
+    needs_email?: boolean
+    email_verified?: boolean
+    is_admin?: boolean
+}
+
+// Resposta de impersonação
+export interface ImpersonateResponse {
+    access_token: string
+    token_type: string
+    expires_in: number
+    user: ImpersonateUser
+    impersonating: boolean
+    admin_token: string
 }
 
 // Resposta de login

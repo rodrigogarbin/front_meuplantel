@@ -183,6 +183,34 @@ export function ConfigPage() {
                         </div>
                     </section>
 
+                    {/* Administração - apenas para admins */}
+                    {user?.is_admin && (
+                        <section>
+                            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                                Administração
+                            </h2>
+                            <div className="section-card">
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="w-full flex items-center justify-between py-3 text-gray-700 dark:text-gray-200"
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">Gerenciar Usuários</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Impersonar e administrar contas</p>
+                                        </div>
+                                    </span>
+                                    <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
                     {/* Ações */}
                     <section>
                         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">

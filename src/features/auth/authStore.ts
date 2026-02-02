@@ -28,6 +28,10 @@ interface AuthState {
     isLoading: boolean
     _hasHydrated: boolean
 
+    // Impersonação
+    adminToken: string | null
+    isImpersonating: boolean
+
     // Actions
     login: (username: string, senha: string, captchaToken?: string) => Promise<void>
     logout: () => Promise<void>
@@ -36,6 +40,8 @@ interface AuthState {
     updateUser: (data: Partial<User>) => void
     setLoading: (loading: boolean) => void
     setHasHydrated: (state: boolean) => void
+    impersonate: (token: string, user: User, adminToken: string, expiresIn: number) => void
+    stopImpersonate: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -48,6 +54,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             _hasHydrated: false,
+            adminToken: null,
+            isImpersonating: false,
 
             /**
              * Realiza o login
@@ -104,6 +112,8 @@ export const useAuthStore = create<AuthState>()(
                         expiresAt: null,
                         isAuthenticated: false,
                         isLoading: false,
+                        adminToken: null,
+                        isImpersonating: false,
                     })
 
                     // Limpa flag de verificação de email mostrada
@@ -230,6 +240,71 @@ export const useAuthStore = create<AuthState>()(
             setHasHydrated: (state: boolean) => {
                 set({ _hasHydrated: state })
             },
+
+            /**
+             * Inicia impersonação de outro usuário
+             */
+            impersonate: (token: string, user: User, adminToken: string, expiresIn: number) => {
+                const expiresAt = Date.now() + expiresIn * 1000
+                queryClient.clear()
+                set({
+                    token,
+                    user,
+                    expiresAt,
+                    adminToken,
+                    isImpersonating: true,
+                    isAuthenticated: true,
+                })
+            },
+
+            /**
+             * Para de impersonar e restaura a sessão do admin
+             */
+            stopImpersonate: async () => {
+                const { adminToken } = get()
+                if (!adminToken) return
+
+                try {
+                    const response = await axios.post(
+                        `${API_BASE_URL}/api/v1/admin/stop-impersonate`,
+                        { admin_token: adminToken },
+                        { headers: { Authorization: `Bearer ${adminToken}` } }
+                    )
+
+                    const { access_token, expires_in, user } = response.data.data
+                    const expiresAt = Date.now() + expires_in * 1000
+
+                    queryClient.clear()
+                    set({
+                        token: access_token,
+                        user: {
+                            usuario_id: user.usuario_id,
+                            nome: user.name,
+                            username: user.name,
+                            email: user.email,
+                            needs_email: user.needs_email,
+                            email_verified: user.email_verified,
+                            is_admin: user.is_admin,
+                            sg_clube: user.sg_clube,
+                            nro_criador: user.nro_criador,
+                        },
+                        expiresAt,
+                        adminToken: null,
+                        isImpersonating: false,
+                        isAuthenticated: true,
+                    })
+                } catch {
+                    // If stop fails, do full logout
+                    set({
+                        token: null,
+                        user: null,
+                        expiresAt: null,
+                        adminToken: null,
+                        isImpersonating: false,
+                        isAuthenticated: false,
+                    })
+                }
+            },
         }),
         {
             name: 'meuplantel-auth', // Chave no localStorage
@@ -239,6 +314,8 @@ export const useAuthStore = create<AuthState>()(
                 user: state.user,
                 expiresAt: state.expiresAt,
                 isAuthenticated: state.isAuthenticated,
+                adminToken: state.adminToken,
+                isImpersonating: state.isImpersonating,
             }),
             onRehydrateStorage: () => (state) => {
                 // Callback será executado após hidratação
@@ -286,3 +363,6 @@ export const useAuthLoading = () => useAuthStore((state) => state.isLoading)
 
 // Hook para verificar se já hidratou
 export const useHasHydrated = () => useAuthStore((state) => state._hasHydrated)
+
+// Hook para verificar se está impersonando
+export const useIsImpersonating = () => useAuthStore((state) => state.isImpersonating)

@@ -4,6 +4,7 @@
 
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
 import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage } from '@/features/auth'
+import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
@@ -101,6 +102,10 @@ export const router = createBrowserRouter([
             {
                 path: '/config',
                 element: <ConfigPage />,
+            },
+            {
+                path: '/admin',
+                element: <AdminPage />,
             },
             {
                 path: '/passaros/:id/arvore',
