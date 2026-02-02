@@ -2,14 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
-import { useAdminUsuarios, impersonateUser } from './adminApi'
+import { useAdminUsuarios, impersonateUser, toggleVersao } from './adminApi'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function AdminPage() {
     const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const { user, impersonate } = useAuthStore()
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [loadingId, setLoadingId] = useState<number | null>(null)
+    const [togglingId, setTogglingId] = useState<number | null>(null)
     const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
     const { data, isLoading } = useAdminUsuarios(debouncedSearch)
@@ -42,6 +45,18 @@ export function AdminPage() {
             navigate('/')
         } catch {
             setLoadingId(null)
+        }
+    }
+
+    const handleToggleVersao = async (id: number) => {
+        setTogglingId(id)
+        try {
+            await toggleVersao(id)
+            queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] })
+        } catch {
+            // ignore
+        } finally {
+            setTogglingId(null)
         }
     }
 
@@ -86,7 +101,7 @@ export function AdminPage() {
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                                 {u.nome}
                                             </p>
@@ -95,6 +110,17 @@ export function AdminPage() {
                                                     Admin
                                                 </span>
                                             )}
+                                            <button
+                                                onClick={() => handleToggleVersao(u.usuario_id)}
+                                                disabled={togglingId !== null}
+                                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                                                    u.usa_v2
+                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                {togglingId === u.usuario_id ? '...' : u.usa_v2 ? 'V2' : 'V1'}
+                                            </button>
                                         </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                                             {u.email || u.username}

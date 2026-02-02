@@ -4,16 +4,19 @@
  * Mobile-first design com formulário de autenticação
  */
 
-import { useState, FormEvent, useRef } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useState, useEffect, FormEvent, useRef } from 'react'
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
+import axios from 'axios'
+import { API_BASE_URL } from '@/lib/api'
 import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
 import { BirdLogo } from '@/components/BirdLogo'
 
 export function LoginPage() {
     const navigate = useNavigate()
     const location = useLocation()
+    const [searchParams] = useSearchParams()
     const login = useAuthStore((state) => state.login)
     const captchaRef = useRef<HCaptchaRef>(null)
 
@@ -23,9 +26,47 @@ export function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [tokenLogin, setTokenLogin] = useState(false)
 
     // Pega o redirect de onde o usuário veio
     const from = (location.state as { from?: Location })?.from?.pathname || '/'
+
+    // Auto-login via token (redirect da landing page)
+    useEffect(() => {
+        const token = searchParams.get('token')
+        if (!token) return
+
+        setTokenLogin(true)
+        setIsLoading(true)
+
+        axios.get(`${API_BASE_URL}/api/v1/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).then((res) => {
+            const data = res.data.data || res.data
+            useAuthStore.setState({
+                token,
+                user: {
+                    usuario_id: data.usuario_id,
+                    nome: data.name,
+                    username: data.name,
+                    email: data.email,
+                    needs_email: data.needs_email,
+                    email_verified: data.email_verified,
+                    is_admin: data.is_admin,
+                    sg_clube: data.sg_clube,
+                    nro_criador: data.nro_criador,
+                },
+                expiresAt: Date.now() + 3600 * 1000,
+                isAuthenticated: true,
+                isLoading: false,
+            })
+            navigate('/', { replace: true })
+        }).catch(() => {
+            setTokenLogin(false)
+            setIsLoading(false)
+            setError('Sessão expirada. Faça login novamente.')
+        })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -62,6 +103,26 @@ export function LoginPage() {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    // Se está fazendo auto-login via token, mostra loading
+    if (tokenLogin && isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex items-center justify-center p-4 safe-top safe-bottom">
+                <div className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <BirdLogo size="lg" />
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-white">
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Entrando...</span>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

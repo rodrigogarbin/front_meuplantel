@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { ImpersonateResponse } from '@/types'
 
-interface AdminUsuario {
+export interface AdminUsuario {
     usuario_id: number
     nome: string
     email: string | null
     username: string
     sit: number | null
     is_admin: boolean
+    usa_v2: boolean
 }
 
 interface PaginatedResponse {
@@ -33,5 +34,10 @@ export function useAdminUsuarios(search: string, page: number = 1) {
 
 export async function impersonateUser(id: number): Promise<ImpersonateResponse> {
     const { data } = await api.post(`/api/v1/admin/impersonate/${id}`)
+    return data.data
+}
+
+export async function toggleVersao(id: number): Promise<{ usuario_id: number; usa_v2: boolean }> {
+    const { data } = await api.patch(`/api/v1/admin/usuarios/${id}/versao`)
     return data.data
 }
