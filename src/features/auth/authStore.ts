@@ -27,16 +27,18 @@ interface AuthState {
     isAuthenticated: boolean
     isLoading: boolean
     _hasHydrated: boolean
+    rememberMe: boolean
 
     // Impersonação
     adminToken: string | null
     isImpersonating: boolean
 
     // Actions
-    login: (username: string, senha: string, captchaToken?: string) => Promise<void>
+    login: (username: string, senha: string, captchaToken?: string, rememberMe?: boolean) => Promise<void>
     logout: () => Promise<void>
     refresh: () => Promise<string | null>
     validateSession: () => Promise<boolean>
+    autoRefreshIfNeeded: () => Promise<void>
     updateUser: (data: Partial<User>) => void
     setLoading: (loading: boolean) => void
     setHasHydrated: (state: boolean) => void
@@ -54,13 +56,14 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             _hasHydrated: false,
+            rememberMe: false,
             adminToken: null,
             isImpersonating: false,
 
             /**
              * Realiza o login
              */
-            login: async (username: string, senha: string, captchaToken?: string) => {
+            login: async (username: string, senha: string, captchaToken?: string, rememberMe = false) => {
                 try {
                     set({ isLoading: true })
 
@@ -80,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
                         expiresAt,
                         isAuthenticated: true,
                         isLoading: false,
+                        rememberMe,
                     })
                 } catch (error) {
                     set({ isLoading: false })
@@ -112,6 +116,7 @@ export const useAuthStore = create<AuthState>()(
                         expiresAt: null,
                         isAuthenticated: false,
                         isLoading: false,
+                        rememberMe: false,
                         adminToken: null,
                         isImpersonating: false,
                     })
@@ -219,6 +224,37 @@ export const useAuthStore = create<AuthState>()(
             },
 
             /**
+             * Verifica se o token está próximo de expirar e faz refresh automático
+             * Usado para manter a sessão ativa quando "Lembrar-me" está ativado
+             */
+            autoRefreshIfNeeded: async (): Promise<void> => {
+                const { token, expiresAt, rememberMe, isImpersonating } = get()
+
+                // Não faz auto-refresh se não está autenticado ou não tem rememberMe ativo
+                if (!token || !rememberMe || isImpersonating) {
+                    return
+                }
+
+                // Se não tem expiresAt, não consegue determinar
+                if (!expiresAt) {
+                    return
+                }
+
+                const now = Date.now()
+                const timeUntilExpiry = expiresAt - now
+                const FIVE_MINUTES = 5 * 60 * 1000 // 5 minutos em ms
+
+                // Se o token já expirou ou vai expirar em menos de 5 minutos, faz refresh
+                if (timeUntilExpiry < FIVE_MINUTES) {
+                    try {
+                        await get().refresh()
+                    } catch {
+                        // Falha silenciosa - o interceptor do Axios vai lidar com logout se necessário
+                    }
+                }
+            },
+
+            /**
              * Atualiza os dados do usuário no store
              */
             updateUser: (data: Partial<User>) => {
@@ -314,6 +350,7 @@ export const useAuthStore = create<AuthState>()(
                 user: state.user,
                 expiresAt: state.expiresAt,
                 isAuthenticated: state.isAuthenticated,
+                rememberMe: state.rememberMe,
                 adminToken: state.adminToken,
                 isImpersonating: state.isImpersonating,
             }),
@@ -366,3 +403,6 @@ export const useHasHydrated = () => useAuthStore((state) => state._hasHydrated)
 
 // Hook para verificar se está impersonando
 export const useIsImpersonating = () => useAuthStore((state) => state.isImpersonating)
+
+// Hook para verificar se tem remember me ativo
+export const useRememberMe = () => useAuthStore((state) => state.rememberMe)

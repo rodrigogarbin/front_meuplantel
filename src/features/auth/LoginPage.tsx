@@ -27,6 +27,7 @@ export function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const [tokenLogin, setTokenLogin] = useState(false)
+    const [rememberMe, setRememberMe] = useState(true) // Ativo por padrão para PWA
 
     // Pega o redirect de onde o usuário veio
     const from = (location.state as { from?: Location })?.from?.pathname || '/'
@@ -80,7 +81,7 @@ export function LoginPage() {
         setIsLoading(true)
 
         try {
-            await login(username, password, captchaToken)
+            await login(username, password, captchaToken, rememberMe)
             navigate(from, { replace: true })
         } catch (err) {
             const axiosError = err as AxiosError<{ error?: string; message?: string }>
@@ -214,6 +215,19 @@ export function LoginPage() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Remember Me */}
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-300 transition-colors">
+                                Manter-me conectado neste dispositivo
+                            </span>
+                        </label>
 
                         {/* hCaptcha */}
                         <HCaptchaWrapper
