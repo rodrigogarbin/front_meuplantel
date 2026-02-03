@@ -9,6 +9,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { Input } from '@/components/ui/Input'
 import api from '@/lib/api'
+import { getApiErrorMessage } from '@/lib/errorHandler'
 
 // Hook para buscar mutações por especie_usuario_id usando React Query
 function useMutacoesPorEspecie(especie_usuario_id: string | number | null) {
@@ -379,11 +380,7 @@ export function PassaroFormPage() {
                 navigate('/passaros')
             }
         } catch (error) {
-            setSubmitError(
-                error instanceof Error
-                    ? error.message
-                    : 'Ocorreu um erro ao salvar. Tente novamente.'
-            )
+            setSubmitError(getApiErrorMessage(error, 'Ocorreu um erro ao salvar. Tente novamente.'))
         }
     }
 

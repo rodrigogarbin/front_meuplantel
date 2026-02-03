@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { useCasal, useCreateCasal, useUpdateCasal } from './casaisApi'
 import { useMachos, useFemeas } from '@/features/passaros/passarosApi'
 import type { CreateCasalPayload, Passaro } from '@/types'
+import { getApiErrorMessage } from '@/lib/errorHandler'
 
 interface FormData {
     nro: string
@@ -207,10 +208,7 @@ export function CasalFormPage() {
             navigate('/casais')
         } catch (error) {
             console.error('Erro ao salvar casal:', error)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const err = error as any
-            const message = err?.response?.data?.message || err?.message || 'Erro ao salvar casal'
-            setSubmitError(message)
+            setSubmitError(getApiErrorMessage(error, 'Erro ao salvar casal'))
         }
     }
 

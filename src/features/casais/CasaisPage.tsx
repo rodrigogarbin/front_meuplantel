@@ -8,6 +8,7 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { EmptyStateOnboarding } from '@/components/ui/EmptyStateOnboarding'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { QrScanner } from '@/components/ui/QrScanner'
@@ -103,6 +104,19 @@ export function CasaisPage() {
         return false
     })
 
+    // Detecta se é um usuário novo (sem casais e sem busca ativa)
+    const isNewUser = casais.length === 0 && !searchTerm
+
+    // Refetch quando a página volta do background (ex: após cadastrar um casal)
+    useEffect(() => {
+        const handleFocus = () => {
+            refetch()
+        }
+
+        window.addEventListener('focus', handleFocus)
+        return () => window.removeEventListener('focus', handleFocus)
+    }, [refetch])
+
     const handleSelectCasal = (casal: Casal) => {
         setSelectedCasal(casal)
         setIsDetailsOpen(true)
@@ -193,19 +207,34 @@ export function CasaisPage() {
 
                     {/* Lista vazia */}
                     {!isLoading && !error && filteredCasais.length === 0 && (
-                        <EmptyState
-                            title={searchTerm ? 'Nenhum casal encontrado' : 'Nenhum casal ativo'}
-                            description={
-                                searchTerm
-                                    ? 'Tente buscar com outros termos.'
-                                    : 'Você ainda não tem casais ativos cadastrados.'
-                            }
-                            icon={
-                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
-                            }
-                        />
+                        isNewUser ? (
+                            <EmptyStateOnboarding
+                                title="Monte seu primeiro casal"
+                                description="Crie casais de reprodução para registrar posturas e acompanhar o desenvolvimento dos filhotes."
+                                actionLabel="Criar primeiro casal"
+                                onAction={() => navigate('/casais/novo')}
+                                steps={[
+                                    'Selecione um macho e uma fêmea do seu plantel',
+                                    'Defina o número da gaiola para identificação',
+                                    'Registre posturas e acompanhe ovos',
+                                    'Gere QR codes para identificação rápida'
+                                ]}
+                            />
+                        ) : (
+                            <EmptyState
+                                title={searchTerm ? 'Nenhum casal encontrado' : 'Nenhum casal ativo'}
+                                description={
+                                    searchTerm
+                                        ? 'Tente buscar com outros termos.'
+                                        : 'Você ainda não tem casais ativos cadastrados.'
+                                }
+                                icon={
+                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                }
+                            />
+                        )
                     )}
 
                     {/* Lista de casais */}

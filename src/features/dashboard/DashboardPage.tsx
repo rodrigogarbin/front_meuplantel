@@ -2,11 +2,12 @@
  * Página do Dashboard
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar, PullToRefresh, NumberScanner } from '@/components/ui'
 import { useUser } from '@/features/auth/authStore'
 import { useDashboardStats } from './dashboardApi'
+import { useEspecies } from '@/features/especies/especiesApi'
 import { StatCard, StatCardSkeleton } from './StatCard'
 import { PieChart } from './PieChart'
 import {
@@ -24,6 +25,14 @@ export function DashboardPage() {
     const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear())
     const [showNumberScanner, setShowNumberScanner] = useState(false)
     const { data: stats, isLoading, error, refetch } = useDashboardStats(anoSelecionado)
+    const { data: especies, isLoading: isLoadingEspecies } = useEspecies()
+
+    // Redireciona para cadastro de espécies se não houver nenhuma
+    useEffect(() => {
+        if (!isLoadingEspecies && especies && especies.length === 0) {
+            navigate('/config/especies', { replace: true })
+        }
+    }, [especies, isLoadingEspecies, navigate])
 
     // Dados para o gráfico de sexo
     const sexoChartData = stats ? [

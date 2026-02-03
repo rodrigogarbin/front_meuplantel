@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { MainLayout } from '@/components/layout'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { EmptyStateOnboarding } from '@/components/ui/EmptyStateOnboarding'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useEspecies, useDeleteEspecie } from '@/features/especies/especiesApi'
 import { EspecieFormSheet } from './EspecieFormSheet'
@@ -33,14 +33,6 @@ function TrashIcon({ className }: { className?: string }) {
     return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-    )
-}
-
-function BirdIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75" />
         </svg>
     )
 }
@@ -105,14 +97,17 @@ export function EspeciesPage() {
 
                     {/* Empty */}
                     {!isLoading && !isError && especies?.length === 0 && (
-                        <EmptyState
-                            icon={<BirdIcon className="w-12 h-12" />}
-                            title="Nenhuma espécie cadastrada"
-                            description="Cadastre as espécies que você cria para facilitar o gerenciamento."
-                            action={{
-                                label: 'Cadastrar Espécie',
-                                onClick: handleAdd,
-                            }}
+                        <EmptyStateOnboarding
+                            title="Comece cadastrando suas espécies"
+                            description="Antes de cadastrar pássaros, você precisa definir quais espécies você cria. Isso facilita muito o gerenciamento!"
+                            actionLabel="Cadastrar primeira espécie"
+                            onAction={handleAdd}
+                            steps={[
+                                'Defina as espécies que você cria (ex: Agapornis Roseicollis)',
+                                'Configure períodos de choco e anilhamento',
+                                'Depois, cadastre seus pássaros com essas espécies',
+                                'Monte casais e registre posturas'
+                            ]}
                         />
                     )}
 

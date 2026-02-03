@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, ErrorState, PullToRefresh } from '@/components/ui'
+import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, EmptyStateOnboarding, ErrorState, PullToRefresh } from '@/components/ui'
 import { BirdCard } from './BirdCard'
 import { BirdDetailsSheet } from './BirdDetailsSheet'
 import { usePassarosInfinite } from './passarosApi'
@@ -91,6 +91,9 @@ export function PassarosPage() {
     // Total de pássaros (da API) - força conversão para número
     const totalPassaros = Number(data?.pages?.[0]?.total) || 0
 
+    // Detecta se é um usuário novo (sem pássaros e sem filtros ativos)
+    const isNewUser = totalPassaros === 0 && !debouncedSearch && sexoFilter === 'all' && situacaoFilter === 'ativos'
+
     // Referência para o observador de scroll infinito
     const observerRef = useRef<IntersectionObserver | null>(null)
     const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
@@ -105,6 +108,16 @@ export function PassarosPage() {
 
         if (node) observerRef.current.observe(node)
     }, [isFetchingNextPage, hasNextPage, fetchNextPage])
+
+    // Refetch quando a página volta do background (ex: após cadastrar um pássaro)
+    useEffect(() => {
+        const handleFocus = () => {
+            refetch()
+        }
+
+        window.addEventListener('focus', handleFocus)
+        return () => window.removeEventListener('focus', handleFocus)
+    }, [refetch])
 
     // Handlers
     const handleCardClick = (bird: Passaro) => {
@@ -183,15 +196,30 @@ export function PassarosPage() {
                             onRetry={() => refetch()}
                         />
                     ) : passaros.length === 0 ? (
-                        <EmptyState
-                            icon={
-                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            }
-                            title="Nenhum pássaro encontrado"
-                            description={searchQuery ? 'Tente ajustar os filtros ou a busca.' : 'Não há pássaros cadastrados com estes filtros.'}
-                        />
+                        isNewUser ? (
+                            <EmptyStateOnboarding
+                                title="Bem-vindo ao MeuPlantel!"
+                                description="Comece cadastrando seu primeiro pássaro para gerenciar seu plantel de forma organizada."
+                                actionLabel="Cadastrar primeiro pássaro"
+                                onAction={() => navigate('/passaros/novo')}
+                                steps={[
+                                    'Cadastre seus pássaros com anilha e informações',
+                                    'Monte casais para reprodução',
+                                    'Registre posturas e acompanhe filhotes',
+                                    'Visualize árvores genealógicas completas'
+                                ]}
+                            />
+                        ) : (
+                            <EmptyState
+                                icon={
+                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                }
+                                title="Nenhum pássaro encontrado"
+                                description={searchQuery ? 'Tente ajustar os filtros ou a busca.' : 'Não há pássaros cadastrados com estes filtros.'}
+                            />
+                        )
                     ) : (
                         <>
                             {/* Contador de resultados */}
