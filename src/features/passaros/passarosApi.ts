@@ -148,6 +148,7 @@ export function usePassarosInfinite(filters: PassaroFilters = {}) {
         getNextPageParam: (lastPage) => lastPage.nextPage,
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: true,
+        refetchOnMount: 'always',
     })
 }
 

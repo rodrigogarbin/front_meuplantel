@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
-import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario } from './adminApi'
+import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario, bulkDeleteUsuarios } from './adminApi'
 import type { AdminUsuario } from './adminApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
@@ -72,6 +72,9 @@ export function AdminPage() {
     const [deletingUser, setDeletingUser] = useState<AdminUsuario | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [page, setPage] = useState(1)
+    const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set())
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
     const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page)
     const { data: stats, isLoading: isLoadingStats } = useAdminStats()
@@ -132,6 +135,46 @@ export function AdminPage() {
             // ignore
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    const handleToggleSelectUser = (userId: number) => {
+        setSelectedUsers(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(userId)) {
+                newSet.delete(userId)
+            } else {
+                newSet.add(userId)
+            }
+            return newSet
+        })
+    }
+
+    const handleSelectAll = () => {
+        if (!usuariosData?.data) return
+        const allIds = usuariosData.data
+            .filter(u => u.usuario_id !== user?.usuario_id)
+            .map(u => u.usuario_id)
+        setSelectedUsers(new Set(allIds))
+    }
+
+    const handleDeselectAll = () => {
+        setSelectedUsers(new Set())
+    }
+
+    const handleBulkDelete = async () => {
+        setIsBulkDeleting(true)
+        try {
+            // Chama o endpoint otimizado de exclusão em lote
+            await bulkDeleteUsuarios(Array.from(selectedUsers))
+            queryClient.invalidateQueries({ queryKey: ['admin', 'usuarios'] })
+            queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] })
+            setSelectedUsers(new Set())
+            setShowBulkDeleteModal(false)
+        } catch {
+            // ignore
+        } finally {
+            setIsBulkDeleting(false)
         }
     }
 
@@ -299,9 +342,33 @@ export function AdminPage() {
 
                 {/* Conteúdo da aba Usuários */}
                 {activeTab === 'usuarios' && (
-                    <div className="p-4 space-y-4">
-                        {/* Busca */}
-                        <div className="relative">
+                    <div className="space-y-0">
+                        {/* Barra de ações em lote */}
+                        {selectedUsers.size > 0 && (
+                            <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                <span className="text-sm text-blue-800 dark:text-blue-200">
+                                    {selectedUsers.size} usuário{selectedUsers.size !== 1 ? 's' : ''} selecionado{selectedUsers.size !== 1 ? 's' : ''}
+                                </span>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleDeselectAll}
+                                        className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                        Limpar
+                                    </button>
+                                    <button
+                                        onClick={() => setShowBulkDeleteModal(true)}
+                                        className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    >
+                                        Excluir selecionados
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="p-4 space-y-4">
+                            {/* Busca */}
+                            <div className="relative">
                             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
@@ -313,6 +380,25 @@ export function AdminPage() {
                                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
+
+                        {/* Checkbox Selecionar todos */}
+                        {usuariosData && usuariosData.data && usuariosData.data.length > 0 && (
+                            <label className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <input
+                                    type="checkbox"
+                                    checked={usuariosData.data.filter(u => u.usuario_id !== user?.usuario_id).every(u => selectedUsers.has(u.usuario_id))}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            handleSelectAll()
+                                        } else {
+                                            handleDeselectAll()
+                                        }
+                                    }}
+                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                />
+                                Selecionar todos
+                            </label>
+                        )}
 
                         {/* Lista de usuários */}
                         {isLoadingUsuarios ? (
@@ -326,6 +412,17 @@ export function AdminPage() {
                                         key={u.usuario_id}
                                         className="section-card flex items-center gap-3"
                                     >
+                                        {/* Checkbox */}
+                                        {u.usuario_id !== user?.usuario_id && (
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUsers.has(u.usuario_id)}
+                                                onChange={() => handleToggleSelectUser(u.usuario_id)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                        )}
+
                                         {/* Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${u.is_admin ? 'bg-amber-100 dark:bg-amber-900' : 'bg-blue-100 dark:bg-blue-900'}`}>
                                             <span className={`text-sm font-bold ${u.is_admin ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
@@ -431,9 +528,40 @@ export function AdminPage() {
                                 )}
                             </div>
                         )}
+                        </div>
                     </div>
                 )}
             </main>
+
+            {/* Modal de confirmação de exclusão em lote */}
+            {showBulkDeleteModal && (
+                <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Confirmar exclusão em lote
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Tem certeza que deseja excluir {selectedUsers.size} usuário{selectedUsers.size !== 1 ? 's' : ''}? Esta ação não pode ser desfeita.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowBulkDeleteModal(false)}
+                                disabled={isBulkDeleting}
+                                className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={isBulkDeleting}
+                                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                                {isBulkDeleting ? 'Excluindo...' : 'Excluir'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal de confirmação de exclusão */}
             {deletingUser && (

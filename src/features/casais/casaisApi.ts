@@ -69,6 +69,7 @@ export function useCasais(filters: CasalFilters = {}) {
         queryFn: () => fetchCasais(filters),
         staleTime: 5 * 60 * 1000, // 5 minutos
         refetchOnWindowFocus: true,
+        refetchOnMount: 'always',
     })
 }
 

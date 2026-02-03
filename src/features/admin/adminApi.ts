@@ -95,3 +95,8 @@ export async function toggleVersao(id: number): Promise<{ usuario_id: number; us
 export async function deleteUsuario(id: number): Promise<void> {
     await api.delete(`/api/v1/admin/usuarios/${id}`)
 }
+
+export async function bulkDeleteUsuarios(ids: number[]): Promise<{ deleted_count: number }> {
+    const { data } = await api.post('/api/v1/admin/usuarios/bulk-delete', { ids })
+    return data
+}

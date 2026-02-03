@@ -8,6 +8,7 @@ import { Topbar, PullToRefresh, NumberScanner } from '@/components/ui'
 import { useUser } from '@/features/auth/authStore'
 import { useDashboardStats } from './dashboardApi'
 import { useEspecies } from '@/features/especies/especiesApi'
+import { useCasais } from '@/features/casais/casaisApi'
 import { StatCard, StatCardSkeleton } from './StatCard'
 import { PieChart } from './PieChart'
 import {
@@ -26,6 +27,9 @@ export function DashboardPage() {
     const [showNumberScanner, setShowNumberScanner] = useState(false)
     const { data: stats, isLoading, error, refetch } = useDashboardStats(anoSelecionado)
     const { data: especies, isLoading: isLoadingEspecies } = useEspecies()
+    const { data: casaisAtivos = [] } = useCasais({ sit: 1 }) // Busca apenas casais ativos
+
+    const temCasaisAtivos = casaisAtivos.length > 0
 
     // Redireciona para cadastro de espécies se não houver nenhuma
     useEffect(() => {
@@ -196,11 +200,18 @@ export function DashboardPage() {
                         <div className="grid grid-cols-2 gap-4">
                             {/* Escanear Gaiola */}
                             <button
-                                onClick={() => setShowNumberScanner(true)}
-                                className="bg-amber-500 text-white rounded-xl p-4 shadow-sm text-left hover:bg-amber-600 transition-colors col-span-2"
+                                onClick={() => temCasaisAtivos && setShowNumberScanner(true)}
+                                disabled={!temCasaisAtivos}
+                                className={`rounded-xl p-4 shadow-sm text-left transition-colors col-span-2 ${
+                                    temCasaisAtivos
+                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                        temCasaisAtivos ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'
+                                    }`}>
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
@@ -208,7 +219,9 @@ export function DashboardPage() {
                                     </div>
                                     <div>
                                         <p className="font-semibold">Escanear Gaiola</p>
-                                        <p className="text-sm text-white/80">Ler número da gaiola com a câmera</p>
+                                        <p className={`text-sm ${temCasaisAtivos ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+                                            {temCasaisAtivos ? 'Ler número da gaiola com a câmera' : 'Cadastre casais para escanear'}
+                                        </p>
                                     </div>
                                 </div>
                             </button>
