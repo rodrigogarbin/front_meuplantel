@@ -10,15 +10,17 @@ import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
 import axios from 'axios'
 import { API_BASE_URL } from '@/lib/api'
-import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
+import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
 export function LoginPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams] = useSearchParams()
     const login = useAuthStore((state) => state.login)
-    const captchaRef = useRef<HCaptchaRef>(null)
+    const turnstileRef = useRef<TurnstileRef>(null)
 
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
@@ -87,7 +89,7 @@ export function LoginPage() {
             const axiosError = err as AxiosError<{ error?: string; message?: string }>
 
             // Reset captcha para permitir nova tentativa
-            captchaRef.current?.resetCaptcha()
+            turnstileRef.current?.reset()
             setCaptchaToken(null)
 
             if (axiosError.response?.status === 401) {
@@ -229,12 +231,14 @@ export function LoginPage() {
                             </span>
                         </label>
 
-                        {/* hCaptcha */}
-                        <HCaptchaWrapper
-                            ref={captchaRef}
+                        {/* Cloudflare Turnstile */}
+                        <Turnstile
+                            ref={turnstileRef}
+                            siteKey={TURNSTILE_SITEKEY}
                             onVerify={(token) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}
+                            theme="auto"
                         />
 
                         {/* Submit Button */}

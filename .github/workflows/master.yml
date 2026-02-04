@@ -45,6 +45,7 @@ jobs:
         env:
           VITE_API_URL: "https://api.meuplantel.com"
           VITE_HCAPTCHA_SITEKEY: "bbc0cbf8-ae7a-40c2-a870-959019e6a484"
+          VITE_TURNSTILE_SITEKEY: "0x4AAAAAACXtMXHoznt_Lt9Z"
 
       - name: 📂 Sync files meuplantel
         uses: SamKirkland/FTP-Deploy-Action@4.3.0

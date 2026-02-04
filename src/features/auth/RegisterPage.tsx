@@ -8,8 +8,10 @@ import { useState, FormEvent, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios, { AxiosError } from 'axios'
 import { API_BASE_URL } from '@/lib/api'
-import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
+import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
 interface RegisterForm {
     nome: string
@@ -25,7 +27,7 @@ interface ValidationErrors {
 }
 
 export function RegisterPage() {
-    const captchaRef = useRef<HCaptchaRef>(null)
+    const turnstileRef = useRef<TurnstileRef>(null)
     const [formData, setFormData] = useState<RegisterForm>({
         nome: '',
         email: '',
@@ -76,7 +78,7 @@ export function RegisterPage() {
             const axiosError = err as AxiosError<{ message?: ValidationErrors | string }>
 
             // Reset captcha para permitir nova tentativa
-            captchaRef.current?.resetCaptcha()
+            turnstileRef.current?.reset()
             setCaptchaToken(null)
 
             if (axiosError.response?.status === 400) {
@@ -338,12 +340,14 @@ export function RegisterPage() {
                             )}
                         </div>
 
-                        {/* hCaptcha */}
-                        <HCaptchaWrapper
-                            ref={captchaRef}
-                            onVerify={(token) => setCaptchaToken(token)}
+                        {/* Turnstile */}
+                        <Turnstile
+                            ref={turnstileRef}
+                            siteKey={TURNSTILE_SITEKEY}
+                            onVerify={(token: string) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}
+                            theme="auto"
                         />
 
                         {/* Submit Button */}

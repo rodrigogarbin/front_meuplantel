@@ -26,7 +26,7 @@
 - **html5-qrcode 2.3.8** - Scanner de QR codes
 - **qrcode.react 4.1.0** - Geração de QR codes
 - **tesseract.js 7.0.0** - OCR (reconhecimento de texto em imagens)
-- **@hcaptcha/react-hcaptcha 1.17.4** - Proteção contra bots
+- **Cloudflare Turnstile** - Proteção contra bots (carregado via CDN)
 - **@headlessui/react 2.2.0** - Componentes UI acessíveis
 
 ## Estrutura de Diretórios
@@ -190,7 +190,7 @@ docker exec www-php bash -c 'source /root/.bashrc && cd /var/www/meuplantel/fron
 ## APIs e Integrações
 
 - **Backend API**: Laravel REST API em `/api/v1/` (JWT auth)
-- **hCaptcha**: Proteção contra bots no registro
+- **Cloudflare Turnstile**: Proteção contra bots no login/registro
 - **Câmera**: QR codes e OCR via getUserMedia
 - **TanStack Query**: Cache, refetch, optimistic updates
 

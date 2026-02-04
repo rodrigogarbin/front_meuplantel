@@ -9,16 +9,18 @@
 
 import { useState, FormEvent, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { HCaptchaWrapper, type HCaptchaRef } from '@/components/HCaptcha'
+import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import api from '@/lib/api'
 import { AxiosError } from 'axios'
 import { BirdLogo } from '@/components/BirdLogo'
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
 type Step = 'email' | 'code' | 'password'
 
 export function ForgotPasswordPage() {
     const navigate = useNavigate()
-    const captchaRef = useRef<HCaptchaRef>(null)
+    const turnstileRef = useRef<TurnstileRef>(null)
 
     // Estado geral
     const [step, setStep] = useState<Step>('email')
@@ -56,7 +58,7 @@ export function ForgotPasswordPage() {
             setStep('code')
         } catch (err) {
             const axiosError = err as AxiosError<{ message?: string }>
-            captchaRef.current?.resetCaptcha()
+            turnstileRef.current?.reset()
             setCaptchaToken(null)
 
             if (axiosError.response?.status === 429) {
@@ -247,12 +249,14 @@ export function ForgotPasswordPage() {
                                 </div>
                             </div>
 
-                            {/* hCaptcha */}
-                            <HCaptchaWrapper
-                                ref={captchaRef}
-                                onVerify={(token) => setCaptchaToken(token)}
+                            {/* Turnstile */}
+                            <Turnstile
+                                ref={turnstileRef}
+                                siteKey={TURNSTILE_SITEKEY}
+                                onVerify={(token: string) => setCaptchaToken(token)}
                                 onExpire={() => setCaptchaToken(null)}
                                 onError={() => setCaptchaToken(null)}
+                                theme="auto"
                             />
 
                             <button
