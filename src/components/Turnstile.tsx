@@ -65,9 +65,11 @@ export const Turnstile = forwardRef<TurnstileRef, TurnstileProps>(
                 if (!containerRef.current || !window.turnstile) return
 
                 // Se já existe um widget, remove antes de criar novo
+                // (necessário quando o tema muda, pois o Turnstile não suporta mudança dinâmica)
                 if (widgetIdRef.current) {
                     try {
                         window.turnstile.remove(widgetIdRef.current)
+                        widgetIdRef.current = null
                     } catch (e) {
                         // Ignora erro se o widget já foi removido
                     }

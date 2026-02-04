@@ -13,6 +13,7 @@ import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import api from '@/lib/api'
 import { AxiosError } from 'axios'
 import { BirdLogo } from '@/components/BirdLogo'
+import { useEffectiveTheme } from '@/lib/theme'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -21,6 +22,7 @@ type Step = 'email' | 'code' | 'password'
 export function ForgotPasswordPage() {
     const navigate = useNavigate()
     const turnstileRef = useRef<TurnstileRef>(null)
+    const currentTheme = useEffectiveTheme()
 
     // Estado geral
     const [step, setStep] = useState<Step>('email')
@@ -256,7 +258,7 @@ export function ForgotPasswordPage() {
                                 onVerify={(token: string) => setCaptchaToken(token)}
                                 onExpire={() => setCaptchaToken(null)}
                                 onError={() => setCaptchaToken(null)}
-                                theme="auto"
+                                theme={currentTheme}
                             />
 
                             <button

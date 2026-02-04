@@ -10,6 +10,7 @@ import axios, { AxiosError } from 'axios'
 import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
+import { useEffectiveTheme } from '@/lib/theme'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -28,6 +29,7 @@ interface ValidationErrors {
 
 export function RegisterPage() {
     const turnstileRef = useRef<TurnstileRef>(null)
+    const currentTheme = useEffectiveTheme()
     const [formData, setFormData] = useState<RegisterForm>({
         nome: '',
         email: '',
@@ -347,7 +349,7 @@ export function RegisterPage() {
                             onVerify={(token: string) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}
-                            theme="auto"
+                            theme={currentTheme}
                         />
 
                         {/* Submit Button */}

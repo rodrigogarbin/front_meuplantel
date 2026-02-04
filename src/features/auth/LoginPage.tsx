@@ -12,6 +12,7 @@ import axios from 'axios'
 import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
+import { useEffectiveTheme } from '@/lib/theme'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -30,6 +31,9 @@ export function LoginPage() {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const [tokenLogin, setTokenLogin] = useState(false)
     const [rememberMe, setRememberMe] = useState(true) // Ativo por padrão para PWA
+
+    // Obtem o tema atual da aplicação
+    const currentTheme = useEffectiveTheme()
 
     // Pega o redirect de onde o usuário veio
     const from = (location.state as { from?: Location })?.from?.pathname || '/'
@@ -238,7 +242,7 @@ export function LoginPage() {
                             onVerify={(token) => setCaptchaToken(token)}
                             onExpire={() => setCaptchaToken(null)}
                             onError={() => setCaptchaToken(null)}
-                            theme="auto"
+                            theme={currentTheme}
                         />
 
                         {/* Submit Button */}

@@ -2,6 +2,7 @@
  * Sistema de gerenciamento de tema (dark/light mode)
  */
 
+import * as React from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -73,4 +74,47 @@ export function initTheme() {
  */
 export function isDarkMode(): boolean {
     return document.documentElement.classList.contains('dark')
+}
+
+/**
+ * Hook para obter o tema efetivo atual (light ou dark)
+ * Útil para componentes que precisam do tema real, não 'system'
+ */
+export function useEffectiveTheme(): 'light' | 'dark' {
+    const mode = useThemeStore((state) => state.mode)
+    const [effectiveTheme, setEffectiveTheme] = React.useState<'light' | 'dark'>(() => {
+        if (mode === 'system') {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+        return mode
+    })
+
+    React.useEffect(() => {
+        const updateTheme = () => {
+            const currentMode = useThemeStore.getState().mode
+            if (currentMode === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+                setEffectiveTheme(prefersDark ? 'dark' : 'light')
+            } else {
+                setEffectiveTheme(currentMode)
+            }
+        }
+
+        // Atualiza imediatamente
+        updateTheme()
+
+        // Observa mudanças no store
+        const unsubscribe = useThemeStore.subscribe(updateTheme)
+
+        // Observa mudanças na preferência do sistema
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+        mediaQuery.addEventListener('change', updateTheme)
+
+        return () => {
+            unsubscribe()
+            mediaQuery.removeEventListener('change', updateTheme)
+        }
+    }, [mode])
+
+    return effectiveTheme
 }
