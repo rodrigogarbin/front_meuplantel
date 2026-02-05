@@ -64,6 +64,21 @@ export interface DashboardStats {
         machos: number
         femeas: number
     }>
+    // Dados de posturas detalhadas
+    posturasDetalhadas?: {
+        nascidos: number
+        choco: number
+        ferteis: number
+        branco: number
+        embriaoMorto: number
+        filhoteMorto: number
+    }
+    // Histórico de posturas por ano
+    historicoPosturas?: Array<{
+        ano: number
+        total: number
+        nascidos: number
+    }>
     // Anos disponíveis para filtro
     anosDisponiveis: number[]
 }
@@ -116,6 +131,19 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
             filhotesAno: dadosAnoSelecionado?.nascidos || 0,
             aniversariantes: [], // A API dados não retorna aniversariantes
             historicoAnual: data.passaros || [],
+            posturasDetalhadas: posturasAnoSelecionado ? {
+                nascidos: posturasAnoSelecionado.nascidos || 0,
+                choco: posturasAnoSelecionado.choco || 0,
+                ferteis: posturasAnoSelecionado.ferteis || 0,
+                branco: posturasAnoSelecionado.branco || 0,
+                embriaoMorto: posturasAnoSelecionado.embriaoMorto || 0,
+                filhoteMorto: posturasAnoSelecionado.filhoteMorto || 0,
+            } : undefined,
+            historicoPosturas: data.posturas?.map(p => ({
+                ano: p.ano,
+                total: p.total,
+                nascidos: p.nascidos,
+            })) || [],
             anosDisponiveis: todosAnos,
         }
     } catch (error) {

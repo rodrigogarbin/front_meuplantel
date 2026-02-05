@@ -10,7 +10,8 @@ import { useDashboardStats } from './dashboardApi'
 import { useEspecies } from '@/features/especies/especiesApi'
 import { useCasais } from '@/features/casais/casaisApi'
 import { StatCard, StatCardSkeleton } from './StatCard'
-import { PieChart } from './PieChart'
+import { ApexPieChart } from './ApexPieChart'
+import { ApexLineChart } from './ApexLineChart'
 import {
     BirdIcon,
     CoupleIcon,
@@ -44,6 +45,33 @@ export function DashboardPage() {
         { label: 'Fêmeas', value: stats.passarosPorSexo.femeas, color: '#EC4899' },
         { label: 'Indefinidos', value: stats.passarosPorSexo.indefinidos, color: '#9CA3AF' },
     ] : []
+
+    // Dados para o gráfico de status das posturas
+    const posturasStatusData = stats?.posturasDetalhadas ? [
+        { label: 'Nascidos', value: stats.posturasDetalhadas.nascidos, color: '#10B981' },
+        { label: 'Chocando', value: stats.posturasDetalhadas.choco, color: '#F59E0B' },
+        { label: 'Férteis', value: stats.posturasDetalhadas.ferteis, color: '#3B82F6' },
+        { label: 'Brancos (Inférteis)', value: stats.posturasDetalhadas.branco, color: '#9CA3AF' },
+        { label: 'Embrião Morto', value: stats.posturasDetalhadas.embriaoMorto, color: '#EF4444' },
+        { label: 'Filhote Morto', value: stats.posturasDetalhadas.filhoteMorto, color: '#DC2626' },
+    ].filter(item => item.value > 0) : []
+
+    // Dados para o gráfico de linhas histórico
+    const historicoLineChartData = stats?.historicoPosturas?.length ? {
+        labels: stats.historicoPosturas.slice().map(item => item.ano.toString()),
+        series: [
+            {
+                label: 'Posturas',
+                color: '#F59E0B',
+                data: stats.historicoPosturas.slice().map(item => item.total),
+            },
+            {
+                label: 'Nascimentos',
+                color: '#10B981',
+                data: stats.historicoPosturas.slice().map(item => item.nascidos),
+            },
+        ],
+    } : null
 
     // Hora atual para saudação
     const hora = new Date().getHours()
@@ -145,54 +173,6 @@ export function DashboardPage() {
                         ) : null}
                     </section>
 
-                    {/* Gráficos */}
-                    {stats && (stats.passarosPorSexo.machos > 0 || stats.passarosPorSexo.femeas > 0 || stats.passarosPorSexo.indefinidos > 0) && (
-                        <section className="mb-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Distribuição por Sexo em {anoSelecionado}</h2>
-
-                            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 max-w-md">
-                                <PieChart data={sexoChartData} />
-                            </div>
-                        </section>
-                    )}
-
-                    {/* Aniversariantes */}
-                    {stats && stats.aniversariantes.length > 0 && (
-                        <section className="mb-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <CakeIcon className="w-5 h-5 text-purple-500" />
-                                Aniversariantes do Mês
-                            </h2>
-
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                {stats.aniversariantes.map((passaro, index) => (
-                                    <div
-                                        key={passaro.id}
-                                        className={`p-4 flex items-center justify-between ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''
-                                            }`}
-                                    >
-                                        <div>
-                                            <p className="font-medium text-gray-900 dark:text-gray-100">
-                                                {passaro.nome || passaro.anel || `Pássaro #${passaro.id}`}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {passaro.idade}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm text-purple-600 font-medium">
-                                                {(parseLocalDate(passaro.nascimento) ?? new Date(passaro.nascimento)).toLocaleDateString('pt-BR', {
-                                                    day: '2-digit',
-                                                    month: 'short',
-                                                })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
                     {/* Ações Rápidas */}
                     <section>
                         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Ações Rápidas</h2>
@@ -202,16 +182,14 @@ export function DashboardPage() {
                             <button
                                 onClick={() => temCasaisAtivos && setShowNumberScanner(true)}
                                 disabled={!temCasaisAtivos}
-                                className={`rounded-xl p-4 shadow-sm text-left transition-colors col-span-2 ${
-                                    temCasaisAtivos
+                                className={`rounded-xl p-4 shadow-sm text-left transition-colors col-span-2 ${temCasaisAtivos
                                         ? 'bg-amber-500 text-white hover:bg-amber-600'
                                         : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                }`}
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                        temCasaisAtivos ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'
-                                    }`}>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${temCasaisAtivos ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'
+                                        }`}>
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
@@ -267,6 +245,85 @@ export function DashboardPage() {
                             </button>
                         </div>
                     </section>
+
+                    {/* Gráficos */}
+                    {stats && (stats.passarosPorSexo.machos > 0 || stats.passarosPorSexo.femeas > 0 || stats.passarosPorSexo.indefinidos > 0) && (
+                        <section className="mb-8 mt-8">
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Distribuição por Sexo em {anoSelecionado}</h2>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                <ApexPieChart data={sexoChartData} />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Gráfico de Status das Posturas */}
+                    {stats && posturasStatusData.length > 0 && (
+                        <section className="mb-8">
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <EggIcon className="w-5 h-5 text-yellow-500" />
+                                Status das Posturas em {anoSelecionado}
+                            </h2>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                <ApexPieChart data={posturasStatusData} />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Gráfico Histórico de Posturas e Nascimentos */}
+                    {stats && historicoLineChartData && (
+                        <section className="mb-8">
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <EggIcon className="w-5 h-5 text-yellow-500" />
+                                Histórico de Posturas e Nascimentos
+                            </h2>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                                <ApexLineChart
+                                    labels={historicoLineChartData.labels}
+                                    series={historicoLineChartData.series}
+                                />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Aniversariantes */}
+                    {stats && stats.aniversariantes.length > 0 && (
+                        <section className="mb-8">
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <CakeIcon className="w-5 h-5 text-purple-500" />
+                                Aniversariantes do Mês
+                            </h2>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                {stats.aniversariantes.map((passaro, index) => (
+                                    <div
+                                        key={passaro.id}
+                                        className={`p-4 flex items-center justify-between ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''
+                                            }`}
+                                    >
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                {passaro.nome || passaro.anel || `Pássaro #${passaro.id}`}
+                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {passaro.idade}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm text-purple-600 font-medium">
+                                                {(parseLocalDate(passaro.nascimento) ?? new Date(passaro.nascimento)).toLocaleDateString('pt-BR', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </div>
             </PullToRefresh>
 
