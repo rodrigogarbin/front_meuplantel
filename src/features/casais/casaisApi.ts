@@ -432,3 +432,28 @@ export function useUpdateCasal() {
         },
     })
 }
+
+/**
+ * Encerra um casal (adiciona data de vigência final)
+ */
+async function encerrarCasal(id: number): Promise<Casal> {
+    const response = await api.patch<Casal>(`/api/v1/casais/${id}/encerrar`)
+    return response.data
+}
+
+/**
+ * Hook para encerrar casal
+ */
+export function useEncerrarCasal() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: encerrarCasal,
+        onSuccess: (data) => {
+            const casalId = data.id ?? data.gaiola_id
+            queryClient.setQueryData(['casal', casalId], data)
+            queryClient.invalidateQueries({ queryKey: ['casais'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+        },
+    })
+}
