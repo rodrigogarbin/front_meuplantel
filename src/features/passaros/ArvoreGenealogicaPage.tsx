@@ -3,15 +3,17 @@
  */
 
 import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useArvoreGenealogica } from './passarosApi'
 import { formatDate } from '@/lib/date'
 import { useUserProfile } from '@/features/auth/userApi'
-import { formatRingComplete } from '@/lib/passaro'
+import { formatRingComplete, getFotoUrl } from '@/lib/passaro'
 import { SexoEnum } from '@/types'
 import type { Anel } from '@/types'
+import { API_BASE_URL } from '@/lib/api'
 
 // Tipo recursivo para o pássaro na árvore genealógica
 // A API retorna os pais como pássaros completos, não apenas referências
@@ -22,6 +24,7 @@ interface PassaroArvore {
     sexo?: number | null
     passaro_pai_id?: number | null
     passaro_mae_id?: number | null
+    foto?: string | null
     anel?: Anel | null
     pai?: PassaroArvore | null
     mae?: PassaroArvore | null
@@ -58,6 +61,8 @@ interface TreeCardProps {
 
 function TreeCard({ passaro, label }: TreeCardProps) {
     const navigate = useNavigate()
+    const [imageError, setImageError] = useState(false)
+    const fotoUrl = passaro?.foto ? getFotoUrl(passaro.foto, API_BASE_URL) : null
 
     if (!passaro) {
         return (
@@ -77,13 +82,27 @@ function TreeCard({ passaro, label }: TreeCardProps) {
         <button
             onClick={() => navigate(`/passaros/${passaro.passaro_id}/arvore`)}
             className={`
-                p-3 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md
+                p-2 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md
                 text-center cursor-pointer w-[180px] min-h-[80px]
-                flex flex-col items-center justify-center
+                flex flex-col items-center justify-center gap-1
                 ${getSexoColor(passaro.sexo)}
             `}
         >
-            {label && <div className="text-[10px] mb-1 font-medium opacity-70">{label}</div>}
+            {label && <div className="text-[10px] mb-0.5 font-medium opacity-70">{label}</div>}
+
+            {/* Foto thumbnail */}
+            {fotoUrl && !imageError && (
+                <div className="w-10 h-10 overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
+                    <img
+                        src={fotoUrl}
+                        alt={passaro.descr ?? 'Pássaro'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={() => setImageError(true)}
+                    />
+                </div>
+            )}
+
             <div className="flex items-center justify-center gap-1 font-semibold text-sm">
                 <SexoIcon sexo={passaro.sexo} />
                 <span>{formatRingComplete(passaro.anel)}</span>
@@ -205,12 +224,20 @@ interface BirdCardProps {
 
 function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps) {
     const navigate = useNavigate()
+    const [imageError, setImageError] = useState(false)
+    const fotoUrl = passaro?.foto ? getFotoUrl(passaro.foto, API_BASE_URL) : null
 
     // Padronização: todos os cards terão o mesmo tamanho na horizontal
     const sizeClasses = {
         sm: 'w-[180px] min-h-[80px] text-[10px] px-2 py-2',
         md: 'w-[180px] min-h-[80px] text-xs px-3 py-2',
         lg: 'w-[180px] min-h-[80px] text-sm px-4 py-2',
+    }
+
+    const photoSizes = {
+        sm: 'w-8 h-8',
+        md: 'w-10 h-10',
+        lg: 'w-12 h-12',
     }
 
     if (!passaro) {
@@ -247,6 +274,20 @@ function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps
             `}
         >
             {label && <div className="text-[10px] mb-0.5 font-medium opacity-70">{label}</div>}
+
+            {/* Foto thumbnail */}
+            {fotoUrl && !imageError && (
+                <div className={`overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm ${photoSizes[size]}`}>
+                    <img
+                        src={fotoUrl}
+                        alt={passaro.descr ?? 'Pássaro'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={() => setImageError(true)}
+                    />
+                </div>
+            )}
+
             <div className="flex items-center justify-center gap-1 font-semibold">
                 <SexoIcon sexo={passaro.sexo} />
                 <span className="whitespace-nowrap">{ringNumber || `#${passaro.passaro_id}`}</span>

@@ -356,3 +356,42 @@ export function useArvoreGenealogica(id: number | null) {
         staleTime: 1000 * 60 * 10, // 10 minutos
     })
 }
+
+/**
+ * Faz upload da foto de um pássaro
+ */
+async function uploadPassaroFoto(passaro_id: number, foto: File): Promise<{ message: string; foto: string; foto_url: string }> {
+    const formData = new FormData()
+    formData.append('foto', foto)
+
+    const response = await api.post<{ message: string; foto: string; foto_url: string }>(
+        `/api/v1/passaros/${passaro_id}/foto`,
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        }
+    )
+
+    return response.data
+}
+
+/**
+ * Hook para upload de foto do pássaro
+ */
+export function useUploadPassaroFoto() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ passaro_id, foto }: { passaro_id: number; foto: File }) =>
+            uploadPassaroFoto(passaro_id, foto),
+        onSuccess: (_, variables) => {
+            // Invalida cache do pássaro específico e listas
+            queryClient.invalidateQueries({ queryKey: ['passaro', variables.passaro_id] })
+            queryClient.invalidateQueries({ queryKey: ['passaros'] })
+            queryClient.invalidateQueries({ queryKey: ['machos'] })
+            queryClient.invalidateQueries({ queryKey: ['femeas'] })
+        },
+    })
+}
