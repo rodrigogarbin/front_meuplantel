@@ -78,6 +78,7 @@ export interface DashboardStats {
         ano: number
         total: number
         nascidos: number
+        gaiolas: number
     }>
     // Anos disponíveis para filtro
     anosDisponiveis: number[]
@@ -139,10 +140,11 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
                 embriaoMorto: posturasAnoSelecionado.embriaoMorto || 0,
                 filhoteMorto: posturasAnoSelecionado.filhoteMorto || 0,
             } : undefined,
-            historicoPosturas: data.posturas?.map(p => ({
-                ano: p.ano,
-                total: p.total,
-                nascidos: p.nascidos,
+            historicoPosturas: data.totais?.map(t => ({
+                ano: t.ano,
+                total: t.posturas,
+                nascidos: t.nascidos,
+                gaiolas: t.gaiolas,
             })) || [],
             anosDisponiveis: todosAnos,
         }

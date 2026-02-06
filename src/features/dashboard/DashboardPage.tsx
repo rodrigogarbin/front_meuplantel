@@ -70,6 +70,11 @@ export function DashboardPage() {
                 color: '#10B981',
                 data: stats.historicoPosturas.slice().map(item => item.nascidos),
             },
+            {
+                label: 'Casais',
+                color: '#EF4444',
+                data: stats.historicoPosturas.slice().map(item => item.gaiolas),
+            },
         ],
     } : null
 
