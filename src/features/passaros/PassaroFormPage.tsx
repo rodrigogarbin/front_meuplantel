@@ -285,8 +285,7 @@ export function PassaroFormPage() {
                 dt_nasc: passaro.dt_nasc ? passaro.dt_nasc.slice(0, 10) : '',
                 especie_usuario_id:
                     (passaro.especie_usuario_id
-                        ?? passaro.especie_usuario?.especie_usuario_id
-                        ?? passaro.especieUsuario?.especie_usuario_id
+                        ?? passaro.especie?.especie_usuario_id
                     )?.toString() || '',
                 descr: passaro.mutacao?.descr
                     || passaro.descr

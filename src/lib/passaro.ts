@@ -125,7 +125,7 @@ export function situacaoColor(sit: number | null | undefined): string {
  * Extrai a espécie do pássaro (API pode retornar como especieUsuario ou especie_usuario)
  */
 export function getEspecie(passaro: Passaro): string {
-    const especie = passaro.especie_usuario ?? passaro.especieUsuario
+    const especie = passaro.especie
     return especie?.descr ?? '—'
 }
 

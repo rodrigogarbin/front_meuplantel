@@ -49,10 +49,9 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
     if (!casal) return null
 
     // Obtém dias de choco da espécie (do macho ou da fêmea)
-    const diasChoco = casal.macho?.especie_usuario?.dias_choco
-        ?? casal.macho?.especieUsuario?.dias_choco
-        ?? casal.femea?.especie_usuario?.dias_choco
-        ?? casal.femea?.especieUsuario?.dias_choco
+    const diasChoco = casal.macho?.especie?.dias_choco
+        ?? casal.macho?.especie?.dias_choco
+        ?? casal.femea?.especie?.dias_choco
         ?? null
 
     // Calcula previsão de nascimento
