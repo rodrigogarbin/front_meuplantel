@@ -63,9 +63,8 @@ export interface Passaro {
     passaro_mae_id?: number | null
     anel?: Anel | null
     mutacao?: Mutacao | null
-    especie_usuario?: EspecieUsuario | null
-    // API pode retornar como especieUsuario (camelCase)
-    especieUsuario?: EspecieUsuario | null
+    // CasalResource retorna como 'especie'
+    especie?: EspecieUsuario | null
     pai?: PassaroRef | null
     mae?: PassaroRef | null
 }

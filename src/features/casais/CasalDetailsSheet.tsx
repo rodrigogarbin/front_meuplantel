@@ -108,23 +108,18 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const machoLabel = casal.macho ? formatPassaroCompleto(casal.macho) : casal.descr_pai || '—'
     const femeaLabel = casal.femea ? formatPassaroCompleto(casal.femea) : casal.descr_mae || '—'
 
-    // Obtém dias de choco da espécie (do macho ou da fêmea)
-    const diasChoco = casal.macho?.especie_usuario?.dias_choco
-        ?? casal.macho?.especieUsuario?.dias_choco
-        ?? casal.femea?.especie_usuario?.dias_choco
-        ?? casal.femea?.especieUsuario?.dias_choco
-        ?? null
+    // Obtém dias de choco da espécie (do macho ou da fêmea) - padrão 13 dias (canários)
+    // API retorna como 'especie' no CasalResource
+    const diasChoco = casal.macho?.especie?.dias_choco
+        ?? casal.femea?.especie?.dias_choco
+        ?? 13
 
-    const diasAnilha = casal.macho?.especie_usuario?.dias_anilha
-        ?? casal.macho?.especieUsuario?.dias_anilha
-        ?? casal.femea?.especie_usuario?.dias_anilha
-        ?? casal.femea?.especieUsuario?.dias_anilha
+    const diasAnilha = casal.macho?.especie?.dias_anilha
+        ?? casal.femea?.especie?.dias_anilha
         ?? 7
 
-    const diasSepara = casal.macho?.especie_usuario?.dias_separa
-        ?? casal.macho?.especieUsuario?.dias_separa
-        ?? casal.femea?.especie_usuario?.dias_separa
-        ?? casal.femea?.especieUsuario?.dias_separa
+    const diasSepara = casal.macho?.especie?.dias_separa
+        ?? casal.femea?.especie?.dias_separa
         ?? 45
 
     // Verifica se uma postura NASCIDA precisa de ação (não tem pássaro vinculado ainda)
@@ -320,31 +315,28 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 
                 {/* Consanguinidade */}
                 {endogamia !== undefined && endogamia > 0 && (
-                    <div className={`flex items-center gap-3 p-3 rounded-xl ${
-                        endogamia >= 0.25
+                    <div className={`flex items-center gap-3 p-3 rounded-xl ${endogamia >= 0.25
                             ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
                             : endogamia >= 0.125
                                 ? 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
                                 : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                    }`}>
-                        <svg className={`w-5 h-5 flex-shrink-0 ${
-                            endogamia >= 0.25
+                        }`}>
+                        <svg className={`w-5 h-5 flex-shrink-0 ${endogamia >= 0.25
                                 ? 'text-red-500'
                                 : endogamia >= 0.125
                                     ? 'text-amber-500'
                                     : 'text-gray-500'
-                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="flex-1">
                             <p className="text-xs text-gray-500 dark:text-gray-400">Consanguinidade dos filhotes</p>
-                            <p className={`text-lg font-bold ${
-                                endogamia >= 0.25
+                            <p className={`text-lg font-bold ${endogamia >= 0.25
                                     ? 'text-red-600 dark:text-red-400'
                                     : endogamia >= 0.125
                                         ? 'text-amber-600 dark:text-amber-400'
                                         : 'text-gray-700 dark:text-gray-200'
-                            }`}>
+                                }`}>
                                 {(endogamia * 100).toFixed(1)}%
                             </p>
                         </div>
@@ -778,7 +770,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 // Chip unificado de ovo (chocando ou com ação pendente)
 function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
     postura: Postura
-    diasChoco: number | null
+    diasChoco: number
     diasAnilha: number
     diasSepara: number
     onClick?: () => void
@@ -789,7 +781,7 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
 
     // Calcula previsão de nascimento (para ovos chocando)
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null;
+        if (!isChocando || !postura.data) return null;
         try {
             const dataPostura = parseLocalDate(postura.data);
             if (!dataPostura) return null;
@@ -818,7 +810,7 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
     // Calcula alertas (para ovos nascidos)
     const getAlerts = (): string[] => {
         const alerts: string[] = [];
-        if ((!isNascido && !isFertil) || !postura.data_nasc) return alerts;
+        if (!isNascido || !postura.data_nasc) return alerts;
 
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
@@ -884,11 +876,6 @@ function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }:
                                             🐣 Descascando
                                         </span>
                                     )}
-                                </div>
-                            )}
-                            {!previsao && diasChoco && (
-                                <div className="text-xs text-gray-400 dark:text-gray-500">
-                                    Choco: {diasChoco} dias
                                 </div>
                             )}
                         </>
@@ -983,7 +970,7 @@ function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?
 // Chip para postura recebida de outro casal (ovo que está chocando aqui mas veio de outro casal)
 function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
     postura: Postura
-    diasChoco: number | null
+    diasChoco: number
     diasAnilha: number
     diasSepara: number
     onClick?: () => void
@@ -994,7 +981,7 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
 
     // Calcula previsão de nascimento (para ovos chocando)
     const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if ((!isChocando && !isFertil) || !postura.data || !diasChoco) return null
+        if (!isChocando || !postura.data) return null
         try {
             const dataPostura = parseLocalDate(postura.data)
             if (!dataPostura) return null
@@ -1023,7 +1010,7 @@ function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onCli
     // Calcula alertas (para ovos nascidos)
     const getAlerts = (): string[] => {
         const alerts: string[] = []
-        if ((!isNascido && !isFertil) || !postura.data_nasc) return alerts
+        if (!isNascido || !postura.data_nasc) return alerts
 
         const hoje = new Date()
         hoje.setHours(0, 0, 0, 0)
