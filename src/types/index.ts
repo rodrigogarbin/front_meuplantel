@@ -341,3 +341,47 @@ export interface CreateCasalPayload {
 export interface UpdateCasalPayload extends Partial<CreateCasalPayload> {
     gaiola_id: number
 }
+
+// ========================================
+// Medicamentos, Doenças e Sintomas
+// ========================================
+
+// Sintoma
+export interface Sintoma {
+    sintoma_id: number
+    id?: number // API pode retornar como 'id'
+    nome: string
+    descricao?: string | null
+}
+
+// Doença
+export interface Doenca {
+    doenca_id: number
+    id?: number // API pode retornar como 'id'
+    nome: string
+    descricao?: string | null
+    sintomas?: Sintoma[]
+}
+
+// Medicamento
+export interface Medicamento {
+    medicamento_id: number
+    id?: number // API pode retornar como 'id'
+    nome: string
+    dosagem?: string | null
+    principio_ativo?: string | null
+    doencas?: Doenca[]
+}
+
+// Payload para criar medicamento
+export interface CreateMedicamentoPayload {
+    nome: string
+    dosagem?: string | null
+    principio_ativo?: string | null
+    doenca_ids?: number[]
+}
+
+// Payload para atualizar medicamento
+export interface UpdateMedicamentoPayload extends Partial<CreateMedicamentoPayload> {
+    medicamento_id: number
+}
