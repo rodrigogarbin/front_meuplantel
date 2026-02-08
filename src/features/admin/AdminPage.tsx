@@ -4,6 +4,7 @@ import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario, bulkDeleteUsuarios } from './adminApi'
 import type { AdminUsuario } from './adminApi'
+import { useLoginStats } from './loginStatsApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 
@@ -57,7 +58,7 @@ function StarIcon() {
     )
 }
 
-type Tab = 'dashboard' | 'usuarios'
+type Tab = 'dashboard' | 'usuarios' | 'logins'
 
 export function AdminPage() {
     const navigate = useNavigate()
@@ -78,6 +79,7 @@ export function AdminPage() {
 
     const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page)
     const { data: stats, isLoading: isLoadingStats } = useAdminStats()
+    const { data: loginStats, isLoading: isLoadingLoginStats } = useLoginStats(30)
 
     const handleSearchChange = (value: string) => {
         setSearch(value)
@@ -204,6 +206,16 @@ export function AdminPage() {
                         }`}
                     >
                         Usuários
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('logins')}
+                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                            activeTab === 'logins'
+                                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        Logins
                     </button>
                 </div>
 
@@ -529,6 +541,123 @@ export function AdminPage() {
                             </div>
                         )}
                         </div>
+                    </div>
+                )}
+
+                {/* Conteúdo da aba Logins */}
+                {activeTab === 'logins' && (
+                    <div className="p-4 space-y-6">
+                        {/* Seção: Estatísticas de Login */}
+                        <section>
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Últimos 30 dias</h2>
+                            {isLoadingLoginStats ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                </div>
+                            ) : loginStats ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <StatCard
+                                        title="Total de Logins"
+                                        value={loginStats.total_logins}
+                                        icon={<UsersIcon />}
+                                        color="blue"
+                                    />
+                                    <StatCard
+                                        title="Bem-sucedidos"
+                                        value={loginStats.logins_sucesso}
+                                        subtitle={`${((loginStats.logins_sucesso / loginStats.total_logins) * 100).toFixed(1)}%`}
+                                        icon={<StarIcon />}
+                                        color="green"
+                                    />
+                                    <StatCard
+                                        title="Falhas"
+                                        value={loginStats.logins_falha}
+                                        subtitle={loginStats.total_logins > 0 ? `${((loginStats.logins_falha / loginStats.total_logins) * 100).toFixed(1)}%` : '0%'}
+                                        icon={<MailIcon />}
+                                        color="red"
+                                    />
+                                    <StatCard
+                                        title="Usuários Ativos"
+                                        value={loginStats.usuarios_ativos}
+                                        subtitle={`${loginStats.periodo_dias} dias`}
+                                        icon={<UsersIcon />}
+                                        color="purple"
+                                    />
+                                </div>
+                            ) : null}
+                        </section>
+
+                        {/* Seção: Usuários Mais Ativos */}
+                        {loginStats && loginStats.usuarios_mais_ativos.length > 0 && (
+                            <section>
+                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Usuários Mais Ativos</h2>
+                                <div className="section-card overflow-hidden">
+                                    {loginStats.usuarios_mais_ativos.slice(0, 10).map((u, index) => (
+                                        <div
+                                            key={u.usuario_id}
+                                            className={`flex items-center gap-3 py-3 ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                    {index + 1}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                    {u.usuario.nome || u.usuario.username}
+                                                </p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                    {u.total_logins} login{u.total_logins !== 1 ? 's' : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Seção: Logins por Dia */}
+                        {loginStats && loginStats.logins_por_dia.length > 0 && (
+                            <section>
+                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Logins por Dia</h2>
+                                <div className="section-card overflow-hidden">
+                                    {loginStats.logins_por_dia.slice(0, 15).map((dia, index) => (
+                                        <div
+                                            key={dia.data}
+                                            className={`py-3 ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    {new Date(dia.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                                    {dia.total} login{dia.total !== 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1 h-2">
+                                                <div
+                                                    className="bg-green-500 rounded-l"
+                                                    style={{ width: `${dia.total > 0 ? (dia.sucesso / dia.total) * 100 : 0}%` }}
+                                                    title={`${dia.sucesso} sucesso`}
+                                                />
+                                                <div
+                                                    className="bg-red-500 rounded-r"
+                                                    style={{ width: `${dia.total > 0 ? (dia.falha / dia.total) * 100 : 0}%` }}
+                                                    title={`${dia.falha} falhas`}
+                                                />
+                                            </div>
+                                            <div className="flex gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                <span>✓ {dia.sucesso}</span>
+                                                <span>✗ {dia.falha}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
                 )}
             </main>
