@@ -252,6 +252,10 @@ export function useCreatePassaro() {
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
             queryClient.invalidateQueries({ queryKey: ['machos'] })
             queryClient.invalidateQueries({ queryKey: ['femeas'] })
+            // Invalida posturas e casais (afetados pela vinculação postura->pássaro)
+            queryClient.invalidateQueries({ queryKey: ['posturas'] })
+            queryClient.invalidateQueries({ queryKey: ['casais'] }) // Lista de casais
+            queryClient.invalidateQueries({ queryKey: ['casal'] }) // Casal individual (com posturas)
         },
     })
 }

@@ -134,7 +134,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const posturas = casal.posturas ?? []
     // Ovos ativos = chocando ou nascidos que precisam de ação
     const ovosAtivos = posturas.filter(p =>
-        p.sit === SitPostura.CHOCO || p.sit === SitPostura.FERTIL || posturaPrecisaAcao(p)
+        (p.sit === SitPostura.CHOCO || p.sit === SitPostura.FERTIL || posturaPrecisaAcao(p) && !p.passaro_id)
     )
 
     // Separa ovos ativos entre nativos e recebidos de outros casais
@@ -316,26 +316,26 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 {/* Consanguinidade */}
                 {endogamia !== undefined && endogamia > 0 && (
                     <div className={`flex items-center gap-3 p-3 rounded-xl ${endogamia >= 0.25
-                            ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
-                            : endogamia >= 0.125
-                                ? 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
-                                : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                        ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
+                        : endogamia >= 0.125
+                            ? 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
+                            : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
                         }`}>
                         <svg className={`w-5 h-5 flex-shrink-0 ${endogamia >= 0.25
-                                ? 'text-red-500'
-                                : endogamia >= 0.125
-                                    ? 'text-amber-500'
-                                    : 'text-gray-500'
+                            ? 'text-red-500'
+                            : endogamia >= 0.125
+                                ? 'text-amber-500'
+                                : 'text-gray-500'
                             }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="flex-1">
                             <p className="text-xs text-gray-500 dark:text-gray-400">Consanguinidade dos filhotes</p>
                             <p className={`text-lg font-bold ${endogamia >= 0.25
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : endogamia >= 0.125
-                                        ? 'text-amber-600 dark:text-amber-400'
-                                        : 'text-gray-700 dark:text-gray-200'
+                                ? 'text-red-600 dark:text-red-400'
+                                : endogamia >= 0.125
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : 'text-gray-700 dark:text-gray-200'
                                 }`}>
                                 {(endogamia * 100).toFixed(1)}%
                             </p>
