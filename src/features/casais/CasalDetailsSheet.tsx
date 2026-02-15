@@ -595,8 +595,8 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         Adicionar Ovo
                     </button>
 
-                    {/* QR Code da gaiola */}
-                    {casalId != null && (
+                    {/* QR Code da gaiola - Oculto */}
+                    {/* {casalId != null && (
                         <button
                             onClick={() => setShowQrCode(true)}
                             className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
@@ -606,7 +606,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                             </svg>
                             QR Code da Gaiola
                         </button>
-                    )}
+                    )} */}
 
                     {/* Editar */}
                     <button

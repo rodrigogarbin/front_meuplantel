@@ -85,6 +85,13 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
         }
     }, [isOpen, postura, hoje])
 
+    // Quando muda situação para NASCIDO, sugere data atual se não houver data de nascimento
+    useEffect(() => {
+        if (sit === SitPostura.NASCIDO && !dataNasc) {
+            setDataNasc(hoje)
+        }
+    }, [sit, hoje])
+
     if (!casal || !postura) return null
 
     // Obtém o ID do casal

@@ -8,12 +8,13 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useArvoreGenealogica } from './passarosApi'
-import { formatDate } from '@/lib/date'
 import { useUserProfile } from '@/features/auth/userApi'
 import { formatRingComplete, getFotoUrl } from '@/lib/passaro'
 import { SexoEnum } from '@/types'
 import type { Anel } from '@/types'
 import { API_BASE_URL } from '@/lib/api'
+import { generateGenealogyPDF } from './pdfGenerator'
+import type { PassaroArvore as PassaroArvorePDF } from './pdfGenerator'
 
 // Tipo recursivo para o pássaro na árvore genealógica
 // A API retorna os pais como pássaros completos, não apenas referências
@@ -30,18 +31,6 @@ interface PassaroArvore {
     mae?: PassaroArvore | null
 }
 
-// Cores por sexo
-function getSexoColor(sexo?: number | null): string {
-    switch (sexo) {
-        case SexoEnum.MACHO:
-            return 'bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/40 dark:border-blue-600 dark:text-blue-200'
-        case SexoEnum.FEMEA:
-            return 'bg-pink-100 border-pink-400 text-pink-800 dark:bg-pink-900/40 dark:border-pink-600 dark:text-pink-200'
-        default:
-            return 'bg-gray-100 border-gray-400 text-gray-800 dark:bg-gray-700 dark:border-gray-500 dark:text-gray-200'
-    }
-}
-
 // Ícone de sexo
 function SexoIcon({ sexo }: { sexo?: number | null }) {
     if (sexo === SexoEnum.MACHO) {
@@ -51,163 +40,6 @@ function SexoIcon({ sexo }: { sexo?: number | null }) {
         return <span className="text-pink-500">♀</span>
     }
     return <span className="text-gray-400">?</span>
-}
-
-// Card de um pássaro na árvore visual
-interface TreeCardProps {
-    passaro: PassaroArvore | null | undefined
-    label?: string
-}
-
-function TreeCard({ passaro, label }: TreeCardProps) {
-    const navigate = useNavigate()
-    const [imageError, setImageError] = useState(false)
-    const fotoUrl = passaro?.foto ? getFotoUrl(passaro.foto, API_BASE_URL) : null
-
-    if (!passaro) {
-        return (
-            <div className={`
-                p-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600
-                text-center text-gray-400 dark:text-gray-500 text-xs
-                w-[180px] min-h-[80px]
-                flex flex-col items-center justify-center
-            `}>
-                {label && <div className="text-[10px] mb-1 font-medium">{label}</div>}
-                <span>Desconhecido</span>
-            </div>
-        )
-    }
-
-    return (
-        <button
-            onClick={() => navigate(`/passaros/${passaro.passaro_id}/arvore`)}
-            className={`
-                p-2 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md
-                text-center cursor-pointer w-[180px] min-h-[80px]
-                flex flex-col items-center justify-center gap-1
-                ${getSexoColor(passaro.sexo)}
-            `}
-        >
-            {label && <div className="text-[10px] mb-0.5 font-medium opacity-70">{label}</div>}
-
-            {/* Foto thumbnail */}
-            {fotoUrl && !imageError && (
-                <div className="w-10 h-10 overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                    <img
-                        src={fotoUrl}
-                        alt={passaro.descr ?? 'Pássaro'}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={() => setImageError(true)}
-                    />
-                </div>
-            )}
-
-            <div className="flex items-center justify-center gap-1 font-semibold text-sm">
-                <SexoIcon sexo={passaro.sexo} />
-                <span>{formatRingComplete(passaro.anel)}</span>
-            </div>
-            {passaro.descr && (
-                <div className="text-[10px] mt-0.5 opacity-80 text-center break-words whitespace-pre-wrap w-full">
-                    {passaro.descr}
-                </div>
-            )}
-        </button>
-    )
-}
-
-// Componente recursivo para renderizar os filhos (pais do pássaro atual)
-interface TreeChildrenProps {
-    passaro: PassaroArvore
-    level: number
-    maxLevel: number
-}
-
-function TreeChildren({ passaro, level, maxLevel }: TreeChildrenProps) {
-    if (level >= maxLevel) {
-        return null
-    }
-
-    const hasPai = passaro.pai || passaro.passaro_pai_id
-    const hasMae = passaro.mae || passaro.passaro_mae_id
-
-    if (!hasPai && !hasMae) {
-        return null
-    }
-
-    return (
-        <div className="flex flex-col items-center mt-2">
-            {/* Linha conectora para baixo */}
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
-
-            {/* Linha horizontal conectando pai e mãe */}
-            <div className="flex items-center">
-                <div className="w-12 h-px bg-gray-300 dark:bg-gray-600"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"></div>
-                <div className="w-12 h-px bg-gray-300 dark:bg-gray-600"></div>
-            </div>
-
-            {/* Pai e Mãe lado a lado */}
-            <div className="flex gap-4 mt-2">
-                {/* Pai */}
-                <div className="flex flex-col items-center">
-                    <TreeCard passaro={passaro.pai} label="Pai" />
-                    {passaro.pai && (
-                        <TreeChildren
-                            passaro={passaro.pai}
-                            level={level + 1}
-                            maxLevel={maxLevel}
-                        />
-                    )}
-                </div>
-
-                {/* Mãe */}
-                <div className="flex flex-col items-center">
-                    <TreeCard passaro={passaro.mae} label="Mãe" />
-                    {passaro.mae && (
-                        <TreeChildren
-                            passaro={passaro.mae}
-                            level={level + 1}
-                            maxLevel={maxLevel}
-                        />
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// Componente de árvore genealógica visual (de cima para baixo)
-function GenealogyTree({ passaro, maxGenerations = 3 }: { passaro: PassaroArvore; maxGenerations?: number }) {
-    return (
-        <div className="overflow-x-auto pb-4">
-            <div className="min-w-fit flex flex-col items-center py-4 px-8">
-                {/* Pássaro principal (em cima) */}
-                <div className={`
-                    p-4 rounded-xl border-4 shadow-lg
-                    text-center min-w-[140px]
-                    ${getSexoColor(passaro.sexo)}
-                `}>
-                    <div className="text-xs font-medium opacity-70 mb-1">Pássaro</div>
-                    <div className="flex items-center justify-center gap-2 font-bold text-lg">
-                        <SexoIcon sexo={passaro.sexo} />
-                        <span>{formatRingComplete(passaro.anel)}</span>
-                    </div>
-                    {passaro.descr && (
-                        <div className="text-sm mt-1 opacity-80">{passaro.descr}</div>
-                    )}
-                    {passaro.dt_nasc && (
-                        <div className="text-xs mt-1 opacity-60">
-                            Nasc: {formatDate(passaro.dt_nasc)}
-                        </div>
-                    )}
-                </div>
-
-                {/* Ancestrais (abaixo) */}
-                <TreeChildren passaro={passaro} level={0} maxLevel={maxGenerations} />
-            </div>
-        </div>
-    )
 }
 
 // ========================================
@@ -229,15 +61,15 @@ function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps
 
     // Padronização: todos os cards terão o mesmo tamanho na horizontal
     const sizeClasses = {
-        sm: 'w-[180px] min-h-[80px] text-[10px] px-2 py-2',
-        md: 'w-[180px] min-h-[80px] text-xs px-3 py-2',
-        lg: 'w-[180px] min-h-[80px] text-sm px-4 py-2',
+        sm: 'w-[220px] min-h-[80px] text-[10px] px-2 py-2',
+        md: 'w-[220px] min-h-[80px] text-xs px-3 py-2',
+        lg: 'w-[220px] min-h-[80px] text-sm px-2 py-2',
     }
 
     const photoSizes = {
-        sm: 'w-8 h-8',
-        md: 'w-10 h-10',
-        lg: 'w-12 h-12',
+        sm: 'w-8 h-10',
+        md: 'w-12 h-14',
+        lg: 'w-14 h-16',
     }
 
     if (!passaro) {
@@ -266,18 +98,16 @@ function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps
             onClick={() => !isMain && navigate(`/passaros/${passaro.passaro_id}/arvore`)}
             disabled={isMain}
             className={`
-                flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 font-medium
+                flex items-center gap-2 rounded-lg border-2 font-medium
                 transition-all
                 ${colorClass}
                 ${sizeClasses[size]}
                 ${isMain ? 'ring-2 ring-primary-400 ring-offset-2 dark:ring-offset-gray-800' : 'hover:scale-105 hover:shadow-md cursor-pointer'}
             `}
         >
-            {label && <div className="text-[10px] mb-0.5 font-medium opacity-70">{label}</div>}
-
-            {/* Foto thumbnail */}
+            {/* Foto à esquerda */}
             {fotoUrl && !imageError && (
-                <div className={`overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm ${photoSizes[size]}`}>
+                <div className={`overflow-hidden rounded border-2 border-white dark:border-gray-700 shadow-sm flex-shrink-0 ${photoSizes[size]}`}>
                     <img
                         src={fotoUrl}
                         alt={passaro.descr ?? 'Pássaro'}
@@ -288,15 +118,21 @@ function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps
                 </div>
             )}
 
-            <div className="flex items-center justify-center gap-1 font-semibold">
-                <SexoIcon sexo={passaro.sexo} />
-                <span className="whitespace-nowrap">{ringNumber || `#${passaro.passaro_id}`}</span>
+            {/* Conteúdo à direita */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-0.5 min-w-0">
+                {label && <div className="text-[10px] font-medium opacity-70">{label}</div>}
+
+                <div className="flex items-center justify-center gap-1 font-semibold">
+                    <SexoIcon sexo={passaro.sexo} />
+                    <span className="whitespace-nowrap">{ringNumber || `#${passaro.passaro_id}`}</span>
+                </div>
+
+                {passaro.descr && (
+                    <span className="opacity-70 text-[9px] leading-tight text-center break-words w-full">
+                        {passaro.descr}
+                    </span>
+                )}
             </div>
-            {passaro.descr && (
-                <span className="opacity-70 text-[9px] leading-tight text-center break-words whitespace-pre-wrap w-full mt-0.5">
-                    {passaro.descr}
-                </span>
-            )}
         </button>
     )
 }
@@ -391,7 +227,6 @@ function HorizontalTree({ passaro, maxGenerations = 3 }: { passaro: PassaroArvor
 
 export function ArvoreGenealogicaPage() {
     const { id } = useParams<{ id: string }>()
-    const navigate = useNavigate()
     const passaroId = id ? Number(id) : null
 
     const { data: arvoreData, isLoading, error, refetch } = useArvoreGenealogica(passaroId)
@@ -399,8 +234,49 @@ export function ArvoreGenealogicaPage() {
     const endogamia = arvoreData?.endogamia ?? 0
     const { data: userProfile } = useUserProfile()
 
-    // Função para gerar PDF do certificado
-    const handleGeneratePDF = (passaroData: PassaroArvore) => {
+    // Estados para geração de PDF
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+    const [pdfError, setPdfError] = useState<string | null>(null)
+
+    // Função para gerar PDF do certificado com jsPDF
+    const handleGeneratePDF = async (passaroData: PassaroArvore) => {
+        setIsGeneratingPDF(true)
+        setPdfError(null)
+
+        try {
+            const pdfBlob = await generateGenealogyPDF({
+                passaro: passaroData as PassaroArvorePDF,
+                userProfile: userProfile ?? null,
+                endogamia: endogamia,
+                includePhotos: true
+            })
+
+            // Download automático
+            const ringNumber = formatRingComplete(passaroData.anel) || `passaro-${passaroData.passaro_id}`
+            const filename = `genealogia-${ringNumber.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
+
+            const url = URL.createObjectURL(pdfBlob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error)
+            setPdfError(error instanceof Error ? error.message : 'Erro desconhecido ao gerar PDF')
+
+            // Fallback para window.print
+            if (confirm('Erro ao gerar PDF. Deseja tentar abrir janela de impressão?')) {
+                handlePrintFallback(passaroData)
+            }
+        } finally {
+            setIsGeneratingPDF(false)
+        }
+    }
+
+    // Função fallback para impressão (método antigo)
+    const handlePrintFallback = (passaroData: PassaroArvore) => {
         // Cria uma janela de impressão com o conteúdo formatado como certificado
         const printWindow = window.open('', '_blank')
         if (!printWindow) {
@@ -765,30 +641,6 @@ export function ArvoreGenealogicaPage() {
                     )}
                 </div>
 
-                {/* Árvore Visual */}
-                <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 overflow-hidden">
-                    <div className="px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 flex items-center justify-between">
-                        <h2 className="text-white font-semibold flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                            </svg>
-                            Árvore Genealógica
-                        </h2>
-                        <button
-                            onClick={() => navigate(`/passaros/${passaroId}/editar`)}
-                            className="text-white/80 hover:text-white text-sm flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Editar
-                        </button>
-                    </div>
-                    <div className="p-4">
-                        <GenealogyTree passaro={passaroArvore} maxGenerations={3} />
-                    </div>
-                </section>
-
                 {/* Legenda */}
                 <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Legenda</h3>
@@ -821,21 +673,59 @@ export function ArvoreGenealogicaPage() {
                             </svg>
                             Visualização em Lista
                         </h2>
-                        <button
+                        {/* Botão Gerar PDF temporariamente oculto */}
+                        {/* <button
                             onClick={() => handleGeneratePDF(passaroArvore)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
+                            disabled={isGeneratingPDF}
+                            className={`
+                                flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors
+                                ${isGeneratingPDF
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-primary-500 hover:bg-primary-600'
+                                }
+                            `}
                         >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Gerar PDF
-                        </button>
+                            {isGeneratingPDF ? (
+                                <>
+                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    Gerando PDF...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Gerar PDF
+                                </>
+                            )}
+                        </button> */}
                     </div>
                     <div id="arvore-pdf-content" className="p-4">
                         <HorizontalTree passaro={passaroArvore} maxGenerations={3} />
                     </div>
                 </section>
             </div>
+
+            {/* Toast de erro */}
+            {pdfError && (
+                <div className="fixed bottom-24 left-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                        <p className="font-semibold">Erro ao gerar PDF</p>
+                        <p className="text-sm opacity-90">{pdfError}</p>
+                    </div>
+                    <button onClick={() => setPdfError(null)} className="flex-shrink-0">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
