@@ -239,20 +239,22 @@ export function CasaisPage() {
 
                     {/* Lista de casais */}
                     {!isLoading && !error && filteredCasais.length > 0 && (
-                        <div className="p-4 space-y-4">
+                        <div className="p-4">
                             {/* Contador */}
-                            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                                 <span>{filteredCasais.length} {filteredCasais.length === 1 ? 'casal' : 'casais'}</span>
                             </div>
 
-                            {/* Cards */}
-                            {filteredCasais.map((casal) => (
-                                <CasalCard
-                                    key={casal.id ?? casal.gaiola_id}
-                                    casal={casal}
-                                    onClick={() => handleSelectCasal(casal)}
-                                />
-                            ))}
+                            {/* Cards - Grid responsivo */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredCasais.map((casal) => (
+                                    <CasalCard
+                                        key={casal.id ?? casal.gaiola_id}
+                                        casal={casal}
+                                        onClick={() => handleSelectCasal(casal)}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </PullToRefresh>
