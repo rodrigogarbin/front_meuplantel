@@ -5,6 +5,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ImpersonationBanner } from '@/features/admin'
 import { useIsImpersonating } from '@/features/auth/authStore'
+import { usePosturasPendentes } from '@/features/posturas/posturasApi'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -14,6 +15,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const isImpersonating = useIsImpersonating()
+    const hasPosturasPendentes = usePosturasPendentes()
 
     const isActive = (path: string) => location.pathname === path
 
@@ -65,9 +67,13 @@ export function MainLayout({ children }: MainLayoutProps) {
 
                     <button
                         onClick={() => navigate('/posturas')}
-                        className={`flex flex-col items-center py-2 px-4 transition-colors ${isActive('/posturas') ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                        className={`flex flex-col items-center py-2 px-4 transition-colors relative ${isActive('/posturas') ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
                             }`}
                     >
+                        {/* Badge de notificação */}
+                        {hasPosturasPendentes && (
+                            <span className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        )}
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" strokeWidth={isActive('/posturas') ? 2.5 : 1.5}>
                             <path d="M12 2C8.5 2 6 6 6 10c0 4.5 2.5 8 6 8s6-3.5 6-8c0-4-2.5-8-6-8z" />
                         </svg>

@@ -138,3 +138,90 @@ export function usePosturas(filters: PosturasFilters = {}) {
         refetchOnWindowFocus: true,
     })
 }
+
+/**
+ * Hook para verificar se há posturas com ações pendentes
+ * Retorna true se há alertas em qualquer postura ativa
+ */
+export function usePosturasPendentes() {
+    const { data: posturas } = usePosturas({ ativas: true })
+
+    if (!posturas || posturas.length === 0) {
+        return false
+    }
+
+    // Verifica se alguma postura tem alertas
+    return posturas.some(postura => {
+        const alerts = getPosturaAlertsSimple(postura)
+        return alerts.length > 0
+    })
+}
+
+// Função para calcular alertas (versão simplificada para o hook)
+function getPosturaAlertsSimple(postura: PosturaListItem): string[] {
+    const alerts: string[] = []
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+
+    const diasChoco = postura.casal?.dias_choco ?? 21
+    const diasAnilha = postura.casal?.dias_anilha ?? 7
+    const diasSepara = postura.casal?.dias_separa ?? 45
+
+    // Se status é CHOCO (1) e data + dias_choco >= hoje => "Nascendo"
+    if (postura.sit === 1 && postura.data) {
+        const dataPostura = new Date(postura.data + 'T00:00:00')
+        const dataNascendo = new Date(dataPostura)
+        dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
+
+        if (dataNascendo <= hoje) {
+            alerts.push('Nascendo')
+        }
+
+        // Se era para nascer e não nasceu após 30 dias
+        const dataVerificar = new Date(dataNascendo)
+        dataVerificar.setDate(dataVerificar.getDate() + 30)
+        if (!postura.data_nasc && dataVerificar <= hoje) {
+            alerts.push('Verificar')
+        }
+    }
+
+    // Se status é NASCIDO (2) e não tem passaro_id
+    if (postura.sit === 2 && !postura.passaro) {
+        if (postura.data_nasc) {
+            const dataNasc = new Date(postura.data_nasc + 'T00:00:00')
+            const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
+
+            if (!jaAnilhado) {
+                // Verifica se deve anilhar
+                const dataAnilhar = new Date(dataNasc)
+                dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
+
+                if (dataAnilhar <= hoje) {
+                    alerts.push('Hora de anilhar')
+                }
+
+                const dataVerificarAnilhar = new Date(dataAnilhar)
+                dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
+                if (dataVerificarAnilhar <= hoje) {
+                    alerts.push('Verificar')
+                }
+            } else {
+                // Verifica se deve separar
+                const dataSeparar = new Date(dataNasc)
+                dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
+
+                if (dataSeparar <= hoje) {
+                    alerts.push('Separar')
+                }
+
+                const dataVerificarSeparar = new Date(dataSeparar)
+                dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
+                if (dataVerificarSeparar <= hoje) {
+                    alerts.push('Verificar')
+                }
+            }
+        }
+    }
+
+    return alerts
+}
