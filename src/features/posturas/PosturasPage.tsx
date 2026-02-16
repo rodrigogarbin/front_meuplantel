@@ -27,12 +27,23 @@ function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
 
-    const diasChoco = postura.casal?.dias_choco ?? 21
-    const diasAnilha = postura.casal?.dias_anilha ?? 7
-    const diasSepara = postura.casal?.dias_separa ?? 45
+    // Busca dias de choco/anilha/separa: primeiro do campo direto (PosturaResource),
+    // depois do macho.especie, depois da femea.especie, por fim usa padrão
+    const diasChoco = postura.casal?.dias_choco
+        ?? postura.casal?.macho?.especie?.dias_choco
+        ?? postura.casal?.femea?.especie?.dias_choco
+        ?? 21
+    const diasAnilha = postura.casal?.dias_anilha
+        ?? postura.casal?.macho?.especie?.dias_anilha
+        ?? postura.casal?.femea?.especie?.dias_anilha
+        ?? 7
+    const diasSepara = postura.casal?.dias_separa
+        ?? postura.casal?.macho?.especie?.dias_separa
+        ?? postura.casal?.femea?.especie?.dias_separa
+        ?? 45
 
-    // Se status é CHOCO e data + dias_choco >= hoje => "Nascendo"
-    if (postura.sit === SitPostura.CHOCO && postura.data) {
+    // Se status é CHOCO ou FERTIL e data + dias_choco >= hoje => "Nascendo"
+    if ((postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL) && postura.data) {
         const dataPostura = parseLocalDate(postura.data)
         if (!dataPostura) return result
         const dataNascendo = new Date(dataPostura)
@@ -189,19 +200,20 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
                     <span className="text-gray-500 dark:text-gray-400">Postura:</span>
                     <span className="ml-1 text-gray-900 dark:text-gray-100">{formatDate(postura.data)}</span>
                 </div>
-                {postura.data_nasc && (
-                    <div>
-                        <span className="text-gray-500 dark:text-gray-400">Nasc:</span>
-                        <span className="ml-1 text-gray-900 dark:text-gray-100">{formatDate(postura.data_nasc)}</span>
-                    </div>
-                )}
-                {/* Previsão de nascimento para posturas em CHOCO */}
-                {postura.sit === SitPostura.CHOCO && previsao && (
+                {/* Previsão de nascimento para posturas em CHOCO (ovos férteis) */}
+                {(postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL) && previsao && (
                     <div>
                         <span className="text-gray-500 dark:text-gray-400">Previsão:</span>
                         <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
                             🥚 {formatPrevisao(previsao)}
                         </span>
+                    </div>
+                )}
+                {/* Data de nascimento apenas para posturas que já nasceram (não CHOCO nem FERTIL) */}
+                {postura.sit !== SitPostura.CHOCO && postura.sit !== SitPostura.FERTIL && postura.data_nasc && (
+                    <div>
+                        <span className="text-gray-500 dark:text-gray-400">Nasc:</span>
+                        <span className="ml-1 text-gray-900 dark:text-gray-100">{formatDate(postura.data_nasc)}</span>
                     </div>
                 )}
                 {postura.nro_rodada && (

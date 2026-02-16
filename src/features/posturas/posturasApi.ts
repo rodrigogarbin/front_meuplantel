@@ -34,9 +34,9 @@ export interface PosturaListItem {
         nro: number | null
         descr_pai?: string | null
         descr_mae?: string | null
-        dias_choco: number | null
-        dias_anilha: number | null
-        dias_separa: number | null
+        dias_choco?: number | null
+        dias_anilha?: number | null
+        dias_separa?: number | null
         macho?: {
             id: number
             especie_usuario_id: number | null
@@ -45,6 +45,15 @@ export interface PosturaListItem {
                 ano: number
                 nro: number
                 sg_clube: string
+            } | null
+            especie?: {
+                especie_usuario_id?: number | null
+                id?: number
+                descr?: string | null
+                grupo_id?: number | null
+                dias_choco?: number | null
+                dias_anilha?: number | null
+                dias_separa?: number | null
             } | null
         } | null
         femea?: {
@@ -55,6 +64,15 @@ export interface PosturaListItem {
                 ano: number
                 nro: number
                 sg_clube: string
+            } | null
+            especie?: {
+                especie_usuario_id?: number | null
+                id?: number
+                descr?: string | null
+                grupo_id?: number | null
+                dias_choco?: number | null
+                dias_anilha?: number | null
+                dias_separa?: number | null
             } | null
         } | null
     } | null
@@ -63,9 +81,9 @@ export interface PosturaListItem {
         nro: number | null
         descr_pai?: string | null
         descr_mae?: string | null
-        dias_choco: number | null
-        dias_anilha: number | null
-        dias_separa: number | null
+        dias_choco?: number | null
+        dias_anilha?: number | null
+        dias_separa?: number | null
         macho?: {
             id: number
             especie_usuario_id: number | null
@@ -74,6 +92,15 @@ export interface PosturaListItem {
                 ano: number
                 nro: number
                 sg_clube: string
+            } | null
+            especie?: {
+                especie_usuario_id?: number | null
+                id?: number
+                descr?: string | null
+                grupo_id?: number | null
+                dias_choco?: number | null
+                dias_anilha?: number | null
+                dias_separa?: number | null
             } | null
         } | null
         femea?: {
@@ -84,6 +111,15 @@ export interface PosturaListItem {
                 ano: number
                 nro: number
                 sg_clube: string
+            } | null
+            especie?: {
+                especie_usuario_id?: number | null
+                id?: number
+                descr?: string | null
+                grupo_id?: number | null
+                dias_choco?: number | null
+                dias_anilha?: number | null
+                dias_separa?: number | null
             } | null
         } | null
     } | null
@@ -163,12 +199,23 @@ function getPosturaAlertsSimple(postura: PosturaListItem): string[] {
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
 
-    const diasChoco = postura.casal?.dias_choco ?? 21
-    const diasAnilha = postura.casal?.dias_anilha ?? 7
-    const diasSepara = postura.casal?.dias_separa ?? 45
+    // Busca dias de choco/anilha/separa: primeiro do campo direto (PosturaResource),
+    // depois do macho.especie, depois da femea.especie, por fim usa padrão
+    const diasChoco = postura.casal?.dias_choco
+        ?? postura.casal?.macho?.especie?.dias_choco
+        ?? postura.casal?.femea?.especie?.dias_choco
+        ?? 21
+    const diasAnilha = postura.casal?.dias_anilha
+        ?? postura.casal?.macho?.especie?.dias_anilha
+        ?? postura.casal?.femea?.especie?.dias_anilha
+        ?? 7
+    const diasSepara = postura.casal?.dias_separa
+        ?? postura.casal?.macho?.especie?.dias_separa
+        ?? postura.casal?.femea?.especie?.dias_separa
+        ?? 45
 
-    // Se status é CHOCO (1) e data + dias_choco >= hoje => "Nascendo"
-    if (postura.sit === 1 && postura.data) {
+    // Se status é CHOCO (0) ou FERTIL (5) e data + dias_choco >= hoje => "Nascendo"
+    if ((postura.sit === 0 || postura.sit === 5) && postura.data) {
         const dataPostura = new Date(postura.data + 'T00:00:00')
         const dataNascendo = new Date(dataPostura)
         dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
@@ -185,8 +232,8 @@ function getPosturaAlertsSimple(postura: PosturaListItem): string[] {
         }
     }
 
-    // Se status é NASCIDO (2) e não tem passaro_id
-    if (postura.sit === 2 && !postura.passaro) {
+    // Se status é NASCIDO (1) e não tem passaro_id
+    if (postura.sit === 1 && !postura.passaro) {
         if (postura.data_nasc) {
             const dataNasc = new Date(postura.data_nasc + 'T00:00:00')
             const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)

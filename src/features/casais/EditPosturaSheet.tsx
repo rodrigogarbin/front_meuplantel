@@ -85,12 +85,12 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
         }
     }, [isOpen, postura, hoje])
 
-    // Quando muda situação para NASCIDO, sugere data atual se não houver data de nascimento
+    // Quando muda situação para NASCIDO ou FILHOTE_MORTO, sugere data atual se não houver data de nascimento
     useEffect(() => {
-        if (sit === SitPostura.NASCIDO && !dataNasc) {
+        if ((sit === SitPostura.NASCIDO || sit === SitPostura.FILHOTE_MORTO) && !dataNasc) {
             setDataNasc(hoje)
         }
-    }, [sit, hoje])
+    }, [sit, dataNasc, hoje])
 
     if (!casal || !postura) return null
 
@@ -131,7 +131,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                 payload: {
                     data,
                     sit,
-                    data_nasc: dataNasc || null,
+                    // Data de nascimento apenas se NASCIDO ou FILHOTE_MORTO
+                    data_nasc: (sit === SitPostura.NASCIDO || sit === SitPostura.FILHOTE_MORTO) && dataNasc ? dataNasc : null,
                     obs: obs || null,
                     // Campos do anel (apenas se nascido)
                     nro_anel: sit === SitPostura.NASCIDO && nroAnel ? parseInt(nroAnel, 10) : null,
@@ -247,8 +248,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                     />
                 </div>
 
-                {/* Previsão de Nascimento */}
-                {previsaoNascimento && sit === SitPostura.CHOCO && (
+                {/* Previsão de Nascimento (para ovos chocando ou férteis) */}
+                {previsaoNascimento && (sit === SitPostura.CHOCO || sit === SitPostura.FERTIL) && (
                     <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
@@ -287,8 +288,8 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                     </div>
                 </div>
 
-                {/* Campo: Data de Nascimento (apenas se nascido) */}
-                {sit === SitPostura.NASCIDO && (
+                {/* Campo: Data de Nascimento (apenas se nascido ou filhote morto) */}
+                {(sit === SitPostura.NASCIDO || sit === SitPostura.FILHOTE_MORTO) && (
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

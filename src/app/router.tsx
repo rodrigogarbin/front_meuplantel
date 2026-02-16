@@ -112,6 +112,10 @@ export const router = createBrowserRouter([
                 path: '/passaros/:id/arvore',
                 element: <ArvoreGenealogicaPage />,
             },
+            {
+                path: '/config/perfil',
+                element: <ProfileEditPage />,
+            },
         ],
     },
     {
@@ -149,10 +153,6 @@ export const router = createBrowserRouter([
             {
                 path: '/sintomas',
                 element: <SintomasPage />,
-            },
-            {
-                path: '/config/perfil',
-                element: <ProfileEditPage />,
             },
         ],
     },

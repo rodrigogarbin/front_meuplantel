@@ -219,6 +219,9 @@ export interface Postura {
     casal?: {
         id: number
         nro: number
+        dias_choco?: number | null
+        dias_anilha?: number | null
+        dias_separa?: number | null
         macho?: {
             id: number
             descr?: string | null
