@@ -5,7 +5,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ImpersonationBanner } from '@/features/admin'
 import { useIsImpersonating } from '@/features/auth/authStore'
-import { useEmailVerificationStatus } from '@/features/auth'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -15,8 +14,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const isImpersonating = useIsImpersonating()
-    const { data: emailStatus } = useEmailVerificationStatus()
-    const hasConfigBadge = emailStatus && emailStatus.email && !emailStatus.email_verified
 
     const isActive = (path: string) => location.pathname === path
 
