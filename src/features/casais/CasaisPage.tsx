@@ -90,6 +90,14 @@ export function CasaisPage() {
         if (!searchTerm) return true
         const search = searchTerm.toLowerCase()
 
+        // Se começar com #, busca APENAS pelo número do casal
+        if (search.startsWith('#')) {
+            const numero = search.substring(1).trim()
+            if (!numero) return true // Se só digitou #, mostra todos
+            return casal.nro?.toString().includes(numero)
+        }
+
+        // Busca geral (número, descrições, etc.)
         // Busca por número do casal
         if (casal.nro?.toString().includes(search)) return true
 
@@ -179,7 +187,7 @@ export function CasaisPage() {
                             </span>
                             <input
                                 type="text"
-                                placeholder="Buscar casal..."
+                                placeholder="Buscar casal... (use # para buscar por número)"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"

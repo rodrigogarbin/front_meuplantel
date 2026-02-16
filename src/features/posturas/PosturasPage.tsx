@@ -309,6 +309,15 @@ export function PosturasPage() {
         if (searchTerm) {
             const term = searchTerm.toLowerCase()
             const casalNro = String(postura.casal?.nro || '')
+
+            // Se começar com #, busca APENAS pelo número do casal
+            if (term.startsWith('#')) {
+                const numero = term.substring(1).trim()
+                if (!numero) return true // Se só digitou #, mostra todos
+                return casalNro.includes(numero)
+            }
+
+            // Busca geral (número do casal, anéis, etc.)
             const machoAnel = formatRingComplete(postura.casal?.macho?.anel).toLowerCase()
             const femeaAnel = formatRingComplete(postura.casal?.femea?.anel).toLowerCase()
 
@@ -403,7 +412,7 @@ export function PosturasPage() {
                         <SearchInput
                             value={searchTerm}
                             onChange={setSearchTerm}
-                            placeholder="Buscar por casal ou anel..."
+                            placeholder="Buscar... (use # para buscar por número do casal)"
                         />
                     </div>
 
