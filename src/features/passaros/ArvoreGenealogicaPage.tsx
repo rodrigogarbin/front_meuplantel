@@ -8,13 +8,13 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useArvoreGenealogica } from './passarosApi'
-import { useUserProfile } from '@/features/auth/userApi'
+// import { useUserProfile } from '@/features/auth/userApi' // Temporariamente comentado (usado apenas para PDF)
 import { formatRingComplete, getFotoUrl } from '@/lib/passaro'
 import { SexoEnum } from '@/types'
 import type { Anel } from '@/types'
 import { API_BASE_URL } from '@/lib/api'
-import { generateGenealogyPDF } from './pdfGenerator'
-import type { PassaroArvore as PassaroArvorePDF } from './pdfGenerator'
+// import { generateGenealogyPDF } from './pdfGenerator' // Temporariamente comentado
+// import type { PassaroArvore as PassaroArvorePDF } from './pdfGenerator' // Temporariamente comentado
 
 // Tipo recursivo para o pássaro na árvore genealógica
 // A API retorna os pais como pássaros completos, não apenas referências
@@ -232,14 +232,14 @@ export function ArvoreGenealogicaPage() {
     const { data: arvoreData, isLoading, error, refetch } = useArvoreGenealogica(passaroId)
     const passaro = arvoreData?.arvore
     const endogamia = arvoreData?.endogamia ?? 0
-    const { data: userProfile } = useUserProfile()
+    // const { data: userProfile } = useUserProfile() // Temporariamente comentado (usado apenas para PDF)
 
-    // Estados para geração de PDF
-    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
-    const [pdfError, setPdfError] = useState<string | null>(null)
+    // Estados para geração de PDF - Temporariamente comentados
+    // const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+    // const [pdfError, setPdfError] = useState<string | null>(null)
 
-    // Função para gerar PDF do certificado com jsPDF
-    const handleGeneratePDF = async (passaroData: PassaroArvore) => {
+    // Função para gerar PDF do certificado com jsPDF - Temporariamente comentada
+    /* const handleGeneratePDF = async (passaroData: PassaroArvore) => {
         setIsGeneratingPDF(true)
         setPdfError(null)
 
@@ -273,10 +273,10 @@ export function ArvoreGenealogicaPage() {
         } finally {
             setIsGeneratingPDF(false)
         }
-    }
+    } */
 
-    // Função fallback para impressão (método antigo)
-    const handlePrintFallback = (passaroData: PassaroArvore) => {
+    // Função fallback para impressão (método antigo) - Temporariamente comentada
+    /* const handlePrintFallback = (passaroData: PassaroArvore) => {
         // Cria uma janela de impressão com o conteúdo formatado como certificado
         const printWindow = window.open('', '_blank')
         if (!printWindow) {
@@ -584,7 +584,7 @@ export function ArvoreGenealogicaPage() {
 
         printWindow.document.write(htmlContent)
         printWindow.document.close()
-    }
+    } */
 
     if (isLoading) {
         return (
@@ -709,8 +709,8 @@ export function ArvoreGenealogicaPage() {
                 </section>
             </div>
 
-            {/* Toast de erro */}
-            {pdfError && (
+            {/* Toast de erro - Temporariamente comentado */}
+            {/* {pdfError && (
                 <div className="fixed bottom-24 left-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-start gap-2">
                     <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -725,7 +725,7 @@ export function ArvoreGenealogicaPage() {
                         </svg>
                     </button>
                 </div>
-            )}
+            )} */}
         </div>
     )
 }
