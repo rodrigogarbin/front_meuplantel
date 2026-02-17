@@ -114,6 +114,7 @@ interface PosturaResponse {
     nro_anel: number | null
     ano_anel: number | null
     obs: string | null
+    passaro_id: number | null
     casal?: {
         id: number
         nro: number

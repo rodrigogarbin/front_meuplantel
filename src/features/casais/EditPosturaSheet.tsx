@@ -18,6 +18,7 @@ interface EditPosturaSheetProps {
     isOpen: boolean
     onClose: () => void
     onSuccess?: () => void
+    origin?: 'posturas' | 'casal'
 }
 
 // Ícone de ovo
@@ -39,7 +40,7 @@ const situacaoOptions = [
     { value: SitPostura.FILHOTE_MORTO, label: SitPosturaLabels[SitPostura.FILHOTE_MORTO], color: 'bg-red-100 text-red-700 border-red-300' },
 ]
 
-export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }: EditPosturaSheetProps) {
+export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess, origin = 'casal' }: EditPosturaSheetProps) {
     const navigate = useNavigate()
     const updatePostura = useUpdatePostura()
     const deletePostura = useDeletePostura()
@@ -350,6 +351,7 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess }:
                                     // Passa apenas o ID da postura - os demais dados serão buscados
                                     const params = new URLSearchParams()
                                     params.set('postura_id', postura.postura_id.toString())
+                                    params.set('from', origin)
 
                                     onClose()
                                     navigate(`/passaros/novo?${params.toString()}`)

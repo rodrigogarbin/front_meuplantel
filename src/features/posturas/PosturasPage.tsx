@@ -555,6 +555,7 @@ export function PosturasPage() {
                 isOpen={isEditSheetOpen}
                 onClose={handleCloseSheet}
                 onSuccess={handleEditSuccess}
+                origin="posturas"
             />
 
             {/* Botão flutuante para adicionar nova postura */}

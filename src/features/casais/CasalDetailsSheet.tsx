@@ -650,6 +650,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     setSelectedPostura(null)
                 }}
                 onSuccess={handlePosturaSuccess}
+                origin="casal"
             />
 
             {/* Modal QR Code da gaiola */}

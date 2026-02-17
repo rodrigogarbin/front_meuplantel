@@ -193,6 +193,9 @@ export function PassaroFormPage() {
     const posturaIdParam = searchParams.get('postura_id')
     const posturaId = posturaIdParam ? Number(posturaIdParam) : null
 
+    // Origem da navegação: 'posturas' = voltou da lista de posturas, 'casal' = voltou do casal
+    const fromParam = searchParams.get('from') as 'posturas' | 'casal' | null
+
     // Busca perfil do usuário para preencher sg_clube e nro_criador
     const { data: userProfile } = useUserProfile()
 
@@ -413,9 +416,6 @@ export function PassaroFormPage() {
 
         const payload = buildPayload()
 
-        // ID do casal para redirecionar de volta (da postura ou do parâmetro)
-        const gaiolaId = postura?.casal_id ?? searchParams.get('gaiola_id')
-
         try {
             let finalPassaroId = passaroId
 
@@ -445,12 +445,8 @@ export function PassaroFormPage() {
                 }
             }
 
-            // Redireciona para o casal se veio de lá, senão para a lista de pássaros
-            if (gaiolaId) {
-                navigate(`/casais?casal=${gaiolaId}`)
-            } else {
-                navigate('/passaros')
-            }
+            // Redireciona com base na origem da navegação
+            navigate(getReturnPath())
         } catch (error) {
             setSubmitError(getApiErrorMessage(error, 'Ocorreu um erro ao salvar. Tente novamente.'))
         }
@@ -471,22 +467,22 @@ export function PassaroFormPage() {
         label: esp.descr || 'Sem nome',
     }))
 
-    // Função para voltar (para o casal se veio de lá, senão para lista)
-    const handleBack = () => {
-        // Prioridade: postura.casal_id > gaiola_id do searchParams
+    // Determina para onde navegar de volta com base na origem
+    const getReturnPath = () => {
+        if (fromParam === 'posturas') return '/posturas'
         const gaiolaId = postura?.casal_id ?? searchParams.get('gaiola_id')
+        if (gaiolaId) return `/casais?casal=${gaiolaId}`
+        return '/passaros'
+    }
 
+    // Função para voltar
+    const handleBack = () => {
         // Se temos um posturaId mas a postura ainda está carregando, aguarda
         // Isso evita redirecionar para /passaros enquanto carrega
         if (posturaId && loadingPostura) {
             return
         }
-
-        if (gaiolaId) {
-            navigate(`/casais?casal=${gaiolaId}`)
-        } else {
-            navigate('/passaros')
-        }
+        navigate(getReturnPath())
     }
 
     // Loading state
@@ -503,6 +499,44 @@ export function PassaroFormPage() {
                     <Skeleton className="h-12" />
                     <Skeleton className="h-12" />
                     <Skeleton className="h-12" />
+                </div>
+            </div>
+        )
+    }
+
+    // Postura já tem pássaro registrado — previne duplicata
+    if (!isEditing && postura && postura.passaro_id) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                <Topbar
+                    title="Registrar Pássaro"
+                    showBack
+                    onBack={handleBack}
+                />
+                <div className="p-6 max-w-md mx-auto mt-8 space-y-4">
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-2xl p-6 text-center space-y-3">
+                        <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <p className="text-lg font-semibold text-green-700 dark:text-green-300">Pássaro já registrado</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                            Este filhote já foi cadastrado no plantel. Não é possível registrar dois pássaros para a mesma postura.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate(`/passaros?id=${postura.passaro_id}`)}
+                        className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 active:scale-[0.98] transition-all"
+                    >
+                        Ver pássaro registrado
+                    </button>
+                    <button
+                        onClick={handleBack}
+                        className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-[0.98] transition-all"
+                    >
+                        Voltar
+                    </button>
                 </div>
             </div>
         )
