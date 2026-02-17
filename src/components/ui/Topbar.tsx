@@ -95,7 +95,7 @@ export function Topbar({ title, showBack, onBack }: TopbarProps) {
 
                 {/* Dropdown menu */}
                 {isDropdownOpen && (
-                    <div className="fixed sm:absolute right-4 sm:right-0 top-16 sm:top-auto sm:mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    <div className="fixed sm:absolute right-4 sm:right-0 sm:mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50" style={{ top: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
                         {/* User info */}
                         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
