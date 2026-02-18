@@ -9,12 +9,9 @@ import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, Emp
 import { BirdCard } from './BirdCard'
 import { BirdDetailsSheet } from './BirdDetailsSheet'
 import { usePassarosInfinite } from './passarosApi'
+import { useFiltersStore } from '@/lib/filtersStore'
 import type { Passaro, PassaroFilters } from '@/types'
 import { SexoEnum, SituacaoEnum } from '@/types'
-
-// Tipos para os filtros de UI
-type SexoFilter = 'all' | 'macho' | 'femea'
-type SituacaoFilter = 'ativos' | 'todos'
 
 // Ícone de Plus
 function PlusIcon() {
@@ -28,11 +25,14 @@ function PlusIcon() {
 export function PassarosPage() {
     const navigate = useNavigate()
 
-    // Estado dos filtros
-    const [sexoFilter, setSexoFilter] = useState<SexoFilter>('all')
-    const [situacaoFilter, setSituacaoFilter] = useState<SituacaoFilter>('ativos')
-    const [searchQuery, setSearchQuery] = useState('')
-    const [debouncedSearch, setDebouncedSearch] = useState('')
+    // Filtros persistentes
+    const { passaros: passarosFilters, setPassarosFilters } = useFiltersStore()
+    const { sexoFilter, situacaoFilter, searchQuery } = passarosFilters
+    const setSexoFilter = (v: typeof sexoFilter) => setPassarosFilters({ sexoFilter: v })
+    const setSituacaoFilter = (v: typeof situacaoFilter) => setPassarosFilters({ situacaoFilter: v })
+    const setSearchQuery = (v: string) => setPassarosFilters({ searchQuery: v })
+
+    const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
 
     // Debounce da busca (aguarda 500ms após digitar)
     useEffect(() => {

@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useFiltersStore } from '@/lib/filtersStore'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -40,7 +41,9 @@ function SearchIcon() {
 export function CasaisPage() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const [searchTerm, setSearchTerm] = useState('')
+    const { casais: casaisFilters, setCasaisFilters } = useFiltersStore()
+    const searchTerm = casaisFilters.searchTerm
+    const setSearchTerm = (v: string) => setCasaisFilters({ searchTerm: v })
     const [selectedCasal, setSelectedCasal] = useState<Casal | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [showScanner, setShowScanner] = useState(false)

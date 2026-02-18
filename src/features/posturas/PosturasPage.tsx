@@ -12,6 +12,7 @@ import { AddPosturaSheet } from '@/features/casais/AddPosturaSheet';
 import { useCasal, useCasais } from '@/features/casais/casaisApi'
 import { formatRingComplete } from '@/lib/passaro'
 import { parseLocalDate, formatDate as formatDateUtil } from '@/lib/date'
+import { useFiltersStore, type PosturasFilterType } from '@/lib/filtersStore'
 import type { Casal } from '@/types';
 
 // Tipo para resultado dos alertas
@@ -261,13 +262,20 @@ function PosturaCardSkeleton() {
     )
 }
 
-// Tipos de filtro
-type FilterType = 'todas' | 'nascendo' | 'anilhar' | 'separar' | 'verificar'
-
 // Página principal
 export function PosturasPage() {
-    const [searchTerm, setSearchTerm] = useState('')
-    const [filterType, setFilterType] = useState<FilterType>('todas')
+    const { posturas: posturasFilters, setPosturasFilters } = useFiltersStore()
+    const { filterTypes, searchTerm } = posturasFilters
+    const setSearchTerm = (v: string) => setPosturasFilters({ searchTerm: v })
+
+    const toggleFilter = (f: PosturasFilterType) => {
+        setPosturasFilters({
+            filterTypes: filterTypes.includes(f)
+                ? filterTypes.filter((x) => x !== f)
+                : [...filterTypes, f],
+        })
+    }
+    const clearFilters = () => setPosturasFilters({ filterTypes: [] })
     const [selectedPostura, setSelectedPostura] = useState<PosturaListItem | null>(null)
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
     const [isAddPosturaOpen, setIsAddPosturaOpen] = useState(false);
@@ -298,9 +306,9 @@ export function PosturasPage() {
 
     // Filtra posturas pelo termo de busca e tipo de filtro
     const filteredPosturas: PosturaListItem[] = posturas?.filter((postura: PosturaListItem) => {
-        // Filtro por tipo de alerta
-        if (filterType !== 'todas') {
-            if (!hasAlert(postura, filterType)) {
+        // Filtro por tipo de alerta (multi-seleção; vazio = todas)
+        if (filterTypes.length > 0) {
+            if (!filterTypes.some((f) => hasAlert(postura, f))) {
                 return false
             }
         }
@@ -416,11 +424,11 @@ export function PosturasPage() {
                         />
                     </div>
 
-                    {/* Filtros por tipo de alerta */}
+                    {/* Filtros por tipo de alerta (multi-seleção) */}
                     <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
                         <button
-                            onClick={() => setFilterType('todas')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'todas'
+                            onClick={clearFilters}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.length === 0
                                 ? 'bg-primary-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
@@ -428,8 +436,8 @@ export function PosturasPage() {
                             Todas
                         </button>
                         <button
-                            onClick={() => setFilterType('nascendo')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'nascendo'
+                            onClick={() => toggleFilter('nascendo')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.includes('nascendo')
                                 ? 'bg-yellow-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
@@ -437,8 +445,8 @@ export function PosturasPage() {
                             🐣 Nascendo
                         </button>
                         <button
-                            onClick={() => setFilterType('anilhar')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'anilhar'
+                            onClick={() => toggleFilter('anilhar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.includes('anilhar')
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
@@ -446,8 +454,8 @@ export function PosturasPage() {
                             💍 Anilhar
                         </button>
                         <button
-                            onClick={() => setFilterType('separar')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'separar'
+                            onClick={() => toggleFilter('separar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.includes('separar')
                                 ? 'bg-cyan-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
@@ -455,8 +463,8 @@ export function PosturasPage() {
                             🏠 Separar
                         </button>
                         <button
-                            onClick={() => setFilterType('verificar')}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'verificar'
+                            onClick={() => toggleFilter('verificar')}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.includes('verificar')
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                 }`}
