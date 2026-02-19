@@ -1,10 +1,11 @@
 /**
  * Página de Login
- * 
- * Mobile-first design com formulário de autenticação
+ *
+ * Mobile-first design com formulário de autenticação.
+ * Captcha Turnstile é exibido apenas em modo step-up (quando a API sinaliza suspeita).
  */
 
-import { useState, useEffect, FormEvent, useRef } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
@@ -15,6 +16,13 @@ import { BirdLogo } from '@/components/BirdLogo'
 import { useEffectiveTheme } from '@/lib/theme'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
+
+/** Shape dos erros retornados pela API de login */
+interface LoginErrorResponse {
+    message?: string
+    require_captcha?: boolean
+    retry_after?: number
+}
 
 export function LoginPage() {
     const navigate = useNavigate()
@@ -28,17 +36,37 @@ export function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
+    const [rememberMe, setRememberMe] = useState(true)
+
+    // Estado de captcha step-up
+    const [requiresCaptcha, setRequiresCaptcha] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-    const [tokenLogin, setTokenLogin] = useState(false)
-    const [rememberMe, setRememberMe] = useState(true) // Ativo por padrão para PWA
 
-    // Obtem o tema atual da aplicação
-    const currentTheme = useEffectiveTheme()
-
-    // Pega o redirect de onde o usuário veio
-    const from = (location.state as { from?: Location })?.from?.pathname || '/'
+    // Countdown de bloqueio temporário
+    const [countdown, setCountdown] = useState(0)
 
     // Auto-login via token (redirect da landing page)
+    const [tokenLogin, setTokenLogin] = useState(false)
+
+    const currentTheme = useEffectiveTheme()
+    const from = (location.state as { from?: Location })?.from?.pathname || '/'
+
+    // Inicia countdown quando retry_after é recebido
+    useEffect(() => {
+        if (countdown <= 0) return
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [countdown])
+
+    // Auto-login via ?token=<jwt> (redirect da landing page)
     useEffect(() => {
         const token = searchParams.get('token')
         if (!token) return
@@ -46,62 +74,88 @@ export function LoginPage() {
         setTokenLogin(true)
         setIsLoading(true)
 
-        axios.get(`${API_BASE_URL}/api/v1/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then((res) => {
-            const data = res.data.data || res.data
-            useAuthStore.setState({
-                token,
-                user: {
-                    usuario_id: data.usuario_id,
-                    nome: data.name,
-                    username: data.name,
-                    email: data.email,
-                    needs_email: data.needs_email,
-                    email_verified: data.email_verified,
-                    is_admin: data.is_admin,
-                    sg_clube: data.sg_clube,
-                    nro_criador: data.nro_criador,
-                },
-                expiresAt: Date.now() + 3600 * 1000,
-                isAuthenticated: true,
-                isLoading: false,
+        axios
+            .get(`${API_BASE_URL}/api/v1/me`, {
+                headers: { Authorization: `Bearer ${token}` },
             })
-            navigate('/', { replace: true })
-        }).catch(() => {
-            setTokenLogin(false)
-            setIsLoading(false)
-            setError('Sessão expirada. Faça login novamente.')
-        })
+            .then((res) => {
+                const data = res.data.data || res.data
+                useAuthStore.setState({
+                    token,
+                    user: {
+                        usuario_id:     data.usuario_id,
+                        nome:           data.name,
+                        username:       data.name,
+                        email:          data.email,
+                        needs_email:    data.needs_email,
+                        email_verified: data.email_verified,
+                        is_admin:       data.is_admin,
+                        sg_clube:       data.sg_clube,
+                        nro_criador:    data.nro_criador,
+                    },
+                    expiresAt:       Date.now() + 3600 * 1000,
+                    isAuthenticated: true,
+                    isLoading:       false,
+                })
+                navigate('/', { replace: true })
+            })
+            .catch(() => {
+                setTokenLogin(false)
+                setIsLoading(false)
+                setError('Sessão expirada. Faça login novamente.')
+            })
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         setError(null)
 
-        if (!captchaToken) {
-            setError('Por favor, complete o captcha')
+        // Se captcha step-up ativo mas ainda não preenchido, aguarda
+        if (requiresCaptcha && !captchaToken) {
+            setError('Por favor, complete o desafio de segurança antes de continuar.')
             return
         }
 
         setIsLoading(true)
 
         try {
-            await login(username, password, captchaToken, rememberMe)
+            await login(username, password, captchaToken ?? undefined, rememberMe)
             navigate(from, { replace: true })
         } catch (err) {
-            const axiosError = err as AxiosError<{ error?: string; message?: string }>
+            const axiosError = err as AxiosError<LoginErrorResponse>
+            const status     = axiosError.response?.status
+            const data       = axiosError.response?.data
 
-            // Reset captcha para permitir nova tentativa
-            turnstileRef.current?.reset()
-            setCaptchaToken(null)
+            // Sempre reseta o widget de captcha após erro (token foi consumido ou é inválido)
+            if (captchaToken) {
+                turnstileRef.current?.reset()
+                setCaptchaToken(null)
+            }
 
-            if (axiosError.response?.status === 401) {
-                setError('Usuário ou senha inválidos')
-            } else if (axiosError.response?.status === 422) {
-                setError('Preencha todos os campos corretamente')
-            } else if (axiosError.response?.status === 400) {
+            if (status === 429) {
+                const retryAfter = data?.retry_after ?? 0
+
+                if (retryAfter > 0) {
+                    // Hard block: exibe countdown e desabilita botão
+                    setCountdown(retryAfter)
+                    setError(
+                        `Acesso temporariamente bloqueado. Tente novamente em ${retryAfter} segundos.`
+                    )
+                } else if (data?.require_captcha) {
+                    // Step-up: exibe widget Turnstile
+                    setRequiresCaptcha(true)
+                    setError('Muitas tentativas. Confirme que você não é um robô.')
+                } else {
+                    setError('Muitas tentativas. Tente novamente em breve.')
+                }
+            } else if (status === 400) {
+                // Captcha inválido — mantém widget visível para nova tentativa
+                setRequiresCaptcha(true)
                 setError('Captcha inválido. Tente novamente.')
+            } else if (status === 401) {
+                setError('Usuário ou senha inválidos')
+            } else if (status === 422) {
+                setError('Preencha todos os campos corretamente')
             } else if (axiosError.message === 'Network Error') {
                 setError('Sem conexão com o servidor')
             } else {
@@ -112,7 +166,7 @@ export function LoginPage() {
         }
     }
 
-    // Se está fazendo auto-login via token, mostra loading
+    // Tela de loading para auto-login via token
     if (tokenLogin && isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex items-center justify-center p-4 safe-top safe-bottom">
@@ -131,6 +185,8 @@ export function LoginPage() {
             </div>
         )
     }
+
+    const isSubmitDisabled = isLoading || (requiresCaptcha && !captchaToken) || countdown > 0
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex items-center justify-center p-4 safe-top safe-bottom">
@@ -235,20 +291,30 @@ export function LoginPage() {
                             </span>
                         </label>
 
-                        {/* Cloudflare Turnstile */}
-                        <Turnstile
-                            ref={turnstileRef}
-                            siteKey={TURNSTILE_SITEKEY}
-                            onVerify={(token) => setCaptchaToken(token)}
-                            onExpire={() => setCaptchaToken(null)}
-                            onError={() => setCaptchaToken(null)}
-                            theme={currentTheme}
-                        />
+                        {/* Step-up Captcha — exibido somente quando a API sinaliza suspeita */}
+                        {requiresCaptcha && (
+                            <div className="animate-fade-in">
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
+                                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Complete o desafio de segurança para continuar
+                                </p>
+                                <Turnstile
+                                    ref={turnstileRef}
+                                    siteKey={TURNSTILE_SITEKEY}
+                                    onVerify={(token) => setCaptchaToken(token)}
+                                    onExpire={() => setCaptchaToken(null)}
+                                    onError={() => setCaptchaToken(null)}
+                                    theme={currentTheme}
+                                />
+                            </div>
+                        )}
 
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isLoading || !captchaToken}
+                            disabled={isSubmitDisabled}
                             className="w-full btn btn-primary py-3.5 text-base shadow-lg shadow-primary-500/30"
                         >
                             {isLoading ? (
@@ -258,6 +324,13 @@ export function LoginPage() {
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
                                     <span>Entrando...</span>
+                                </>
+                            ) : countdown > 0 ? (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>Aguarde {countdown}s</span>
                                 </>
                             ) : (
                                 <>
