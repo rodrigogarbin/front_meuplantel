@@ -152,7 +152,7 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
                             }`}
                     >
                         <span
-                            className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${novaRodada ? 'translate-x-6' : 'translate-x-1'
+                            className={`absolute top-1 left-0 w-5 h-5 bg-white rounded-full shadow transition-transform ${novaRodada ? 'translate-x-6' : 'translate-x-1'
                                 }`}
                         />
                     </button>
