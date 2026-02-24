@@ -13,6 +13,8 @@ export interface AdminUsuario {
     total_passaros: number
     total_casais: number
     dt_criacao: string | null
+    email_verified_at: string | null
+    ultimo_login: string | null
 }
 
 interface PaginatedResponse {

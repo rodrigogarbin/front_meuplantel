@@ -539,6 +539,41 @@ export function AdminPage() {
                                             <p className="text-xs text-gray-400 dark:text-gray-500">
                                                 {u.total_passaros} no plantel · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''} ativo{u.total_casais !== 1 ? 's' : ''}
                                             </p>
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                                                {/* E-mail verificado */}
+                                                {u.email ? (
+                                                    u.email_verified_at ? (
+                                                        <span className="inline-flex items-center gap-0.5 text-xs text-green-600 dark:text-green-400">
+                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            E-mail confirmado
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400">
+                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                                            </svg>
+                                                            E-mail pendente
+                                                        </span>
+                                                    )
+                                                ) : null}
+                                                {/* Separador */}
+                                                {u.email && <span className="text-gray-300 dark:text-gray-600 text-xs">·</span>}
+                                                {/* Último login */}
+                                                {u.ultimo_login ? (
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                                                        Login {new Date(u.ultimo_login).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-0.5 text-xs text-red-500 dark:text-red-400">
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                        Nunca acessou
+                                                    </span>
+                                                )}
+                                            </div>
                                             {u.dt_criacao && (
                                                 <p className="text-xs text-gray-400 dark:text-gray-500">
                                                     Desde {new Date(u.dt_criacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
