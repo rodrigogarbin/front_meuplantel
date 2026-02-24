@@ -359,7 +359,7 @@ export function AdminPage() {
                                                     {u.nome || u.username}
                                                 </p>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {u.total_passaros} pássaro{u.total_passaros !== 1 ? 's' : ''} · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''}
+                                                    {u.total_passaros} no plantel · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''} ativo{u.total_casais !== 1 ? 's' : ''}
                                                 </p>
                                             </div>
                                         </div>
@@ -537,7 +537,7 @@ export function AdminPage() {
                                                 {u.email || u.username}
                                             </p>
                                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                                                {u.total_passaros} pássaro{u.total_passaros !== 1 ? 's' : ''} · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''}
+                                                {u.total_passaros} no plantel · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''} ativo{u.total_casais !== 1 ? 's' : ''}
                                             </p>
                                             {u.dt_criacao && (
                                                 <p className="text-xs text-gray-400 dark:text-gray-500">
