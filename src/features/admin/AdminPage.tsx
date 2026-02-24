@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario, bulkDeleteUsuarios } from './adminApi'
-import type { AdminUsuario } from './adminApi'
+import type { AdminUsuario, VersaoFilter, SortField, SortOrder } from './adminApi'
 import { useLoginStats } from './loginStatsApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
@@ -76,8 +76,11 @@ export function AdminPage() {
     const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set())
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
     const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+    const [versaoFilter, setVersaoFilter] = useState<VersaoFilter>('')
+    const [sortField, setSortField] = useState<SortField>('nome')
+    const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
-    const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page)
+    const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page, versaoFilter, sortField, sortOrder)
     const { data: stats, isLoading: isLoadingStats } = useAdminStats()
     const { data: loginStats, isLoading: isLoadingLoginStats } = useLoginStats(30)
 
@@ -87,6 +90,21 @@ export function AdminPage() {
         if (debounceTimer) clearTimeout(debounceTimer)
         const timer = setTimeout(() => setDebouncedSearch(value), 300)
         setDebounceTimer(timer)
+    }
+
+    const handleVersaoFilter = (v: VersaoFilter) => {
+        setVersaoFilter(v)
+        setPage(1)
+    }
+
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortField(field)
+            setSortOrder('asc')
+        }
+        setPage(1)
     }
 
     const handleImpersonate = async (id: number) => {
@@ -393,6 +411,56 @@ export function AdminPage() {
                             />
                         </div>
 
+                        {/* Filtros e ordenação */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Filtro versão */}
+                            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
+                                {(['', 'v1', 'v2'] as VersaoFilter[]).map((v) => (
+                                    <button
+                                        key={v}
+                                        onClick={() => handleVersaoFilter(v)}
+                                        className={`px-3 py-1.5 font-medium transition-colors ${
+                                            versaoFilter === v
+                                                ? 'bg-blue-500 text-white'
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        {v === '' ? 'Todos' : v.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Ordenação */}
+                            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
+                                <button
+                                    onClick={() => handleSort('nome')}
+                                    className={`px-3 py-1.5 font-medium transition-colors flex items-center gap-1 ${
+                                        sortField === 'nome'
+                                            ? 'bg-blue-500 text-white'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    Nome
+                                    {sortField === 'nome' && (
+                                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => handleSort('dt_criacao')}
+                                    className={`px-3 py-1.5 font-medium transition-colors flex items-center gap-1 border-l border-gray-200 dark:border-gray-700 ${
+                                        sortField === 'dt_criacao'
+                                            ? 'bg-blue-500 text-white'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    Data
+                                    {sortField === 'dt_criacao' && (
+                                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Checkbox Selecionar todos */}
                         {usuariosData && usuariosData.data && usuariosData.data.length > 0 && (
                             <label className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
@@ -471,6 +539,11 @@ export function AdminPage() {
                                             <p className="text-xs text-gray-400 dark:text-gray-500">
                                                 {u.total_passaros} pássaro{u.total_passaros !== 1 ? 's' : ''} · {u.total_casais} casal{u.total_casais !== 1 ? 'is' : ''}
                                             </p>
+                                            {u.dt_criacao && (
+                                                <p className="text-xs text-gray-400 dark:text-gray-500">
+                                                    Desde {new Date(u.dt_criacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Ações */}

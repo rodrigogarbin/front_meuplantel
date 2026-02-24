@@ -12,6 +12,7 @@ export interface AdminUsuario {
     usa_v2: boolean
     total_passaros: number
     total_casais: number
+    dt_criacao: string | null
 }
 
 interface PaginatedResponse {
@@ -21,13 +22,20 @@ interface PaginatedResponse {
     total: number
 }
 
-export function useAdminUsuarios(search: string, page: number = 1) {
+export type SortField = 'nome' | 'dt_criacao'
+export type SortOrder = 'asc' | 'desc'
+export type VersaoFilter = '' | 'v1' | 'v2'
+
+export function useAdminUsuarios(search: string, page: number = 1, versao: VersaoFilter = '', sort: SortField = 'nome', order: SortOrder = 'asc') {
     return useQuery<PaginatedResponse>({
-        queryKey: ['admin', 'usuarios', search, page],
+        queryKey: ['admin', 'usuarios', search, page, versao, sort, order],
         queryFn: async () => {
             const params = new URLSearchParams()
             if (search) params.set('q', search)
             params.set('page', String(page))
+            if (versao) params.set('versao', versao)
+            params.set('sort', sort)
+            params.set('order', order)
             const { data } = await api.get(`/api/v1/admin/usuarios?${params}`)
             return data
         },
