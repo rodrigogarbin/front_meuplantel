@@ -6,7 +6,6 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { Passaro, PassaroFilters, CreatePassaroPayload, UpdatePassaroPayload } from '@/types'
-import { generateTempId, enqueueOperation, captureOfflineContext, type OfflineMutationContext } from '@/lib/offlineMutation'
 
 // Tipo da resposta da API
 interface PassarosResponse {
@@ -83,6 +82,8 @@ export function usePassaros(filters: PassaroFilters = {}) {
     return useQuery({
         queryKey: ['passaros', filters],
         queryFn: () => fetchPassaros(filters),
+        staleTime: 5 * 60 * 1000, // 5 minutos
+        refetchOnWindowFocus: true,
     })
 }
 
@@ -145,6 +146,9 @@ export function usePassarosInfinite(filters: PassaroFilters = {}) {
         queryFn: ({ pageParam = 1 }) => fetchPassarosPaginated(filters, pageParam),
         initialPageParam: 1,
         getNextPageParam: (lastPage) => lastPage.nextPage,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
+        refetchOnMount: 'always',
     })
 }
 
@@ -235,57 +239,23 @@ async function createPassaro(payload: CreatePassaroPayload): Promise<Passaro> {
 }
 
 /**
- * Hook para criar pássaro (com suporte offline)
+ * Hook para criar pássaro
  */
 export function useCreatePassaro() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        onMutate: captureOfflineContext,
-        mutationFn: async (payload: CreatePassaroPayload): Promise<Passaro> => {
-            if (!navigator.onLine) {
-                const tempId = generateTempId()
-                const optimistic: Passaro = {
-                    passaro_id: tempId as unknown as number,
-                    descr: payload.descr,
-                    dt_nasc: payload.dt_nasc,
-                    sexo: payload.sexo,
-                    sit: payload.sit ?? 1,
-                    obs: payload.obs,
-                    especie_usuario_id: payload.especie_usuario_id,
-                    mutacao_id: payload.mutacao_id,
-                    passaro_pai_id: payload.passaro_pai_id,
-                    passaro_mae_id: payload.passaro_mae_id,
-                    anel: { ano: payload.ano, nro: payload.nro, sg_clube: payload.sg_clube ?? null, nro_criador: payload.nro_criador ?? null },
-                }
-
-                // Adiciona o novo pássaro a todas as listas em cache
-                queryClient.setQueriesData<Passaro[]>(
-                    { queryKey: ['passaros'], exact: false },
-                    (old) => (old ? [...old, optimistic] : [optimistic])
-                )
-
-                await enqueueOperation({
-                    type: 'CREATE',
-                    entity: 'passaro',
-                    entityId: tempId,
-                    isTempId: true,
-                    payload: payload as unknown as Record<string, unknown>,
-                })
-
-                return optimistic
-            }
-            return createPassaro(payload)
-        },
-        onSuccess: (_, __, context: OfflineMutationContext | undefined) => {
-            if (context?.isOffline) return
+        mutationFn: createPassaro,
+        onSuccess: () => {
+            // Invalida cache da lista de pássaros e relacionados
             queryClient.invalidateQueries({ queryKey: ['passaros'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
             queryClient.invalidateQueries({ queryKey: ['machos'] })
             queryClient.invalidateQueries({ queryKey: ['femeas'] })
+            // Invalida posturas e casais (afetados pela vinculação postura->pássaro)
             queryClient.invalidateQueries({ queryKey: ['posturas'] })
-            queryClient.invalidateQueries({ queryKey: ['casais'] })
-            queryClient.invalidateQueries({ queryKey: ['casal'] })
+            queryClient.invalidateQueries({ queryKey: ['casais'] }) // Lista de casais
+            queryClient.invalidateQueries({ queryKey: ['casal'] }) // Casal individual (com posturas)
         },
     })
 }
@@ -304,40 +274,17 @@ async function updatePassaro(payload: UpdatePassaroPayload): Promise<Passaro> {
 }
 
 /**
- * Hook para atualizar pássaro (com suporte offline)
+ * Hook para atualizar pássaro
  */
 export function useUpdatePassaro() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        onMutate: captureOfflineContext,
-        mutationFn: async (payload: UpdatePassaroPayload): Promise<Passaro> => {
-            if (!navigator.onLine) {
-                const existing = queryClient.getQueryData<Passaro>(['passaro', payload.passaro_id])
-                const optimistic: Passaro = { ...(existing ?? {}), ...payload }
-
-                // Atualiza o pássaro específico e nas listas
-                queryClient.setQueryData(['passaro', payload.passaro_id], optimistic)
-                queryClient.setQueriesData<Passaro[]>(
-                    { queryKey: ['passaros'], exact: false },
-                    (old) => old?.map((p) => p.passaro_id === payload.passaro_id ? optimistic : p) ?? []
-                )
-
-                await enqueueOperation({
-                    type: 'UPDATE',
-                    entity: 'passaro',
-                    entityId: payload.passaro_id,
-                    isTempId: false,
-                    payload: payload as unknown as Record<string, unknown>,
-                })
-
-                return optimistic
-            }
-            return updatePassaro(payload)
-        },
-        onSuccess: (data, _, context: OfflineMutationContext | undefined) => {
-            if (context?.isOffline) return
+        mutationFn: updatePassaro,
+        onSuccess: (data) => {
+            // Atualiza cache do pássaro específico
             queryClient.setQueryData(['passaro', data.passaro_id], data)
+            // Invalida cache da lista e relacionados
             queryClient.invalidateQueries({ queryKey: ['passaros'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
             queryClient.invalidateQueries({ queryKey: ['machos'] })
@@ -354,35 +301,14 @@ async function deletePassaro(id: number): Promise<void> {
 }
 
 /**
- * Hook para deletar pássaro (com suporte offline)
+ * Hook para deletar pássaro
  */
 export function useDeletePassaro() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        onMutate: captureOfflineContext,
-        mutationFn: async (id: number): Promise<void> => {
-            if (!navigator.onLine) {
-                // Remove das listas em cache
-                queryClient.setQueriesData<Passaro[]>(
-                    { queryKey: ['passaros'], exact: false },
-                    (old) => old?.filter((p) => p.passaro_id !== id) ?? []
-                )
-
-                await enqueueOperation({
-                    type: 'DELETE',
-                    entity: 'passaro',
-                    entityId: id,
-                    isTempId: false,
-                    payload: { passaro_id: id },
-                })
-
-                return
-            }
-            return deletePassaro(id)
-        },
-        onSuccess: (_, __, context: OfflineMutationContext | undefined) => {
-            if (context?.isOffline) return
+        mutationFn: deletePassaro,
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['passaros'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
             queryClient.invalidateQueries({ queryKey: ['machos'] })
