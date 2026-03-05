@@ -108,8 +108,12 @@ export function PassaroAutocomplete({
         const text = e.target.value
         setSearch(text)
         setIsOpen(true)
-        if (!text) {
+        // Limpa seleção ao digitar (seja apagando ou trocando o texto)
+        if (value) {
             onChange(null, null)
+            setSelectedLabel('')
+        }
+        if (!text) {
             onFreeText?.('')
         }
     }
@@ -211,6 +215,7 @@ export function PassaroAutocomplete({
                             <button
                                 key={passaro.passaro_id}
                                 type="button"
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => handleSelect(passaro)}
                                 className={`
                                     w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700
