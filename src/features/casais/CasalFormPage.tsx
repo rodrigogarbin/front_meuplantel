@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useCasal, useCreateCasal, useUpdateCasal } from './casaisApi'
 import { useMachos, useFemeas } from '@/features/passaros/passarosApi'
-import type { CreateCasalPayload, Passaro } from '@/types'
+import type { CreateCasalPayload } from '@/types'
 import { getApiErrorMessage } from '@/lib/errorHandler'
 
 interface FormData {
@@ -32,88 +32,6 @@ const initialFormData: FormData = {
     descr_mae: '',
 }
 
-// Componente de campo unificado para Macho/Fêmea
-interface PassaroFieldProps {
-    label: string
-    passaroId: number | null
-    descricao: string
-    onChangePassaro: (id: number | null) => void
-    onChangeDescricao: (value: string) => void
-    options: Passaro[]
-    isLoading: boolean
-    error?: string
-    placeholder: string
-    descPlaceholder: string
-}
-
-function PassaroField({
-    label,
-    passaroId,
-    descricao,
-    onChangePassaro,
-    onChangeDescricao,
-    options,
-    isLoading,
-    error,
-    placeholder,
-    descPlaceholder,
-}: PassaroFieldProps) {
-    // Se tem pássaro selecionado, mostra o autocomplete
-    // Se não tem pássaro mas tem descrição, mostra o input de texto
-    // Se não tem nenhum, mostra o autocomplete por padrão
-    const [showDescInput, setShowDescInput] = useState(false)
-
-    // Atualiza o modo baseado nos dados
-    useEffect(() => {
-        if (passaroId) {
-            setShowDescInput(false)
-        } else if (descricao) {
-            setShowDescInput(true)
-        }
-    }, [passaroId, descricao])
-
-    const handleToggle = () => {
-        if (showDescInput) {
-            // Voltando para autocomplete - limpa descrição
-            onChangeDescricao('')
-        } else {
-            // Indo para descrição - limpa pássaro
-            onChangePassaro(null)
-        }
-        setShowDescInput(!showDescInput)
-    }
-
-    return (
-        <div className="space-y-3">
-            {showDescInput ? (
-                <Input
-                    label={label}
-                    value={descricao}
-                    onChange={(e) => onChangeDescricao(e.target.value)}
-                    placeholder={descPlaceholder}
-                    error={error}
-                />
-            ) : (
-                <PassaroAutocomplete
-                    label={label}
-                    value={passaroId}
-                    onChange={(id) => onChangePassaro(id)}
-                    options={options}
-                    isLoading={isLoading}
-                    error={error}
-                    placeholder={placeholder}
-                />
-            )}
-            <button
-                type="button"
-                onClick={handleToggle}
-                className="text-xs text-primary hover:text-primary-dark underline"
-            >
-                {showDescInput ? 'Selecionar do plantel' : 'Informar descrição (externo)'}
-            </button>
-        </div>
-    )
-}
 
 export function CasalFormPage() {
     const navigate = useNavigate()
@@ -293,17 +211,19 @@ export function CasalFormPage() {
                             Macho
                         </h2>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-                            <PassaroField
+                            <PassaroAutocomplete
                                 label="Macho"
-                                passaroId={formData.passaro_macho_id}
-                                descricao={formData.descr_pai}
-                                onChangePassaro={(id) => updateField('passaro_macho_id', id)}
-                                onChangeDescricao={(value) => updateField('descr_pai', value)}
+                                value={formData.passaro_macho_id}
+                                freeText={formData.descr_pai}
+                                onChange={(id) => updateField('passaro_macho_id', id)}
+                                onFreeText={(text) => {
+                                    updateField('descr_pai', text)
+                                    if (text) updateField('passaro_macho_id', null)
+                                }}
                                 options={machos}
                                 isLoading={loadingMachos}
                                 error={errors.passaro_macho_id}
-                                placeholder="Buscar macho..."
-                                descPlaceholder="Ex: Macho verde do João"
+                                placeholder="Buscar macho no plantel..."
                             />
                         </div>
                     </section>
@@ -314,16 +234,18 @@ export function CasalFormPage() {
                             Fêmea
                         </h2>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-                            <PassaroField
+                            <PassaroAutocomplete
                                 label="Fêmea"
-                                passaroId={formData.passaro_femea_id}
-                                descricao={formData.descr_mae}
-                                onChangePassaro={(id) => updateField('passaro_femea_id', id)}
-                                onChangeDescricao={(value) => updateField('descr_mae', value)}
+                                value={formData.passaro_femea_id}
+                                freeText={formData.descr_mae}
+                                onChange={(id) => updateField('passaro_femea_id', id)}
+                                onFreeText={(text) => {
+                                    updateField('descr_mae', text)
+                                    if (text) updateField('passaro_femea_id', null)
+                                }}
                                 options={femeas}
                                 isLoading={loadingFemeas}
-                                placeholder="Buscar fêmea..."
-                                descPlaceholder="Ex: Fêmea azul da Maria"
+                                placeholder="Buscar fêmea no plantel..."
                             />
                         </div>
                     </section>

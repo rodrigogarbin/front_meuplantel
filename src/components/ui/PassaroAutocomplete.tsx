@@ -1,14 +1,20 @@
 /**
  * Componente Autocomplete para seleção de pássaros (pai/mãe)
+ *
+ * Suporta dois modos implícitos:
+ *   - Vinculado: usuário seleciona da lista → salva passaro_id
+ *   - Texto livre: usuário digita e sai sem selecionar → salva descrição via onFreeText
  */
 
-import { useState, useRef, useEffect, type ChangeEvent } from 'react'
+import { useState, useRef, useEffect, type ChangeEvent, type FocusEvent } from 'react'
 import type { Passaro } from '@/types'
 
 interface AutocompleteProps {
     label?: string
     value: number | null
+    freeText?: string          // descrição livre (quando não vinculado a um pássaro)
     onChange: (id: number | null, passaro: Passaro | null) => void
+    onFreeText?: (text: string) => void  // chamado ao confirmar texto livre no blur
     options: Passaro[]
     placeholder?: string
     error?: string
@@ -20,7 +26,9 @@ interface AutocompleteProps {
 export function PassaroAutocomplete({
     label,
     value,
+    freeText,
     onChange,
+    onFreeText,
     options,
     placeholder = 'Digite para buscar...',
     error,
@@ -34,6 +42,14 @@ export function PassaroAutocomplete({
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
+    // Refs para evitar closures desatualizadas no handler de click externo
+    const searchRef = useRef(search)
+    const valueRef = useRef(value)
+    const onFreeTextRef = useRef(onFreeText)
+    useEffect(() => { searchRef.current = search }, [search])
+    useEffect(() => { valueRef.current = value }, [value])
+    useEffect(() => { onFreeTextRef.current = onFreeText }, [onFreeText])
+
     // Atualiza o label quando value muda
     useEffect(() => {
         if (value) {
@@ -46,10 +62,14 @@ export function PassaroAutocomplete({
         }
     }, [value, options])
 
-    // Fecha dropdown quando clica fora
+    // Fecha dropdown e salva texto livre quando clica fora
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                // Se não há pássaro vinculado e há texto digitado → salva como descrição
+                if (!valueRef.current && searchRef.current.trim() && onFreeTextRef.current) {
+                    onFreeTextRef.current(searchRef.current.trim())
+                }
                 setIsOpen(false)
                 setSearch('')
             }
@@ -59,26 +79,13 @@ export function PassaroAutocomplete({
     }, [])
 
     const getPassaroLabel = (passaro: Passaro): string => {
-        // Formato: "SG_CLUBE NRO_CRIADOR NRO/ANO - DESCRICAO"
-        // Exemplo: "EH130 005/2025 - Roseicollis Verde"
         const parts: string[] = []
-
-        // Sigla do clube + número criador (se houver)
-        if (passaro.anel?.sg_clube) {
-            parts.push(passaro.anel.sg_clube)
-        }
-        if (passaro.anel?.nro_criador) {
-            parts.push(passaro.anel.nro_criador)
-        }
-
-        // Número/Ano do anel
+        if (passaro.anel?.sg_clube) parts.push(passaro.anel.sg_clube)
+        if (passaro.anel?.nro_criador) parts.push(passaro.anel.nro_criador)
         const nro = passaro.anel?.nro?.toString().padStart(3, '0') ?? '000'
         const ano = passaro.anel?.ano ?? '????'
         parts.push(`${nro}/${ano}`)
-
-        // Descrição/Mutação - busca em várias fontes possíveis
         const descr = passaro.descr || passaro.mutacao?.descr || passaro.mutacao?.descricao || ''
-
         const anelFormatado = parts.join(' ')
         return descr ? `${anelFormatado} - ${descr}` : anelFormatado
     }
@@ -89,17 +96,38 @@ export function PassaroAutocomplete({
         return label.includes(search.toLowerCase())
     })
 
-    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value)
-        setIsOpen(true)
-        if (!e.target.value) {
-            onChange(null, null)
+    const handleFocus = () => {
+        // Pré-popula o campo com o texto livre para o usuário poder editar
+        if (!value && freeText) {
+            setSearch(freeText)
         }
+        setIsOpen(true)
+    }
+
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const text = e.target.value
+        setSearch(text)
+        setIsOpen(true)
+        if (!text) {
+            onChange(null, null)
+            onFreeText?.('')
+        }
+    }
+
+    const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
+        // Só processa se o foco saiu para fora do container (não para o dropdown)
+        if (containerRef.current && containerRef.current.contains(e.relatedTarget as Node)) return
+        if (!value && search.trim() && onFreeText) {
+            onFreeText(search.trim())
+        }
+        setIsOpen(false)
+        setSearch('')
     }
 
     const handleSelect = (passaro: Passaro) => {
         onChange(passaro.passaro_id, passaro)
         setSelectedLabel(getPassaroLabel(passaro))
+        onFreeText?.('')  // limpa descrição ao vincular pássaro
         setSearch('')
         setIsOpen(false)
     }
@@ -107,11 +135,14 @@ export function PassaroAutocomplete({
     const handleClear = () => {
         onChange(null, null)
         setSelectedLabel('')
+        onFreeText?.('')
         setSearch('')
         inputRef.current?.focus()
     }
 
-    const displayValue = isOpen ? search : selectedLabel
+    const showClear = !!(value || freeText) && !disabled
+    const displayValue = isOpen ? search : (selectedLabel || freeText || '')
+    const isFreeTextMode = !value && !!freeText
 
     return (
         <div className="w-full relative" ref={containerRef}>
@@ -126,7 +157,8 @@ export function PassaroAutocomplete({
                     type="text"
                     value={displayValue}
                     onChange={handleInputChange}
-                    onFocus={() => setIsOpen(true)}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     placeholder={placeholder}
                     disabled={disabled}
                     className={`
@@ -135,10 +167,10 @@ export function PassaroAutocomplete({
                         bg-white dark:bg-gray-700
                         focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
                         disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed
-                        ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
+                        ${error ? 'border-red-500' : isFreeTextMode ? 'border-dashed border-gray-400 dark:border-gray-500' : 'border-gray-300 dark:border-gray-600'}
                     `}
                 />
-                {value && !disabled && (
+                {showClear && (
                     <button
                         type="button"
                         onClick={handleClear}
@@ -151,6 +183,16 @@ export function PassaroAutocomplete({
                 )}
             </div>
 
+            {/* Indicador de modo texto livre */}
+            {isFreeTextMode && !isOpen && (
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Pássaro externo — digite para buscar no plantel
+                </p>
+            )}
+
             {/* Dropdown */}
             {isOpen && !disabled && (
                 <div className="absolute z-[100] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-auto">
@@ -160,7 +202,9 @@ export function PassaroAutocomplete({
                         </div>
                     ) : filteredOptions.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                            Nenhum resultado encontrado
+                            {onFreeText
+                                ? 'Nenhum resultado — saia do campo para salvar como descrição'
+                                : 'Nenhum resultado encontrado'}
                         </div>
                     ) : (
                         filteredOptions.slice(0, 50).map((passaro) => (
