@@ -31,6 +31,9 @@ export function DashboardPage() {
     const { data: casaisAtivos = [] } = useCasais({ sit: 1 }) // Busca apenas casais ativos
 
     const temCasaisAtivos = casaisAtivos.length > 0
+    const anoAtual = new Date().getFullYear()
+    // Para o ano atual, usa contagem real de casais ativos (independente de ter posturas)
+    const casaisAtivosCount = anoSelecionado === anoAtual ? casaisAtivos.length : (stats?.casaisAtivos ?? 0)
 
     // Redireciona para cadastro de espécies se não houver nenhuma
     useEffect(() => {
@@ -158,7 +161,7 @@ export function DashboardPage() {
                                 />
                                 <StatCard
                                     title="Casais Ativos"
-                                    value={stats.casaisAtivos}
+                                    value={casaisAtivosCount}
                                     subtitle={`de ${stats.totalCasais} total`}
                                     icon={<HeartIcon />}
                                     color="red"
