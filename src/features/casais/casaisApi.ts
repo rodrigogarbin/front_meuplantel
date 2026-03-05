@@ -435,6 +435,25 @@ export function useUpdateCasal() {
 }
 
 /**
+ * Exclui um casal permanentemente (só permitido sem posturas)
+ */
+async function deleteCasal(id: number): Promise<void> {
+    await api.delete(`/api/v1/casais/${id}`)
+}
+
+export function useDeleteCasal() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: deleteCasal,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['casais'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+        },
+    })
+}
+
+/**
  * Encerra um casal (adiciona data de vigência final)
  */
 async function encerrarCasal(id: number): Promise<Casal> {

@@ -15,7 +15,7 @@ import { formatDate, formatShortDate, parseLocalDate } from '@/lib/date'
 import { getGaiolaAppUrl } from '@/lib/url'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
-import { usePosturasByCasal, useCasalEndogamia, useEncerrarCasal } from './casaisApi'
+import { usePosturasByCasal, useCasalEndogamia, useEncerrarCasal, useDeleteCasal } from './casaisApi'
 
 interface CasalDetailsSheetProps {
     casal: Casal | null
@@ -87,6 +87,8 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const [showHistorico, setShowHistorico] = useState(false)
     const [showQrCode, setShowQrCode] = useState(false)
     const [showConfirmEncerrar, setShowConfirmEncerrar] = useState(false)
+    const [showConfirmExcluir, setShowConfirmExcluir] = useState(false)
+    const [excluirError, setExcluirError] = useState<string | null>(null)
 
     // Obtém o ID do casal
     const casalId = casal?.id ?? casal?.gaiola_id ?? null
@@ -94,8 +96,9 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     // Busca endogamia do casal
     const { data: endogamia } = useCasalEndogamia(casalId)
 
-    // Mutation para encerrar casal
+    // Mutations
     const encerrarMutation = useEncerrarCasal()
+    const deleteMutation = useDeleteCasal()
 
     // Busca histórico completo de posturas (só quando showHistorico = true)
     const { data: historicoCompleto, isLoading: isLoadingHistorico, refetch: refetchHistorico } = usePosturasByCasal(
@@ -104,6 +107,9 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     )
 
     if (!casal) return null
+
+    // Casal sem nenhuma postura nem rodada → pode ser excluído (avaliado após guard de null)
+    const podeExcluir = (casal.posturas?.length ?? 0) === 0 && !(casal.nro_rodadas ?? 0)
 
     const machoLabel = casal.macho ? formatPassaroCompleto(casal.macho) : casal.descr_pai || '—'
     const femeaLabel = casal.femea ? formatPassaroCompleto(casal.femea) : casal.descr_mae || '—'
@@ -220,6 +226,21 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
             onClose()
         } catch (error) {
             console.error('Erro ao encerrar casal:', error)
+        }
+    }
+
+    const handleConfirmExcluir = async () => {
+        if (!casalId) return
+        setExcluirError(null)
+
+        try {
+            await deleteMutation.mutateAsync(casalId)
+            setShowConfirmExcluir(false)
+            onRefresh?.()
+            onClose()
+        } catch (error: unknown) {
+            const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+            setExcluirError(msg ?? 'Erro ao excluir casal')
         }
     }
 
@@ -619,16 +640,28 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         Editar Casal
                     </button>
 
-                    {/* Finalizar Casal */}
-                    <button
-                        onClick={handleFinalizarCasal}
-                        className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        Finalizar Casal
-                    </button>
+                    {/* Excluir (sem histórico) ou Finalizar */}
+                    {podeExcluir ? (
+                        <button
+                            onClick={() => setShowConfirmExcluir(true)}
+                            className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Excluir Casal
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleFinalizarCasal}
+                            className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            Finalizar Casal
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -757,6 +790,66 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                         disabled={encerrarMutation.isPending}
                                     >
                                         {encerrarMutation.isPending ? 'Encerrando...' : 'Sim, Encerrar'}
+                                    </button>
+                                </div>
+                            </Dialog.Panel>
+                        </Transition.Child>
+                    </div>
+                </Dialog>
+            </Transition>
+
+            {/* Modal de confirmação para excluir casal */}
+            <Transition appear show={showConfirmExcluir} as={Fragment}>
+                <Dialog as="div" className="relative z-[60]" onClose={() => { setShowConfirmExcluir(false); setExcluirError(null) }}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-200"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-150"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/50" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 overflow-y-auto flex items-center justify-center p-4">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-200"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-150"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <Dialog.Panel className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                                <Dialog.Title className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                                    Excluir Casal?
+                                </Dialog.Title>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    O casal <strong>Nº {casal.nro}</strong> será removido permanentemente. Esta ação não pode ser desfeita.
+                                </p>
+                                {excluirError && (
+                                    <p className="text-sm text-red-600 dark:text-red-400 mb-4 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
+                                        {excluirError}
+                                    </p>
+                                )}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowConfirmExcluir(false); setExcluirError(null) }}
+                                        className="flex-1 py-2.5 px-4 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                        disabled={deleteMutation.isPending}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmExcluir}
+                                        className="flex-1 py-2.5 px-4 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={deleteMutation.isPending}
+                                    >
+                                        {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
                                     </button>
                                 </div>
                             </Dialog.Panel>
