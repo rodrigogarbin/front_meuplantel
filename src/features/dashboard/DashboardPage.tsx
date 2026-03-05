@@ -154,6 +154,7 @@ export function DashboardPage() {
                                     value={stats.totalPassaros}
                                     icon={<BirdIcon />}
                                     color="blue"
+                                    onClick={() => navigate('/passaros')}
                                 />
                                 <StatCard
                                     title="Casais Ativos"
@@ -161,12 +162,14 @@ export function DashboardPage() {
                                     subtitle={`de ${stats.totalCasais} total`}
                                     icon={<HeartIcon />}
                                     color="red"
+                                    onClick={() => navigate('/casais')}
                                 />
                                 <StatCard
                                     title="Posturas"
                                     value={stats.posturasAno}
                                     icon={<EggIcon />}
                                     color="yellow"
+                                    onClick={() => navigate('/posturas')}
                                 />
                                 <StatCard
                                     title="Filhotes Nascidos"

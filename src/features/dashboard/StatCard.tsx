@@ -8,6 +8,7 @@ interface StatCardProps {
     icon: React.ReactNode
     color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'gray'
     subtitle?: string
+    onClick?: () => void
 }
 
 const colorClasses = {
@@ -19,9 +20,13 @@ const colorClasses = {
     gray: 'bg-gray-50 text-gray-600',
 }
 
-export function StatCard({ title, value, icon, color = 'blue', subtitle }: StatCardProps) {
+export function StatCard({ title, value, icon, color = 'blue', subtitle, onClick }: StatCardProps) {
+    const Tag = onClick ? 'button' : 'div'
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+        <Tag
+            onClick={onClick}
+            className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left${onClick ? ' active:scale-[0.98] transition-transform hover:shadow-md' : ''}`}
+        >
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
@@ -34,7 +39,7 @@ export function StatCard({ title, value, icon, color = 'blue', subtitle }: StatC
                     {icon}
                 </div>
             </div>
-        </div>
+        </Tag>
     )
 }
 
