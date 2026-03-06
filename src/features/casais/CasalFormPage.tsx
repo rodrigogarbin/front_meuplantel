@@ -66,8 +66,8 @@ export function CasalFormPage() {
             }
             setFormData({
                 nro: casal.nro?.toString() || '',
-                passaro_macho_id: casal.passaro_macho_id ?? null,
-                passaro_femea_id: casal.passaro_femea_id ?? null,
+                passaro_macho_id: casal.passaro_macho_id ?? (casal.macho as { id?: number } | null)?.id ?? null,
+                passaro_femea_id: casal.passaro_femea_id ?? (casal.femea as { id?: number } | null)?.id ?? null,
                 vigen_inicial,
                 descr_pai: casal.descr_pai || '',
                 descr_mae: casal.descr_mae || '',
