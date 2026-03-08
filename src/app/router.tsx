@@ -3,7 +3,7 @@
  */
 
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
-import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage } from '@/features/auth'
+import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage, SocialCallbackPage } from '@/features/auth'
 import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
@@ -58,6 +58,11 @@ export const router = createBrowserRouter([
     {
         path: '/login',
         element: <LoginPage />,
+    },
+    {
+        // Callback dedicado para OAuth social — evita conflito com a rota Blade /login em produção
+        path: '/social-callback',
+        element: <SocialCallbackPage />,
     },
     {
         path: '/register',

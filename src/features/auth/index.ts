@@ -1,4 +1,5 @@
 export { LoginPage } from './LoginPage'
+export { SocialCallbackPage } from './SocialCallbackPage'
 export { CompletarPerfilPage } from './CompletarPerfilPage'
 export { RegisterPage } from './RegisterPage'
 export { ForgotPasswordPage } from './ForgotPasswordPage'
