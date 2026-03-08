@@ -11,7 +11,7 @@ import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
 import { useEffectiveTheme } from '@/lib/theme'
-import { SocialLoginButtons } from './SocialLoginButtons'
+// import { SocialLoginButtons } from './SocialLoginButtons'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -378,7 +378,7 @@ export function RegisterPage() {
                         </button>
                     </form>
 
-                    <SocialLoginButtons />
+                    {/* <SocialLoginButtons /> */}
 
                     {/* Footer */}
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
