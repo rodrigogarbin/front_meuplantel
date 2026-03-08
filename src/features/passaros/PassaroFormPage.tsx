@@ -703,7 +703,7 @@ export function PassaroFormPage() {
                     <div className="p-4 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Sigla Clube"
+                                label="Sigla Clube / Criador"
                                 name="sg_clube"
                                 value={formData.sg_clube}
                                 onChange={(e) => updateField('sg_clube', e.target.value.toUpperCase())}
@@ -712,7 +712,7 @@ export function PassaroFormPage() {
                             />
 
                             <Input
-                                label="Nº Criador"
+                                label="Nº Criador / CTF"
                                 name="nro_criador"
                                 value={formData.nro_criador}
                                 onChange={(e) => updateField('nro_criador', e.target.value)}

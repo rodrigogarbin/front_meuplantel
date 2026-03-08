@@ -11,6 +11,7 @@ import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
 import { useEffectiveTheme } from '@/lib/theme'
+import { SocialLoginButtons } from './SocialLoginButtons'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -221,7 +222,7 @@ export function RegisterPage() {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label htmlFor="sg_clube" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                    Sigla do Clube
+                                    Sigla Clube / Criador
                                 </label>
                                 <input
                                     type="text"
@@ -239,7 +240,7 @@ export function RegisterPage() {
                             </div>
                             <div>
                                 <label htmlFor="nro_criador" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                    Nº Criador
+                                    Nº Criador / CTF
                                 </label>
                                 <input
                                     type="text"
@@ -376,6 +377,8 @@ export function RegisterPage() {
                             )}
                         </button>
                     </form>
+
+                    <SocialLoginButtons />
 
                     {/* Footer */}
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">

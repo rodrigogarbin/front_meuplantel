@@ -14,6 +14,7 @@ import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
 import { useEffectiveTheme } from '@/lib/theme'
+import { SocialLoginButtons } from './SocialLoginButtons'
 
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY || '1x00000000000000000000AA'
 
@@ -66,6 +67,14 @@ export function LoginPage() {
         return () => clearInterval(timer)
     }, [countdown])
 
+    // Exibe erro de autenticação social vindo por query param
+    useEffect(() => {
+        const socialError = searchParams.get('social_error')
+        if (socialError) {
+            setError(socialError)
+        }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
     // Auto-login via ?token=<jwt> (redirect da landing page)
     useEffect(() => {
         const token = searchParams.get('token')
@@ -80,6 +89,7 @@ export function LoginPage() {
             })
             .then((res) => {
                 const data = res.data.data || res.data
+                const isNewUser = searchParams.get('new_user') === '1'
                 useAuthStore.setState({
                     token,
                     user: {
@@ -97,7 +107,7 @@ export function LoginPage() {
                     isAuthenticated: true,
                     isLoading:       false,
                 })
-                navigate('/', { replace: true })
+                navigate(isNewUser ? '/completar-perfil' : '/', { replace: true })
             })
             .catch(() => {
                 setTokenLogin(false)
@@ -315,7 +325,7 @@ export function LoginPage() {
                         <button
                             type="submit"
                             disabled={isSubmitDisabled}
-                            className="w-full btn btn-primary py-3.5 text-base shadow-lg shadow-primary-500/30"
+                            className="w-full btn btn-primary py-3.5 text-base shadow-lg shadow-primary-500/30 mt-1"
                         >
                             {isLoading ? (
                                 <>
@@ -342,6 +352,8 @@ export function LoginPage() {
                             )}
                         </button>
                     </form>
+
+                    <SocialLoginButtons />
 
                     {/* Footer */}
                     <div className="text-center mt-6 space-y-2">

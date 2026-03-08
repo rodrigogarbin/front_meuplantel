@@ -241,7 +241,7 @@ export function ProfileEditPage() {
                             {/* Sigla do Clube */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Sigla do Clube
+                                    Sigla Clube / Criador
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -264,7 +264,7 @@ export function ProfileEditPage() {
                             {/* Número do Criador */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Número do Criador
+                                    Nº Criador / CTF
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

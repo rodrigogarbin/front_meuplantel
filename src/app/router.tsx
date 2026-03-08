@@ -3,7 +3,7 @@
  */
 
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
-import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage } from '@/features/auth'
+import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage } from '@/features/auth'
 import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
@@ -73,6 +73,15 @@ export const router = createBrowserRouter([
         element: (
             <PrivateRoute>
                 <EmailVerificationPage />
+            </PrivateRoute>
+        ),
+    },
+    {
+        // Rota de completar perfil após login social (sem guard de email)
+        path: '/completar-perfil',
+        element: (
+            <PrivateRoute>
+                <CompletarPerfilPage />
             </PrivateRoute>
         ),
     },
