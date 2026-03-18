@@ -19,6 +19,10 @@ export function CasalCard({ casal, onClick }: CasalCardProps) {
     // Conta ovos em choco/férteis/nascidos sem passaro registrado
     const ovosAtivos = casal.posturas?.length ?? 0
 
+    // Verifica se todos os ovos já nasceram
+    const todasNascidas = ovosAtivos > 0 && casal.posturas!.every(p => p.sit === 1)
+    const totalFilhotes = todasNascidas ? ovosAtivos : 0
+
     // Dias de cada fase derivados da espécie
     const diasChoco = casal.macho?.especie?.dias_choco ?? casal.femea?.especie?.dias_choco ?? 21
     const diasAnilha = casal.macho?.especie?.dias_anilha ?? casal.femea?.especie?.dias_anilha ?? 7
@@ -84,7 +88,9 @@ export function CasalCard({ casal, onClick }: CasalCardProps) {
         alertState === 'anilhar'  ? '💍 Hora de anilhar' :
         alertState === 'separar'  ? '🔀 Separar' :
         alertState === 'proximo'  ? (diasParaNascer === 1 ? '🥚 Nasce amanhã!' : `🥚 Nasce em ${diasParaNascer} dias`) :
-        `${ovosAtivos} ${ovosAtivos === 1 ? 'ovo' : 'ovos'}`
+        todasNascidas
+            ? `${totalFilhotes} ${totalFilhotes === 1 ? 'filhote' : 'filhotes'}`
+            : `${ovosAtivos} ${ovosAtivos === 1 ? 'ovo' : 'ovos'}`
 
     const borderClass =
         alertState === 'nascendo' ? 'border-l-4 border-l-yellow-500' :
