@@ -8,7 +8,7 @@ import { Topbar, PullToRefresh, NumberScanner } from '@/components/ui'
 import { useUser } from '@/features/auth/authStore'
 import { useDashboardStats } from './dashboardApi'
 import { useEspecies } from '@/features/especies/especiesApi'
-import { useCasais } from '@/features/casais/casaisApi'
+import { useCasaisEstatisticas } from '@/features/casais/casaisApi'
 import { StatCard, StatCardSkeleton } from './StatCard'
 import { ApexPieChart } from './ApexPieChart'
 import { ApexLineChart } from './ApexLineChart'
@@ -28,12 +28,11 @@ export function DashboardPage() {
     const [showNumberScanner, setShowNumberScanner] = useState(false)
     const { data: stats, isLoading, error, refetch } = useDashboardStats(anoSelecionado)
     const { data: especies, isLoading: isLoadingEspecies } = useEspecies()
-    const { data: casaisAtivos = [] } = useCasais({ sit: 1 }) // Busca apenas casais ativos
+    const { data: casaisEstat } = useCasaisEstatisticas()
 
-    const temCasaisAtivos = casaisAtivos.length > 0
-    const anoAtual = new Date().getFullYear()
-    // Para o ano atual, usa contagem real de casais ativos (independente de ter posturas)
-    const casaisAtivosCount = anoSelecionado === anoAtual ? casaisAtivos.length : (stats?.casaisAtivos ?? 0)
+    const temCasaisAtivos = (casaisEstat?.ativos ?? 0) > 0
+    const casaisAtivosCount = casaisEstat?.ativos ?? 0
+    const casaisTotalCount = casaisEstat?.total ?? 0
 
     // Redireciona para cadastro de espécies se não houver nenhuma
     useEffect(() => {
@@ -162,7 +161,7 @@ export function DashboardPage() {
                                 <StatCard
                                     title="Casais Ativos"
                                     value={casaisAtivosCount}
-                                    subtitle={`de ${stats.totalCasais} total`}
+                                    subtitle={casaisTotalCount > casaisAtivosCount ? `de ${casaisTotalCount} total` : undefined}
                                     icon={<HeartIcon />}
                                     color="red"
                                     onClick={() => navigate('/casais')}

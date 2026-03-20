@@ -61,6 +61,17 @@ async function fetchCasais(filters: CasalFilters = {}): Promise<Casal[]> {
 }
 
 /**
+ * Hook para buscar estatísticas de casais (total, ativos, inativos)
+ */
+export function useCasaisEstatisticas() {
+    return useQuery({
+        queryKey: ['casais', 'estatisticas'],
+        queryFn: () => api.get<{ total: number; ativos: number; inativos: number; com_posturas: number; total_posturas: number }>('/api/v1/casais/estatisticas').then(r => r.data),
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
  * Hook para buscar lista de casais
  */
 export function useCasais(filters: CasalFilters = {}) {
