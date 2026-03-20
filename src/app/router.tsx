@@ -9,7 +9,7 @@ import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
 import { PosturasPage } from '@/features/posturas'
-import { ConfigPage, EspeciesPage, ProfileEditPage } from '@/features/config'
+import { ConfigPage, EspeciesPage, ProfileEditPage, GestaoConfigPage } from '@/features/config'
 import { GestaoPage } from '@/features/gestao/GestaoPage'
 import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicamentos'
 import { MainLayout } from '@/components/layout'
@@ -160,6 +160,10 @@ export const router = createBrowserRouter([
             {
                 path: '/config/especies',
                 element: <EspeciesPage />,
+            },
+            {
+                path: '/config/gestao',
+                element: <GestaoConfigPage />,
             },
             {
                 path: '/medicamentos',

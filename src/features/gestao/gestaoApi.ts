@@ -35,8 +35,10 @@ export interface EstatisticasData {
     total_posturas: number
     taxa_fecundacao: number
     taxa_eclosao: number
+    filtro: { tipo: 0 | 1 | 2; valor: number | null; ano_base: number | null }
     comparativo: {
         ano: number
+        ano_base: number | null
         ano_atual: ComparativoStats
         media_historica: ComparativoStats | null
     }
