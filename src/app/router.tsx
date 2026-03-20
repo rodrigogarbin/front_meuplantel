@@ -10,6 +10,7 @@ import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features
 import { CasaisPage, CasalFormPage } from '@/features/casais'
 import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage } from '@/features/config'
+import { GestaoPage } from '@/features/gestao/GestaoPage'
 import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicamentos'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
@@ -121,6 +122,10 @@ export const router = createBrowserRouter([
             {
                 path: '/admin',
                 element: <AdminPage />,
+            },
+            {
+                path: '/gestao',
+                element: <GestaoPage />,
             },
             {
                 path: '/passaros/:id/arvore',
