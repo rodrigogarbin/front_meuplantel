@@ -181,11 +181,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
         .map(Number)
         .sort((a, b) => b - a)
 
-    // Contadores
-    const totalOvos = posturas.length
-    const totalNascidos = posturas.filter(p => p.sit === SitPostura.NASCIDO).length
-    const totalInferteis = posturas.filter(p => p.sit === SitPostura.BRANCO).length
-    const totalMortos = posturas.filter(p => p.sit === SitPostura.EMBRIAO_MORTO || p.sit === SitPostura.FILHOTE_MORTO).length
 
     const handleEdit = () => {
         onClose()
@@ -345,26 +340,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                             </svg>
                         )}
                     </button>
-                </div>
-
-                {/* Estatísticas */}
-                <div className="grid grid-cols-4 gap-2">
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{totalOvos}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
-                    </div>
-                    <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalNascidos}</p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Nascidos</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">{totalInferteis}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Inférteis</p>
-                    </div>
-                    <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-red-500 dark:text-red-400">{totalMortos}</p>
-                        <p className="text-xs text-red-500 dark:text-red-400">Mortos</p>
-                    </div>
                 </div>
 
                 {/* Nº de Rodadas */}

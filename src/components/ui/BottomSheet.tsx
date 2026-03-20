@@ -32,7 +32,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
                     <div className="fixed inset-0 bg-black/50" />
                 </Transition.Child>
 
-                <div className="fixed inset-0 overflow-y-auto">
+                <div className="fixed inset-0 overflow-y-auto overflow-x-hidden">
                     {/* Mobile: bottom sheet / Desktop: centered modal */}
                     <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
                         <Transition.Child
@@ -44,7 +44,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="w-full sm:max-w-lg transform bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl shadow-xl transition-all max-h-[85vh] flex flex-col">
+                            <Dialog.Panel className="w-full sm:max-w-lg transform bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl shadow-xl transition-all max-h-[85vh] flex flex-col overflow-hidden">
                                 {/* Handle bar for mobile */}
                                 <div className="sm:hidden flex justify-center pt-3 pb-1">
                                     <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
