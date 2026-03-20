@@ -21,15 +21,6 @@ interface EditPosturaSheetProps {
     origin?: 'posturas' | 'casal'
 }
 
-// Ícone de ovo
-function EggIcon({ className }: { className?: string }) {
-    return (
-        <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2C6.5 2 4 6 4 10c0 4.5 2.5 8 6 8s6-3.5 6-8c0-4-2.5-8-6-8z" />
-        </svg>
-    )
-}
-
 // Opções de situação
 const situacaoOptions = [
     { value: SitPostura.CHOCO, label: SitPosturaLabels[SitPostura.CHOCO], color: 'bg-amber-100 text-amber-700 border-amber-300' },
@@ -229,13 +220,6 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess, o
                     <div>♀ {femeaDescr || femeaAnel || 'Sem descrição'}</div>
                 </div>
 
-                {/* Header visual */}
-                <div className="flex items-center justify-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg">
-                        <EggIcon className="w-10 h-10 text-white" />
-                    </div>
-                </div>
-
                 {/* Campo: Data da Postura */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -272,21 +256,17 @@ export function EditPosturaSheet({ casal, postura, isOpen, onClose, onSuccess, o
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Situação *
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <select
+                        value={sit}
+                        onChange={(e) => setSit(Number(e.target.value))}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    >
                         {situacaoOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => setSit(option.value)}
-                                className={`px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${sit === option.value
-                                    ? option.color + ' border-current'
-                                    : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                                    }`}
-                            >
+                            <option key={option.value} value={option.value}>
                                 {option.label}
-                            </button>
+                            </option>
                         ))}
-                    </div>
+                    </select>
                 </div>
 
                 {/* Campo: Data de Nascimento (apenas se nascido ou filhote morto) */}

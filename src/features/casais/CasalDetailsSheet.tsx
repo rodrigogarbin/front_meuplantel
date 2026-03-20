@@ -268,7 +268,20 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     </span>
                     <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Casal</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">Nº {casal.nro}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">Nº {casal.nro}</p>
+                            {endogamia !== undefined && endogamia > 0 && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                    endogamia >= 0.25
+                                        ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+                                        : endogamia >= 0.125
+                                            ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                }`}>
+                                    COI {(endogamia * 100).toFixed(1)}%
+                                </span>
+                            )}
+                        </div>
                         {casal.vigen_inicial && (
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Desde {formatDate(casal.vigen_inicial)}
@@ -334,41 +347,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     </button>
                 </div>
 
-                {/* Consanguinidade */}
-                {endogamia !== undefined && endogamia > 0 && (
-                    <div className={`flex items-center gap-3 p-3 rounded-xl ${endogamia >= 0.25
-                        ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
-                        : endogamia >= 0.125
-                            ? 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
-                            : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                        }`}>
-                        <svg className={`w-5 h-5 flex-shrink-0 ${endogamia >= 0.25
-                            ? 'text-red-500'
-                            : endogamia >= 0.125
-                                ? 'text-amber-500'
-                                : 'text-gray-500'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="flex-1">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Consanguinidade dos filhotes</p>
-                            <p className={`text-lg font-bold ${endogamia >= 0.25
-                                ? 'text-red-600 dark:text-red-400'
-                                : endogamia >= 0.125
-                                    ? 'text-amber-600 dark:text-amber-400'
-                                    : 'text-gray-700 dark:text-gray-200'
-                                }`}>
-                                {(endogamia * 100).toFixed(1)}%
-                            </p>
-                        </div>
-                        {endogamia >= 0.25 && (
-                            <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded text-xs font-medium">
-                                Alto
-                            </span>
-                        )}
-                    </div>
-                )}
-
                 {/* Estatísticas */}
                 <div className="grid grid-cols-4 gap-2">
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
@@ -398,6 +376,15 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         <span>{casal.nro_rodadas} {casal.nro_rodadas === 1 ? 'rodada' : 'rodadas'}</span>
                     </div>
                 )}
+
+                {/* Adicionar Ovo */}
+                <button
+                    onClick={handleAddPostura}
+                    className="w-full py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-500/30"
+                >
+                    <EggIcon className="w-5 h-5" />
+                    Adicionar Ovo
+                </button>
 
                 {/* Ovos Ativos (chocando ou com ação pendente) */}
                 {ovosNativos.length > 0 && (
@@ -607,15 +594,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 
                 {/* Ações */}
                 <div className="space-y-3 pt-2 pb-4">
-                    {/* Adicionar Postura */}
-                    <button
-                        onClick={handleAddPostura}
-                        className="w-full py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-500/30"
-                    >
-                        <EggIcon className="w-5 h-5" />
-                        Adicionar Ovo
-                    </button>
-
                     {/* QR Code da gaiola - Oculto */}
                     {/* {casalId != null && (
                         <button
