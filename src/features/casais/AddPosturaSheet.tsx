@@ -8,7 +8,6 @@ import type { Casal } from '@/types'
 import { SitPostura } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { useCreatePostura } from './casaisApi'
-import { parseLocalDate } from '@/lib/date'
 
 interface AddPosturaSheetProps {
     casal: Casal | null
@@ -47,30 +46,6 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
     }, [isOpen])
 
     if (!casal) return null
-
-    // Obtém dias de choco da espécie (do macho ou da fêmea)
-    const diasChoco = casal.macho?.especie?.dias_choco
-        ?? casal.macho?.especie?.dias_choco
-        ?? casal.femea?.especie?.dias_choco
-        ?? null
-
-    // Calcula previsão de nascimento
-    const calcPrevisao = (): string | null => {
-        if (!data || !diasChoco) return null
-        try {
-            const dataPostura = parseLocalDate(data)
-            if (!dataPostura) return null
-            dataPostura.setDate(dataPostura.getDate() + diasChoco)
-            const day = dataPostura.getDate().toString().padStart(2, '0')
-            const month = (dataPostura.getMonth() + 1).toString().padStart(2, '0')
-            const year = dataPostura.getFullYear()
-            return `${day}/${month}/${year}`
-        } catch {
-            return null
-        }
-    }
-
-    const previsaoNascimento = calcPrevisao()
 
     // Obtém o ID do casal (API retorna como 'id', banco usa 'gaiola_id')
     const casalId = casal.id ?? casal.gaiola_id
@@ -119,23 +94,6 @@ export function AddPosturaSheet({ casal, isOpen, onClose, onSuccess }: AddPostur
                     />
                 </div>
 
-                {/* Previsão de Nascimento */}
-                {previsaoNascimento && (
-                    <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-sm text-amber-700 dark:text-amber-300">Previsão de Nascimento</p>
-                                <p className="text-lg font-bold text-amber-800 dark:text-amber-200">{previsaoNascimento}</p>
-                                <p className="text-xs text-amber-600 dark:text-amber-400">{diasChoco} dias de choco</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Nova Rodada */}
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
