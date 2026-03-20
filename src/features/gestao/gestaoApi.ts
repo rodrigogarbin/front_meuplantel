@@ -39,10 +39,13 @@ export interface EstatisticasData {
     comparativo: {
         ano: number
         ano_base: number | null
+        periodo: { tipo: string; valor: number | null; nome: string }
         ano_atual: ComparativoStats
         media_historica: ComparativoStats | null
     }
 }
+
+export type PeriodoTipo = 'ano' | 'mes' | 'trimestre' | 'semestre'
 
 export interface MelhoresReprodutoresItem {
     passaro_id: number
@@ -104,10 +107,21 @@ export interface PassaroAnalise {
 
 // ——— Hooks ——————————————————————————————————————————————
 
-export function useGestaoEstatisticas() {
+export interface PeriodoParams {
+    tipo: PeriodoTipo
+    valor: number // 0 = período atual
+}
+
+export function useGestaoEstatisticas(periodo?: PeriodoParams) {
     return useQuery<EstatisticasData>({
-        queryKey: ['gestao', 'estatisticas'],
-        queryFn: async () => (await api.get<EstatisticasData>('/api/v1/gestao/estatisticas')).data,
+        queryKey: ['gestao', 'estatisticas', periodo],
+        queryFn: async () => {
+            const params = new URLSearchParams()
+            if (periodo?.tipo && periodo.tipo !== 'ano') params.set('periodo', periodo.tipo)
+            if (periodo?.valor) params.set('valor', String(periodo.valor))
+            const qs = params.toString()
+            return (await api.get<EstatisticasData>(`/api/v1/gestao/estatisticas${qs ? '?' + qs : ''}`)).data
+        },
         staleTime: 5 * 60 * 1000,
     })
 }

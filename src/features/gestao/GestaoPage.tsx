@@ -23,7 +23,7 @@ import {
     useGestaoMelhoresReprodutoresInfinite,
     useGestaoPassaro,
 } from './gestaoApi'
-import type { ComparativoStats, MelhoresReprodutoresItem, PassaroAnalise } from './gestaoApi'
+import type { ComparativoStats, MelhoresReprodutoresItem, PassaroAnalise, PeriodoTipo } from './gestaoApi'
 
 // ——— helpers ——————————————————————————————————————————
 
@@ -129,48 +129,162 @@ function ComparativoRow({
     )
 }
 
-function ComparativoSection({ ano, anoAtual, mediaHistorica }: {
+const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+
+function PeriodoSelector({
+    tipo, valor, onChange,
+}: {
+    tipo: PeriodoTipo
+    valor: number
+    onChange: (tipo: PeriodoTipo, valor: number) => void
+}) {
+    const hoje = new Date()
+    const mesAtual       = hoje.getMonth() + 1
+    const trimestreAtual = Math.ceil(mesAtual / 3)
+    const semestreAtual  = mesAtual <= 6 ? 1 : 2
+
+    const tipoOpts: { v: PeriodoTipo; label: string }[] = [
+        { v: 'ano',       label: 'Ano' },
+        { v: 'mes',       label: 'Mês' },
+        { v: 'trimestre', label: 'Trimestre' },
+        { v: 'semestre',  label: 'Semestre' },
+    ]
+
+    function handleTipo(t: PeriodoTipo) {
+        const defaultValor = t === 'mes' ? mesAtual
+            : t === 'trimestre' ? trimestreAtual
+            : t === 'semestre'  ? semestreAtual
+            : 0
+        onChange(t, defaultValor)
+    }
+
+    return (
+        <div className="mb-4">
+            {/* Tipo */}
+            <div className="flex gap-1.5 mb-3">
+                {tipoOpts.map(opt => (
+                    <button
+                        key={opt.v}
+                        onClick={() => handleTipo(opt.v)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            tipo === opt.v
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        }`}
+                    >
+                        {opt.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Seletor do valor */}
+            {tipo === 'mes' && (
+                <div className="grid grid-cols-6 gap-1">
+                    {MESES_ABREV.map((m, i) => (
+                        <button
+                            key={i}
+                            onClick={() => onChange('mes', i + 1)}
+                            className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                valor === i + 1
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            {m}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {tipo === 'trimestre' && (
+                <div className="flex gap-2">
+                    {[1,2,3,4].map(t => (
+                        <button
+                            key={t}
+                            onClick={() => onChange('trimestre', t)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                valor === t
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            T{t}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {tipo === 'semestre' && (
+                <div className="flex gap-2">
+                    {[1,2].map(s => (
+                        <button
+                            key={s}
+                            onClick={() => onChange('semestre', s)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                valor === s
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            {s}º Semestre
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function ComparativoSection({
+    ano, periodoNome, anoAtual, mediaHistorica, tipo, valor, onPeriodoChange,
+}: {
     ano: number
+    periodoNome: string
     anoAtual: ComparativoStats
     mediaHistorica: ComparativoStats | null
+    tipo: PeriodoTipo
+    valor: number
+    onPeriodoChange: (tipo: PeriodoTipo, valor: number) => void
 }) {
-    if (!mediaHistorica) return null
+    const labelAtual = tipo === 'ano' ? String(ano) : `${periodoNome} ${ano}`
 
     return (
         <section className="mb-8">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                Comparativo {ano}
+                Comparativo
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Ano atual vs média histórica
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                {labelAtual} vs média histórica
             </p>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                {/* Cabeçalho */}
-                <div className="grid grid-cols-3 gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400"></span>
-                    <span className="text-xs font-medium text-center text-primary">{ano}</span>
-                    <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400">Média</span>
+
+            <PeriodoSelector tipo={tipo} valor={valor} onChange={onPeriodoChange} />
+
+            {!mediaHistorica ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-center">
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                        Sem dados históricos suficientes para este período.
+                    </p>
                 </div>
-                <div className="px-4">
-                    <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
-                    <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
-                    <ComparativoRow label="Fecundados" atual={anoAtual.fecundados} media={mediaHistorica.fecundados} />
-                    <ComparativoRow label="Eclodidos" atual={anoAtual.eclodidos} media={mediaHistorica.eclodidos} />
-                    <ComparativoRow label="Nascidos" atual={anoAtual.nascidos} media={mediaHistorica.nascidos} />
-                    <ComparativoRow
-                        label="Taxa Fecundação"
-                        atual={anoAtual.taxa_fecundacao}
-                        media={mediaHistorica.taxa_fecundacao}
-                        fmt={fmtPct}
-                    />
-                    <ComparativoRow
-                        label="Taxa Eclosão"
-                        atual={anoAtual.taxa_eclosao}
-                        media={mediaHistorica.taxa_eclosao}
-                        fmt={fmtPct}
-                    />
+            ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="grid grid-cols-3 gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-medium text-center text-primary">{labelAtual}</span>
+                        <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400">Média hist.</span>
+                    </div>
+                    <div className="px-4">
+                        {tipo === 'ano' && (
+                            <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
+                        )}
+                        <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
+                        <ComparativoRow label="Fecundados" atual={anoAtual.fecundados} media={mediaHistorica.fecundados} />
+                        <ComparativoRow label="Eclodidos" atual={anoAtual.eclodidos} media={mediaHistorica.eclodidos} />
+                        <ComparativoRow label="Nascidos" atual={anoAtual.nascidos} media={mediaHistorica.nascidos} />
+                        <ComparativoRow label="Tx Fecundação" atual={anoAtual.taxa_fecundacao} media={mediaHistorica.taxa_fecundacao} fmt={fmtPct} />
+                        <ComparativoRow label="Tx Eclosão"    atual={anoAtual.taxa_eclosao}    media={mediaHistorica.taxa_eclosao}    fmt={fmtPct} />
+                    </div>
                 </div>
-            </div>
+            )}
         </section>
     )
 }
@@ -178,7 +292,20 @@ function ComparativoSection({ ano, anoAtual, mediaHistorica }: {
 // ——— Aba 1 — Visão Geral ——————————————————————————————
 
 function AbaVisaoGeral() {
-    const { data, isLoading, isError, refetch } = useGestaoEstatisticas()
+    const hoje = new Date()
+    const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>('ano')
+    const [periodoValor, setPeriodoValor] = useState(0)
+
+    function handlePeriodoChange(tipo: PeriodoTipo, valor: number) {
+        setPeriodoTipo(tipo)
+        setPeriodoValor(valor)
+    }
+
+    const periodoParams = periodoTipo !== 'ano' || periodoValor > 0
+        ? { tipo: periodoTipo, valor: periodoValor }
+        : undefined
+
+    const { data, isLoading, isError, refetch } = useGestaoEstatisticas(periodoParams)
     const theme = useThemeStore(s => s.mode)
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
@@ -267,14 +394,16 @@ function AbaVisaoGeral() {
                     ) : null}
                 </section>
 
-                {/* Comparativo ano atual vs média */}
-                {data?.comparativo && (
-                    <ComparativoSection
-                        ano={data.comparativo.ano}
-                        anoAtual={data.comparativo.ano_atual}
-                        mediaHistorica={data.comparativo.media_historica}
-                    />
-                )}
+                {/* Comparativo */}
+                <ComparativoSection
+                    ano={data?.comparativo?.ano ?? hoje.getFullYear()}
+                    periodoNome={data?.comparativo?.periodo?.nome ?? 'Ano'}
+                    anoAtual={data?.comparativo?.ano_atual ?? { casais:0,ovos:0,fecundados:0,eclodidos:0,nascidos:0,taxa_fecundacao:0,taxa_eclosao:0 }}
+                    mediaHistorica={data?.comparativo?.media_historica ?? null}
+                    tipo={periodoTipo}
+                    valor={periodoValor}
+                    onPeriodoChange={handlePeriodoChange}
+                />
 
                 {/* Casais ativos por ano */}
                 {data && data.casais_por_ano.length > 0 && (
