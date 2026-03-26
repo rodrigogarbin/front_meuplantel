@@ -11,9 +11,14 @@ import api from '@/lib/api'
 export interface ComparativoStats {
     casais: number
     ovos: number
+    nascidos: number
+    ferteis: number
+    choco: number
+    branco: number
+    embriao_morto: number
+    filhote_morto: number
     fecundados: number
     eclodidos: number
-    nascidos: number
     taxa_fecundacao: number
     taxa_eclosao: number
 }

@@ -106,13 +106,17 @@ function IconStar() {
 // ——— Comparativo ——————————————————————————————————————
 
 function ComparativoRow({
-    label, atual, media, fmt = (v: number) => String(Math.round(v)),
+    label, atual, media, fmt = (v: number) => String(Math.round(v)), higherIsBetter = true,
 }: {
     label: string
     atual: number
     media: number
     fmt?: (v: number) => string
+    higherIsBetter?: boolean
 }) {
+    // Arrow shows actual direction; color shows good/bad based on higherIsBetter
+    const colorClass = higherIsBetter ? deltaClass(atual, media) : deltaClass(-atual, -media)
+    const arrow = deltaArrow(atual, media)
     return (
         <div className="grid grid-cols-3 gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 items-center">
             <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
@@ -121,8 +125,8 @@ function ComparativoRow({
             </span>
             <div className="flex items-center justify-end gap-1">
                 <span className="text-sm text-gray-500 dark:text-gray-400">{fmt(media)}</span>
-                <span className={`text-xs font-bold ${deltaClass(atual, media)}`}>
-                    {deltaArrow(atual, media)}
+                <span className={`text-xs font-bold ${colorClass}`}>
+                    {arrow}
                 </span>
             </div>
         </div>
@@ -277,9 +281,12 @@ function ComparativoSection({
                             <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
                         )}
                         <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
-                        <ComparativoRow label="Fecundados" atual={anoAtual.fecundados} media={mediaHistorica.fecundados} />
-                        <ComparativoRow label="Eclodidos" atual={anoAtual.eclodidos} media={mediaHistorica.eclodidos} />
                         <ComparativoRow label="Nascidos" atual={anoAtual.nascidos} media={mediaHistorica.nascidos} />
+                        <ComparativoRow label="Férteis" atual={anoAtual.ferteis} media={mediaHistorica.ferteis} />
+                        <ComparativoRow label="Em choco" atual={anoAtual.choco} media={mediaHistorica.choco} />
+                        <ComparativoRow label="Brancos" atual={anoAtual.branco} media={mediaHistorica.branco} higherIsBetter={false} />
+                        <ComparativoRow label="Embrião morto" atual={anoAtual.embriao_morto} media={mediaHistorica.embriao_morto} higherIsBetter={false} />
+                        <ComparativoRow label="Filhote morto" atual={anoAtual.filhote_morto} media={mediaHistorica.filhote_morto} higherIsBetter={false} />
                         <ComparativoRow label="Tx Fecundação" atual={anoAtual.taxa_fecundacao} media={mediaHistorica.taxa_fecundacao} fmt={fmtPct} />
                         <ComparativoRow label="Tx Eclosão"    atual={anoAtual.taxa_eclosao}    media={mediaHistorica.taxa_eclosao}    fmt={fmtPct} />
                     </div>
@@ -398,7 +405,7 @@ function AbaVisaoGeral() {
                 <ComparativoSection
                     ano={data?.comparativo?.ano ?? hoje.getFullYear()}
                     periodoNome={data?.comparativo?.periodo?.nome ?? 'Ano'}
-                    anoAtual={data?.comparativo?.ano_atual ?? { casais:0,ovos:0,fecundados:0,eclodidos:0,nascidos:0,taxa_fecundacao:0,taxa_eclosao:0 }}
+                    anoAtual={data?.comparativo?.ano_atual ?? { casais:0,ovos:0,nascidos:0,ferteis:0,choco:0,branco:0,embriao_morto:0,filhote_morto:0,fecundados:0,eclodidos:0,taxa_fecundacao:0,taxa_eclosao:0 }}
                     mediaHistorica={data?.comparativo?.media_historica ?? null}
                     tipo={periodoTipo}
                     valor={periodoValor}
