@@ -3,6 +3,7 @@
  */
 
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
+import { useUser } from '@/features/auth'
 import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage, SocialCallbackPage } from '@/features/auth'
 import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
@@ -15,6 +16,17 @@ import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicame
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
+
+/**
+ * Protege rotas que exigem is_admin=true.
+ * O backend bloqueia as requests de qualquer forma, mas sem este guard
+ * a página admin renderiza e dispara requests desnecessárias.
+ */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+    const user = useUser()
+    if (!user?.is_admin) return <Navigate to="/" replace />
+    return <>{children}</>
+}
 
 /**
  * Layout wrapper para rotas autenticadas (com verificação de email)
@@ -121,7 +133,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: '/admin',
-                element: <AdminPage />,
+                element: <AdminRoute><AdminPage /></AdminRoute>,
             },
             {
                 path: '/gestao',

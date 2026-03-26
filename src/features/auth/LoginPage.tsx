@@ -80,6 +80,10 @@ export function LoginPage() {
         const token = searchParams.get('token')
         if (!token) return
 
+        // Remove o token da URL imediatamente para não ficar exposto no histórico
+        // do navegador ou em logs de proxies.
+        window.history.replaceState(null, document.title, window.location.pathname)
+
         setTokenLogin(true)
         setIsLoading(true)
 

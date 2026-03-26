@@ -31,6 +31,10 @@ export function SocialCallbackPage() {
 
         const isNewUser = searchParams.get('new_user') === '1'
 
+        // Remove o token da URL imediatamente para não ficar exposto no histórico
+        // do navegador ou em logs de proxies.
+        window.history.replaceState(null, document.title, window.location.pathname)
+
         axios
             .get(`${API_BASE_URL}/api/v1/me`, {
                 headers: { Authorization: `Bearer ${token}` },

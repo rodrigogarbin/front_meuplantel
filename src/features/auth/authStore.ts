@@ -282,6 +282,9 @@ export const useAuthStore = create<AuthState>()(
              */
             impersonate: (token: string, user: User, adminToken: string, expiresIn: number) => {
                 const expiresAt = Date.now() + expiresIn * 1000
+                // adminToken fica em sessionStorage (não em localStorage) para reduzir
+                // a janela de exposição: não persiste além do fechamento da aba.
+                sessionStorage.setItem('_adm_tk', adminToken)
                 queryClient.clear()
                 set({
                     token,
@@ -297,7 +300,7 @@ export const useAuthStore = create<AuthState>()(
              * Para de impersonar e restaura a sessão do admin
              */
             stopImpersonate: async () => {
-                const { adminToken } = get()
+                const adminToken = get().adminToken ?? sessionStorage.getItem('_adm_tk')
                 if (!adminToken) return
 
                 try {
@@ -310,6 +313,7 @@ export const useAuthStore = create<AuthState>()(
                     const { access_token, expires_in, user } = response.data.data
                     const expiresAt = Date.now() + expires_in * 1000
 
+                    sessionStorage.removeItem('_adm_tk')
                     queryClient.clear()
                     set({
                         token: access_token,
@@ -331,6 +335,7 @@ export const useAuthStore = create<AuthState>()(
                     })
                 } catch {
                     // If stop fails, do full logout
+                    sessionStorage.removeItem('_adm_tk')
                     set({
                         token: null,
                         user: null,
@@ -345,13 +350,14 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'meuplantel-auth', // Chave no localStorage
             partialize: (state) => ({
-                // Só persiste estes campos
+                // Só persiste estes campos no localStorage.
+                // adminToken é excluído intencionalmente — fica em sessionStorage
+                // para não sobreviver ao fechamento do browser (menor janela de exposição).
                 token: state.token,
                 user: state.user,
                 expiresAt: state.expiresAt,
                 isAuthenticated: state.isAuthenticated,
                 rememberMe: state.rememberMe,
-                adminToken: state.adminToken,
                 isImpersonating: state.isImpersonating,
             }),
             onRehydrateStorage: () => (state) => {
@@ -366,21 +372,29 @@ export const useAuthStore = create<AuthState>()(
                     // Se tem token persistido e não expirou, mantém autenticado
                     const tokenValido = state.token && state.expiresAt && Date.now() < state.expiresAt
 
+                    // Restaura adminToken do sessionStorage se estava impersonando
+                    const adminToken = state.isImpersonating
+                        ? (sessionStorage.getItem('_adm_tk') ?? null)
+                        : null
+
                     if (tokenValido && state.isAuthenticated) {
                         // Token ainda válido, mantém o estado
-                        useAuthStore.setState({ _hasHydrated: true })
+                        useAuthStore.setState({ _hasHydrated: true, adminToken })
                     } else if (state.token && state.expiresAt && Date.now() >= state.expiresAt) {
                         // Token expirado - o interceptor do Axios vai tentar refresh
                         // Mantém autenticado por enquanto
-                        useAuthStore.setState({ _hasHydrated: true })
+                        useAuthStore.setState({ _hasHydrated: true, adminToken })
                     } else {
                         // Sem token ou sem expiração
+                        sessionStorage.removeItem('_adm_tk')
                         useAuthStore.setState({
                             _hasHydrated: true,
                             isAuthenticated: false,
                             token: null,
                             user: null,
                             expiresAt: null,
+                            adminToken: null,
+                            isImpersonating: false,
                         })
                     }
                 }, 0)
