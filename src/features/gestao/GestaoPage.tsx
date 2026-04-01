@@ -106,28 +106,47 @@ function IconStar() {
 // ——— Comparativo ——————————————————————————————————————
 
 function ComparativoRow({
-    label, atual, media, fmt = (v: number) => String(Math.round(v)), higherIsBetter = true,
+    label, atual, media, fmt = (v: number) => String(Math.round(v)),
+    higherIsBetter = true, pctDoTotal,
 }: {
     label: string
     atual: number
     media: number
     fmt?: (v: number) => string
     higherIsBetter?: boolean
+    pctDoTotal?: number
 }) {
-    // Arrow shows actual direction; color shows good/bad based on higherIsBetter
     const colorClass = higherIsBetter ? deltaClass(atual, media) : deltaClass(-atual, -media)
     const arrow = deltaArrow(atual, media)
+    const delta = atual - media
+    const deltaPct = media !== 0 ? (delta / media) * 100 : 0
+    const deltaStr = media !== 0 && delta !== 0
+        ? `${delta > 0 ? '+' : ''}${Math.round(deltaPct)}%`
+        : null
+
     return (
-        <div className="grid grid-cols-3 gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">
+        <div className="grid grid-cols-[1fr_2.5rem_2rem_5.5rem] gap-x-2 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0 items-start">
+            <span className="text-xs text-gray-500 dark:text-gray-400 pt-0.5">{label}</span>
+
+            {/* Atual */}
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-right">
                 {fmt(atual)}
             </span>
-            <div className="flex items-center justify-end gap-1">
-                <span className="text-sm text-gray-500 dark:text-gray-400">{fmt(media)}</span>
-                <span className={`text-xs font-bold ${colorClass}`}>
-                    {arrow}
-                </span>
+
+            {/* % de composição */}
+            <span className="text-xs text-gray-400 dark:text-gray-500 text-right pt-0.5">
+                {pctDoTotal !== undefined ? `${Math.round(pctDoTotal)}%` : ''}
+            </span>
+
+            {/* Média + variação */}
+            <div className="text-right pl-6">
+                <div className="flex items-center justify-end gap-1">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{fmt(media)}</span>
+                    <span className={`text-xs font-bold ${colorClass}`}>{arrow}</span>
+                </div>
+                {deltaStr && (
+                    <div className={`text-xs font-medium ${colorClass}`}>{deltaStr}</div>
+                )}
             </div>
         </div>
     )
@@ -271,24 +290,34 @@ function ComparativoSection({
                 </div>
             ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <div className="grid grid-cols-3 gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="grid grid-cols-[1fr_2.5rem_2rem_5.5rem] gap-x-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs font-medium text-center text-primary">{labelAtual}</span>
-                        <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400">Média hist.</span>
+                        <span className="text-xs font-medium text-right text-primary">{labelAtual}</span>
+                        <span className="text-xs font-medium text-right text-gray-400 dark:text-gray-500">%</span>
+                        <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400 pl-6">Média hist.</span>
                     </div>
                     <div className="px-4">
-                        {tipo === 'ano' && (
-                            <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
-                        )}
-                        <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
-                        <ComparativoRow label="Nascidos" atual={anoAtual.nascidos} media={mediaHistorica.nascidos} />
-                        <ComparativoRow label="Férteis" atual={anoAtual.ferteis} media={mediaHistorica.ferteis} />
-                        <ComparativoRow label="Em choco" atual={anoAtual.choco} media={mediaHistorica.choco} />
-                        <ComparativoRow label="Brancos" atual={anoAtual.branco} media={mediaHistorica.branco} higherIsBetter={false} />
-                        <ComparativoRow label="Embrião morto" atual={anoAtual.embriao_morto} media={mediaHistorica.embriao_morto} higherIsBetter={false} />
-                        <ComparativoRow label="Filhote morto" atual={anoAtual.filhote_morto} media={mediaHistorica.filhote_morto} higherIsBetter={false} />
-                        <ComparativoRow label="Tx Fecundação" atual={anoAtual.taxa_fecundacao} media={mediaHistorica.taxa_fecundacao} fmt={fmtPct} />
-                        <ComparativoRow label="Tx Eclosão"    atual={anoAtual.taxa_eclosao}    media={mediaHistorica.taxa_eclosao}    fmt={fmtPct} />
+                        {(() => {
+                            const base = anoAtual.ovos  // ovos resolvidos = denominador das % de composição
+                            const pct = (n: number) => base > 0 ? (n / base) * 100 : undefined
+                            return (
+                                <>
+                                    {tipo === 'ano' && (
+                                        <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
+                                    )}
+                                    <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
+                                    <ComparativoRow label="Nascidos"      atual={anoAtual.nascidos}      media={mediaHistorica.nascidos}      pctDoTotal={pct(anoAtual.nascidos)} />
+                                    <ComparativoRow label="Fécundados"    atual={anoAtual.fecundados}    media={mediaHistorica.fecundados}    pctDoTotal={pct(anoAtual.fecundados)} />
+                                    <ComparativoRow label="Férteis"       atual={anoAtual.ferteis}       media={mediaHistorica.ferteis}       pctDoTotal={pct(anoAtual.ferteis)} />
+                                    <ComparativoRow label="Em choco"      atual={anoAtual.choco}         media={mediaHistorica.choco} />
+                                    <ComparativoRow label="Brancos"       atual={anoAtual.branco}        media={mediaHistorica.branco}        higherIsBetter={false} pctDoTotal={pct(anoAtual.branco)} />
+                                    <ComparativoRow label="Embrião morto" atual={anoAtual.embriao_morto} media={mediaHistorica.embriao_morto} higherIsBetter={false} pctDoTotal={pct(anoAtual.embriao_morto)} />
+                                    <ComparativoRow label="Filhote morto" atual={anoAtual.filhote_morto} media={mediaHistorica.filhote_morto} higherIsBetter={false} pctDoTotal={pct(anoAtual.filhote_morto)} />
+                                    <ComparativoRow label="Tx Fecundação" atual={anoAtual.taxa_fecundacao} media={mediaHistorica.taxa_fecundacao} fmt={fmtPct} />
+                                    <ComparativoRow label="Tx Eclosão"    atual={anoAtual.taxa_eclosao}    media={mediaHistorica.taxa_eclosao}    fmt={fmtPct} />
+                                </>
+                            )
+                        })()}
                     </div>
                 </div>
             )}
