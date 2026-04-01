@@ -13,6 +13,7 @@ import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage, GestaoConfigPage } from '@/features/config'
 import { GestaoPage } from '@/features/gestao/GestaoPage'
 import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicamentos'
+import { ChatPage } from '@/features/chat'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
@@ -146,6 +147,10 @@ export const router = createBrowserRouter([
             {
                 path: '/config/perfil',
                 element: <ProfileEditPage />,
+            },
+            {
+                path: '/chat',
+                element: <ChatPage />,
             },
         ],
     },
