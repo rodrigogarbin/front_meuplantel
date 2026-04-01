@@ -74,7 +74,7 @@ export function DashboardPage() {
             },
             {
                 label: 'Casais',
-                color: '#EF4444',
+                color: '#3B82F6',
                 data: stats.historicoPosturas.slice().map(item => item.gaiolas),
             },
         ],
