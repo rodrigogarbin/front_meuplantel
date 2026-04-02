@@ -107,45 +107,56 @@ function IconStar() {
 
 function ComparativoRow({
     label, atual, media, fmt = (v: number) => String(Math.round(v)),
-    higherIsBetter = true, pctDoTotal,
+    higherIsBetter = true, pctAtual, pctMedia,
 }: {
     label: string
     atual: number
     media: number
     fmt?: (v: number) => string
     higherIsBetter?: boolean
-    pctDoTotal?: number
+    pctAtual?: number   // % do total no período atual
+    pctMedia?: number   // % do total na média histórica
 }) {
     const colorClass = higherIsBetter ? deltaClass(atual, media) : deltaClass(-atual, -media)
     const arrow = deltaArrow(atual, media)
-    const delta = atual - media
-    const deltaPct = media !== 0 ? (delta / media) * 100 : 0
-    const deltaStr = media !== 0 && delta !== 0
-        ? `${delta > 0 ? '+' : ''}${Math.round(deltaPct)}%`
+
+    // variação em pontos percentuais (quando ambos os % estão disponíveis)
+    const deltaPp = pctAtual !== undefined && pctMedia !== undefined
+        ? Math.round(pctAtual) - Math.round(pctMedia)
         : null
+    const deltaPpStr = deltaPp !== null && deltaPp !== 0
+        ? `${deltaPp > 0 ? '+' : ''}${deltaPp}pp`
+        : null
+    const ppColorClass = deltaPp !== null
+        ? (higherIsBetter ? (deltaPp >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400')
+                          : (deltaPp <= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'))
+        : ''
 
     return (
-        <div className="grid grid-cols-[1fr_2.5rem_2rem_5.5rem] gap-x-2 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0 items-start">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0 items-start">
             <span className="text-xs text-gray-500 dark:text-gray-400 pt-0.5">{label}</span>
 
-            {/* Atual */}
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-right">
-                {fmt(atual)}
-            </span>
+            {/* Atual + % */}
+            <div className="text-right">
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{fmt(atual)}</div>
+                {pctAtual !== undefined && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{Math.round(pctAtual)}%</div>
+                )}
+            </div>
 
-            {/* % de composição */}
-            <span className="text-xs text-gray-400 dark:text-gray-500 text-right pt-0.5">
-                {pctDoTotal !== undefined ? `${Math.round(pctDoTotal)}%` : ''}
-            </span>
-
-            {/* Média + variação */}
-            <div className="text-right pl-6">
+            {/* Média + % + variação */}
+            <div className="text-right pl-8 min-w-[5rem]">
                 <div className="flex items-center justify-end gap-1">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{fmt(media)}</span>
                     <span className={`text-xs font-bold ${colorClass}`}>{arrow}</span>
                 </div>
-                {deltaStr && (
-                    <div className={`text-xs font-medium ${colorClass}`}>{deltaStr}</div>
+                {pctMedia !== undefined && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                        {Math.round(pctMedia)}%
+                        {deltaPpStr && (
+                            <span className={`ml-1 font-medium ${ppColorClass}`}>{deltaPpStr}</span>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
@@ -290,29 +301,30 @@ function ComparativoSection({
                 </div>
             ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_5.5rem] gap-x-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400" />
                         <span className="text-xs font-medium text-right text-primary">{labelAtual}</span>
-                        <span className="text-xs font-medium text-right text-gray-400 dark:text-gray-500">%</span>
-                        <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400 pl-6">Média hist.</span>
+                        <span className="text-xs font-medium text-right text-gray-500 dark:text-gray-400 pl-8 min-w-[5rem]">Média hist.</span>
                     </div>
                     <div className="px-4">
                         {(() => {
-                            const base = anoAtual.ovos  // ovos resolvidos = denominador das % de composição
-                            const pct = (n: number) => base > 0 ? (n / base) * 100 : undefined
+                            const baseAtual = anoAtual.ovos
+                            const baseMedia = mediaHistorica.ovos
+                            const pcts = (a: number, m: number) => ({
+                                pctAtual: baseAtual > 0 ? (a / baseAtual) * 100 : undefined,
+                                pctMedia: baseMedia > 0 ? (m / baseMedia) * 100 : undefined,
+                            })
                             return (
                                 <>
                                     {tipo === 'ano' && (
                                         <ComparativoRow label="Casais" atual={anoAtual.casais} media={mediaHistorica.casais} />
                                     )}
-                                    <ComparativoRow label="Ovos" atual={anoAtual.ovos} media={mediaHistorica.ovos} />
-                                    <ComparativoRow label="Nascidos"      atual={anoAtual.nascidos}      media={mediaHistorica.nascidos}      pctDoTotal={pct(anoAtual.nascidos)} />
-                                    <ComparativoRow label="Fécundados"    atual={anoAtual.fecundados}    media={mediaHistorica.fecundados}    pctDoTotal={pct(anoAtual.fecundados)} />
-                                    <ComparativoRow label="Férteis"       atual={anoAtual.ferteis}       media={mediaHistorica.ferteis}       pctDoTotal={pct(anoAtual.ferteis)} />
-                                    <ComparativoRow label="Em choco"      atual={anoAtual.choco}         media={mediaHistorica.choco} />
-                                    <ComparativoRow label="Brancos"       atual={anoAtual.branco}        media={mediaHistorica.branco}        higherIsBetter={false} pctDoTotal={pct(anoAtual.branco)} />
-                                    <ComparativoRow label="Embrião morto" atual={anoAtual.embriao_morto} media={mediaHistorica.embriao_morto} higherIsBetter={false} pctDoTotal={pct(anoAtual.embriao_morto)} />
-                                    <ComparativoRow label="Filhote morto" atual={anoAtual.filhote_morto} media={mediaHistorica.filhote_morto} higherIsBetter={false} pctDoTotal={pct(anoAtual.filhote_morto)} />
+                                    <ComparativoRow label="Ovos"          atual={anoAtual.ovos}          media={mediaHistorica.ovos} />
+                                    <ComparativoRow label="Nascidos"      atual={anoAtual.nascidos}      media={mediaHistorica.nascidos}      {...pcts(anoAtual.nascidos,      mediaHistorica.nascidos)} />
+                                    <ComparativoRow label="Fecundados"    atual={anoAtual.fecundados}    media={mediaHistorica.fecundados}    {...pcts(anoAtual.fecundados,    mediaHistorica.fecundados)} />
+                                    <ComparativoRow label="Brancos"       atual={anoAtual.branco}        media={mediaHistorica.branco}        higherIsBetter={false} {...pcts(anoAtual.branco,        mediaHistorica.branco)} />
+                                    <ComparativoRow label="Embrião morto" atual={anoAtual.embriao_morto} media={mediaHistorica.embriao_morto} higherIsBetter={false} {...pcts(anoAtual.embriao_morto, mediaHistorica.embriao_morto)} />
+                                    <ComparativoRow label="Filhote morto" atual={anoAtual.filhote_morto} media={mediaHistorica.filhote_morto} higherIsBetter={false} {...pcts(anoAtual.filhote_morto, mediaHistorica.filhote_morto)} />
                                     <ComparativoRow label="Tx Fecundação" atual={anoAtual.taxa_fecundacao} media={mediaHistorica.taxa_fecundacao} fmt={fmtPct} />
                                     <ComparativoRow label="Tx Eclosão"    atual={anoAtual.taxa_eclosao}    media={mediaHistorica.taxa_eclosao}    fmt={fmtPct} />
                                 </>
