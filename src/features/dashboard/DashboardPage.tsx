@@ -188,32 +188,6 @@ export function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Ações Rápidas</h2>
 
                         <div className="grid grid-cols-2 gap-4">
-                            {/* Escanear Gaiola */}
-                            <button
-                                onClick={() => temCasaisAtivos && setShowNumberScanner(true)}
-                                disabled={!temCasaisAtivos}
-                                className={`rounded-xl p-4 shadow-sm text-left transition-colors col-span-2 ${temCasaisAtivos
-                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
-                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${temCasaisAtivos ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'
-                                        }`}>
-                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">Escanear Gaiola</p>
-                                        <p className={`text-sm ${temCasaisAtivos ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
-                                            {temCasaisAtivos ? 'Ler número da gaiola com a câmera' : 'Cadastre casais para escanear'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-
                             <button
                                 onClick={() => navigate('/passaros')}
                                 className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -252,6 +226,20 @@ export function DashboardPage() {
                                 </div>
                                 <p className="font-medium">Novo Pássaro</p>
                                 <p className="text-sm text-white/80">Cadastrar pássaro</p>
+                            </button>
+                        </div>
+
+                        <div className="mt-3 flex justify-end">
+                            <button
+                                onClick={() => temCasaisAtivos && setShowNumberScanner(true)}
+                                disabled={!temCasaisAtivos}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                                </svg>
+                                Escanear gaiola
                             </button>
                         </div>
                     </section>

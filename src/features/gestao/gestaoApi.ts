@@ -114,7 +114,8 @@ export interface PassaroAnalise {
 
 export interface PeriodoParams {
     tipo: PeriodoTipo
-    valor: number // 0 = período atual
+    valor: number   // 0 = período atual
+    valorFim?: number  // apenas para 'mes' (range De→Até)
 }
 
 export function useGestaoEstatisticas(periodo?: PeriodoParams) {
@@ -124,6 +125,9 @@ export function useGestaoEstatisticas(periodo?: PeriodoParams) {
             const params = new URLSearchParams()
             if (periodo?.tipo && periodo.tipo !== 'ano') params.set('periodo', periodo.tipo)
             if (periodo?.valor) params.set('valor', String(periodo.valor))
+            if (periodo?.valorFim && periodo.valorFim !== periodo.valor) {
+                params.set('valor_fim', String(periodo.valorFim))
+            }
             const qs = params.toString()
             return (await api.get<EstatisticasData>(`/api/v1/gestao/estatisticas${qs ? '?' + qs : ''}`)).data
         },

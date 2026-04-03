@@ -166,16 +166,20 @@ function ComparativoRow({
 const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
 function PeriodoSelector({
-    tipo, valor, onChange,
+    tipo, valor, valorFim, onChange,
 }: {
     tipo: PeriodoTipo
     valor: number
-    onChange: (tipo: PeriodoTipo, valor: number) => void
+    valorFim: number
+    onChange: (tipo: PeriodoTipo, valor: number, valorFim: number) => void
 }) {
     const hoje = new Date()
     const mesAtual       = hoje.getMonth() + 1
     const trimestreAtual = Math.ceil(mesAtual / 3)
     const semestreAtual  = mesAtual <= 6 ? 1 : 2
+
+    // Para o range de mês: 'inicio' ou 'fim'
+    const [selecting, setSelecting] = useState<'inicio' | 'fim'>('inicio')
 
     const tipoOpts: { v: PeriodoTipo; label: string }[] = [
         { v: 'ano',       label: 'Ano' },
@@ -185,11 +189,27 @@ function PeriodoSelector({
     ]
 
     function handleTipo(t: PeriodoTipo) {
+        setSelecting('inicio')
         const defaultValor = t === 'mes' ? mesAtual
             : t === 'trimestre' ? trimestreAtual
             : t === 'semestre'  ? semestreAtual
             : 0
-        onChange(t, defaultValor)
+        onChange(t, defaultValor, defaultValor)
+    }
+
+    function handleMesClick(m: number) {
+        if (selecting === 'inicio') {
+            const novoFim = valorFim >= m ? valorFim : m
+            onChange('mes', m, novoFim)
+            setSelecting('fim')
+        } else {
+            if (m < valor) {
+                onChange('mes', m, valor)
+            } else {
+                onChange('mes', valor, m)
+            }
+            setSelecting('inicio')
+        }
     }
 
     return (
@@ -213,20 +233,54 @@ function PeriodoSelector({
 
             {/* Seletor do valor */}
             {tipo === 'mes' && (
-                <div className="grid grid-cols-6 gap-1">
-                    {MESES_ABREV.map((m, i) => (
+                <div>
+                    {/* Indicador De → Até */}
+                    <div className="flex items-center gap-2 mb-2">
                         <button
-                            key={i}
-                            onClick={() => onChange('mes', i + 1)}
-                            className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                valor === i + 1
+                            onClick={() => setSelecting('inicio')}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                selecting === 'inicio'
                                     ? 'bg-primary text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                             }`}
                         >
-                            {m}
+                            De: {MESES_ABREV[valor - 1]}
                         </button>
-                    ))}
+                        <span className="text-gray-400 text-xs">→</span>
+                        <button
+                            onClick={() => setSelecting('fim')}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                selecting === 'fim'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                            }`}
+                        >
+                            Até: {MESES_ABREV[valorFim - 1]}
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-6 gap-1">
+                        {MESES_ABREV.map((m, i) => {
+                            const mes = i + 1
+                            const isStart = mes === valor
+                            const isEnd   = mes === valorFim
+                            const inRange = mes > valor && mes < valorFim
+                            return (
+                                <button
+                                    key={i}
+                                    onClick={() => handleMesClick(mes)}
+                                    className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                        isStart || isEnd
+                                            ? 'bg-primary text-white'
+                                            : inRange
+                                                ? 'bg-primary/20 text-primary dark:text-primary'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    }`}
+                                >
+                                    {m}
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
             )}
 
@@ -235,7 +289,7 @@ function PeriodoSelector({
                     {[1,2,3,4].map(t => (
                         <button
                             key={t}
-                            onClick={() => onChange('trimestre', t)}
+                            onClick={() => onChange('trimestre', t, t)}
                             className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                 valor === t
                                     ? 'bg-primary text-white'
@@ -253,7 +307,7 @@ function PeriodoSelector({
                     {[1,2].map(s => (
                         <button
                             key={s}
-                            onClick={() => onChange('semestre', s)}
+                            onClick={() => onChange('semestre', s, s)}
                             className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                 valor === s
                                     ? 'bg-primary text-white'
@@ -270,7 +324,7 @@ function PeriodoSelector({
 }
 
 function ComparativoSection({
-    ano, periodoNome, anoAtual, mediaHistorica, tipo, valor, onPeriodoChange,
+    ano, periodoNome, anoAtual, mediaHistorica, tipo, valor, valorFim, onPeriodoChange,
 }: {
     ano: number
     periodoNome: string
@@ -278,7 +332,8 @@ function ComparativoSection({
     mediaHistorica: ComparativoStats | null
     tipo: PeriodoTipo
     valor: number
-    onPeriodoChange: (tipo: PeriodoTipo, valor: number) => void
+    valorFim: number
+    onPeriodoChange: (tipo: PeriodoTipo, valor: number, valorFim: number) => void
 }) {
     const labelAtual = tipo === 'ano' ? String(ano) : `${periodoNome} ${ano}`
 
@@ -291,7 +346,7 @@ function ComparativoSection({
                 {labelAtual} vs média histórica
             </p>
 
-            <PeriodoSelector tipo={tipo} valor={valor} onChange={onPeriodoChange} />
+            <PeriodoSelector tipo={tipo} valor={valor} valorFim={valorFim} onChange={onPeriodoChange} />
 
             {!mediaHistorica ? (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-center">
@@ -341,16 +396,18 @@ function ComparativoSection({
 
 function AbaVisaoGeral() {
     const hoje = new Date()
-    const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>('ano')
-    const [periodoValor, setPeriodoValor] = useState(0)
+    const [periodoTipo, setPeriodoTipo]       = useState<PeriodoTipo>('ano')
+    const [periodoValor, setPeriodoValor]     = useState(0)
+    const [periodoValorFim, setPeriodoValorFim] = useState(0)
 
-    function handlePeriodoChange(tipo: PeriodoTipo, valor: number) {
+    function handlePeriodoChange(tipo: PeriodoTipo, valor: number, valorFim: number) {
         setPeriodoTipo(tipo)
         setPeriodoValor(valor)
+        setPeriodoValorFim(valorFim)
     }
 
     const periodoParams = periodoTipo !== 'ano' || periodoValor > 0
-        ? { tipo: periodoTipo, valor: periodoValor }
+        ? { tipo: periodoTipo, valor: periodoValor, valorFim: periodoValorFim }
         : undefined
 
     const { data, isLoading, isError, refetch } = useGestaoEstatisticas(periodoParams)
@@ -450,6 +507,7 @@ function AbaVisaoGeral() {
                     mediaHistorica={data?.comparativo?.media_historica ?? null}
                     tipo={periodoTipo}
                     valor={periodoValor}
+                    valorFim={periodoValorFim}
                     onPeriodoChange={handlePeriodoChange}
                 />
 
