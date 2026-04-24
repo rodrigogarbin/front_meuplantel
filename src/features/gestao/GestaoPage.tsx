@@ -18,6 +18,7 @@ import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 import { ApexPieChart } from '@/features/dashboard/ApexPieChart'
 import { useThemeStore } from '@/lib/theme'
 import { sexIcon, sexColor } from '@/lib/passaro'
+import { useEspecies } from '@/features/especies/especiesApi'
 import {
     useGestaoEstatisticas,
     useGestaoMelhoresReprodutoresInfinite,
@@ -394,7 +395,7 @@ function ComparativoSection({
 
 // ——— Aba 1 — Visão Geral ——————————————————————————————
 
-function AbaVisaoGeral() {
+function AbaVisaoGeral({ especieId }: { especieId: number | null }) {
     const hoje = new Date()
     const [periodoTipo, setPeriodoTipo]       = useState<PeriodoTipo>('ano')
     const [periodoValor, setPeriodoValor]     = useState(0)
@@ -406,8 +407,8 @@ function AbaVisaoGeral() {
         setPeriodoValorFim(valorFim)
     }
 
-    const periodoParams = periodoTipo !== 'ano' || periodoValor > 0
-        ? { tipo: periodoTipo, valor: periodoValor, valorFim: periodoValorFim }
+    const periodoParams = periodoTipo !== 'ano' || periodoValor > 0 || especieId != null
+        ? { tipo: periodoTipo, valor: periodoValor, valorFim: periodoValorFim, especieId }
         : undefined
 
     const { data, isLoading, isError, refetch } = useGestaoEstatisticas(periodoParams)
@@ -579,24 +580,15 @@ function RankingItem({ item, rank, isSelected, onSelect }: {
                 {rank}
             </span>
 
-            {item.foto ? (
-                <img src={item.foto} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-            ) : (
-                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 3c-1.2 0-2.4.6-3 1.5C8.4 5.4 8 6.6 8 8c0 1.4.4 2.6 1 3.5.3.4.6.8 1 1.1V15l-2 2v2h8v-2l-2-2v-2.4c.4-.3.7-.7 1-1.1.6-.9 1-2.1 1-3.5 0-1.4-.4-2.6-1-3.5-.6-.9-1.8-1.5-3-1.5z" />
-                    </svg>
-                </div>
-            )}
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-base font-bold ${sexColor(item.sexo)}`}>
+                {sexIcon(item.sexo)}
+            </div>
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
                         {anelLabel(item.anel)}
                     </p>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${sexColor(item.sexo)}`}>
-                        {sexIcon(item.sexo)}
-                    </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {item.descr || '—'}
@@ -785,7 +777,7 @@ function RankingSkeleton() {
     )
 }
 
-function AbaAnaliseAve() {
+function AbaAnaliseAve({ especieId }: { especieId: number | null }) {
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [sexo, setSexo] = useState<0 | 1 | 2>(0)
 
@@ -796,7 +788,7 @@ function AbaAnaliseAve() {
         isFetchingNextPage,
         hasNextPage,
         fetchNextPage,
-    } = useGestaoMelhoresReprodutoresInfinite(sexo)
+    } = useGestaoMelhoresReprodutoresInfinite(sexo, especieId)
 
     const { data: analise, isLoading: analiseLoading } = useGestaoPassaro(selectedId)
     const { data: gestaoConfig } = useGestaoConfig()
@@ -934,7 +926,10 @@ function AbaAnaliseAve() {
 
 export function GestaoPage() {
     const [aba, setAba] = useState<'geral' | 'ave'>('geral')
+    const [especieId, setEspecieId] = useState<number | null>(null)
     const navigate = useNavigate()
+    const { data: especies } = useEspecies()
+    const especiesList = especies ?? []
 
     return (
         <>
@@ -961,7 +956,28 @@ export function GestaoPage() {
                     </svg>
                 </button>
             </div>
-            {aba === 'geral' ? <AbaVisaoGeral /> : <AbaAnaliseAve />}
+
+            {/* Filtro de espécie — exibido somente se há mais de uma espécie */}
+            {especiesList.length > 1 && (
+                <div className="px-4 pt-2">
+                    <select
+                        value={especieId ?? ''}
+                        onChange={e => setEspecieId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-1.5 rounded-lg text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                        <option value="">Todas as espécies</option>
+                        <option value="0">Sem espécie</option>
+                        {especiesList.map(e => {
+                            const id = e.especie_usuario_id ?? e.id
+                            return (
+                                <option key={id} value={id}>{e.descr}</option>
+                            )
+                        })}
+                    </select>
+                </div>
+            )}
+
+            {aba === 'geral' ? <AbaVisaoGeral especieId={especieId} /> : <AbaAnaliseAve especieId={especieId} />}
         </>
     )
 }

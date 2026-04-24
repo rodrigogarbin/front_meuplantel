@@ -5,6 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { calcPosturaAlerts, getDiasConfig } from '@/lib/posturaAlerts'
 
 // Tipo da postura vinda da API
 export interface PosturaListItem {
@@ -195,80 +196,16 @@ export function usePosturasPendentes() {
 
 // Função para calcular alertas (versão simplificada para o hook)
 function getPosturaAlertsSimple(postura: PosturaListItem): string[] {
-    const alerts: string[] = []
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-
-    // Busca dias de choco/anilha/separa: primeiro do campo direto (PosturaResource),
-    // depois do macho.especie, depois da femea.especie, por fim usa padrão
-    const diasChoco = postura.casal?.dias_choco
-        ?? postura.casal?.macho?.especie?.dias_choco
-        ?? postura.casal?.femea?.especie?.dias_choco
-        ?? 21
-    const diasAnilha = postura.casal?.dias_anilha
-        ?? postura.casal?.macho?.especie?.dias_anilha
-        ?? postura.casal?.femea?.especie?.dias_anilha
-        ?? 7
-    const diasSepara = postura.casal?.dias_separa
-        ?? postura.casal?.macho?.especie?.dias_separa
-        ?? postura.casal?.femea?.especie?.dias_separa
-        ?? 45
-
-    // Se status é CHOCO (0) ou FERTIL (5) e data + dias_choco >= hoje => "Nascendo"
-    if ((postura.sit === 0 || postura.sit === 5) && postura.data) {
-        const dataPostura = new Date(postura.data + 'T00:00:00')
-        const dataNascendo = new Date(dataPostura)
-        dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
-
-        if (dataNascendo <= hoje) {
-            alerts.push('Nascendo')
-        }
-
-        // Se era para nascer e não nasceu após 30 dias
-        const dataVerificar = new Date(dataNascendo)
-        dataVerificar.setDate(dataVerificar.getDate() + 30)
-        if (!postura.data_nasc && dataVerificar <= hoje) {
-            alerts.push('Verificar')
-        }
+    const config = getDiasConfig(postura.casal ?? undefined)
+    const input = {
+        sit: postura.sit,
+        data: postura.data,
+        data_nasc: postura.data_nasc,
+        data_separa: null,
+        nro_anel: postura.nro_anel,
+        ano_anel: postura.ano_anel,
+        passaro_id: postura.passaro?.id ?? null,
     }
-
-    // Se status é NASCIDO (1) e não tem passaro_id
-    if (postura.sit === 1 && !postura.passaro) {
-        if (postura.data_nasc) {
-            const dataNasc = new Date(postura.data_nasc + 'T00:00:00')
-            const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
-
-            if (!jaAnilhado) {
-                // Verifica se deve anilhar
-                const dataAnilhar = new Date(dataNasc)
-                dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
-
-                if (dataAnilhar <= hoje) {
-                    alerts.push('Hora de anilhar')
-                }
-
-                const dataVerificarAnilhar = new Date(dataAnilhar)
-                dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
-                if (dataVerificarAnilhar <= hoje) {
-                    alerts.push('Verificar')
-                }
-            } else {
-                // Verifica se deve separar
-                const dataSeparar = new Date(dataNasc)
-                dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
-
-                if (dataSeparar <= hoje) {
-                    alerts.push('Separar')
-                }
-
-                const dataVerificarSeparar = new Date(dataSeparar)
-                dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
-                if (dataVerificarSeparar <= hoje) {
-                    alerts.push('Verificar')
-                }
-            }
-        }
-    }
-
-    return alerts
+    const result = calcPosturaAlerts(input, config)
+    return result.alerts
 }

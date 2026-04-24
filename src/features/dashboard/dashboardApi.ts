@@ -29,6 +29,8 @@ interface PassarosDadosResponse {
         nascidos: number
         gaiolas: number
         posturas: number
+        embriaoMorto: number
+        filhoteMorto: number
     }>
 }
 
@@ -79,6 +81,7 @@ export interface DashboardStats {
         total: number
         nascidos: number
         gaiolas: number
+        mortalidade: number
     }>
     // Anos disponíveis para filtro
     anosDisponiveis: number[]
@@ -145,6 +148,7 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
                 total: t.posturas,
                 nascidos: t.nascidos,
                 gaiolas: t.gaiolas,
+                mortalidade: (t.embriaoMorto || 0) + (t.filhoteMorto || 0),
             })) || [],
             anosDisponiveis: todosAnos,
         }
