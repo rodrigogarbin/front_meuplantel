@@ -8,6 +8,9 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'sw.ts',
             registerType: 'prompt',
             includeAssets: ['favicon.svg', 'icons/*.png'],
             manifest: {
@@ -81,55 +84,11 @@ export default defineConfig({
                     }
                 ]
             },
-            workbox: {
-                cleanupOutdatedCaches: true,
-                skipWaiting: true,
-                clientsClaim: true,
-                runtimeCaching: [
-                    {
-                        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                        handler: 'CacheFirst',
-                        options: {
-                            cacheName: 'google-fonts-cache',
-                            expiration: {
-                                maxEntries: 10,
-                                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 ano
-                            },
-                            cacheableResponse: {
-                                statuses: [0, 200]
-                            }
-                        }
-                    },
-                    {
-                        urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
-                        handler: 'CacheFirst',
-                        options: {
-                            cacheName: 'images-cache',
-                            expiration: {
-                                maxEntries: 100,
-                                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
-                            }
-                        }
-                    },
-                    {
-                        urlPattern: /\/api\/.*/,
-                        handler: 'NetworkFirst',
-                        options: {
-                            cacheName: 'api-cache',
-                            networkTimeoutSeconds: 10,
-                            expiration: {
-                                maxEntries: 50,
-                                maxAgeSeconds: 60 * 5 // 5 minutos
-                            },
-                            cacheableResponse: {
-                                statuses: [0, 200]
-                            }
-                        }
-                    }
-                ]
+            injectManifest: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
             },
             devOptions: {
-                enabled: false // Desabilitar em dev para evitar confusão
+                enabled: false,
             }
         })
     ],

@@ -7,6 +7,7 @@ import { Topbar } from '@/components/ui/Topbar'
 import { useThemeStore, type ThemeMode } from '@/lib/theme'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useEmailVerificationStatus } from '@/features/auth'
+import { NotificacoesConfig } from './NotificacoesConfig'
 
 // Ícones
 function SunIcon({ className }: { className?: string }) {
@@ -231,6 +232,14 @@ export function ConfigPage() {
                                 ))}
                             </div>
                         </div>
+                    </section>
+
+                    {/* Notificacoes */}
+                    <section>
+                        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                            Notificacoes
+                        </h2>
+                        <NotificacoesConfig />
                     </section>
 
                     {/* Sobre */}

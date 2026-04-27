@@ -7,6 +7,9 @@ import './index.css'
 // Inicializa o tema antes de renderizar
 initTheme()
 
+// Registra o listener de instalação PWA o mais cedo possível
+import('@/hooks/usePWAInstall')
+
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <App />
