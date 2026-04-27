@@ -8,6 +8,8 @@ import { ImpersonationBanner } from '@/features/admin'
 import { useIsImpersonating } from '@/features/auth/authStore'
 import { usePosturasPendentes } from '@/features/posturas/posturasApi'
 import { useAuthStore } from '@/features/auth/authStore'
+import { useEmailVerificationStatus } from '@/features/auth'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -18,7 +20,10 @@ export function MainLayout({ children }: MainLayoutProps) {
     const navigate = useNavigate()
     const isImpersonating = useIsImpersonating()
     const hasPosturasPendentes = usePosturasPendentes()
-    const { user } = useAuthStore()
+    const { user, logout } = useAuthStore()
+    const { isInstallable, isIOS, promptInstall } = usePWAInstall()
+    const { data: emailStatus } = useEmailVerificationStatus()
+    const hasConfigBadge = emailStatus && emailStatus.email && !emailStatus.email_verified
     const [showMaisMenu, setShowMaisMenu] = useState(false)
 
     const isActive = (path: string) => location.pathname === path
@@ -95,9 +100,12 @@ export function MainLayout({ children }: MainLayoutProps) {
                     {/* Botão Mais */}
                     <button
                         onClick={() => setShowMaisMenu(true)}
-                        className={`flex flex-col items-center py-2 px-4 transition-colors ${isMaisActive || showMaisMenu ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                        className={`relative flex flex-col items-center py-2 px-4 transition-colors ${isMaisActive || showMaisMenu ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
                             }`}
                     >
+                        {hasConfigBadge && (
+                            <span className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full" />
+                        )}
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isMaisActive || showMaisMenu ? 2.5 : 1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -123,9 +131,22 @@ export function MainLayout({ children }: MainLayoutProps) {
                         </div>
 
                         <div className="px-2 pb-2">
-                            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-3 py-3">
-                                Menu
-                            </h2>
+                            {/* Card do usuário */}
+                            <div className="flex items-center gap-3 px-3 py-4 mb-1">
+                                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg font-semibold shrink-0">
+                                    {user?.nome?.charAt(0).toUpperCase() ?? 'U'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                        {user?.nome ?? 'Usuário'}
+                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                        {user?.email ?? ''}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mx-3 border-t border-gray-100 dark:border-gray-700 mb-2" />
 
                             <div className="flex flex-col">
                                 {/* Assistente */}
@@ -229,16 +250,48 @@ export function MainLayout({ children }: MainLayoutProps) {
 
                                 <div className="mx-3 border-t border-gray-100 dark:border-gray-700 my-1" />
 
+                                {/* Instalar app — só aparece quando não está instalado */}
+                                {isInstallable && (
+                                    <button
+                                        onClick={() => {
+                                            if (!isIOS) {
+                                                void promptInstall()
+                                            }
+                                        }}
+                                        className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
+                                    >
+                                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center shrink-0">
+                                            <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <p className="text-base font-medium text-gray-900 dark:text-gray-100">Instalar app</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {isIOS ? 'Toque em compartilhar e "Adicionar à tela de início"' : 'Adicionar à tela inicial'}
+                                            </p>
+                                        </div>
+                                        {!isIOS && (
+                                            <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                )}
+
                                 {/* Configurações */}
                                 <button
                                     onClick={() => navigateTo('/config')}
                                     className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
                                 >
-                                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0">
+                                    <div className="relative w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0">
                                         <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
+                                        {hasConfigBadge && (
+                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800" />
+                                        )}
                                     </div>
                                     <div className="flex-1 text-left">
                                         <p className="text-base font-medium text-gray-900 dark:text-gray-100">Configurações</p>
@@ -247,6 +300,23 @@ export function MainLayout({ children }: MainLayoutProps) {
                                     <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                     </svg>
+                                </button>
+
+                                <div className="mx-3 border-t border-gray-100 dark:border-gray-700 my-1" />
+
+                                {/* Sair */}
+                                <button
+                                    onClick={() => { setShowMaisMenu(false); void logout() }}
+                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-red-50 dark:active:bg-red-900/20 transition-colors"
+                                >
+                                    <div className="w-10 h-10 bg-red-50 dark:bg-red-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-base font-medium text-red-600 dark:text-red-400">Sair</p>
+                                    </div>
                                 </button>
                             </div>
                         </div>

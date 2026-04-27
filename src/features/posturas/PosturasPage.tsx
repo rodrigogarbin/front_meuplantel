@@ -14,110 +14,51 @@ import { formatRingComplete } from '@/lib/passaro'
 import { parseLocalDate, formatDate as formatDateUtil } from '@/lib/date'
 import { useFiltersStore, type PosturasFilterType } from '@/lib/filtersStore'
 import type { Casal } from '@/types';
+import { calcPosturaAlerts, getDiasConfig } from '@/lib/posturaAlerts'
 
-// Tipo para resultado dos alertas
+// Tipo para resultado dos alertas (mantido para compatibilidade com os consumidores abaixo)
 interface PosturaAlertResult {
     alerts: string[]
     previsao?: Date // Data prevista para nascimento (quando em CHOCO)
     proximaAcao?: Date // Data da próxima ação necessária (para ordenação)
 }
 
+// Mapeamento de AlertType para string com emoji (exibição na UI)
+const ALERT_LABELS: Record<string, string> = {
+    nascendo: '🐣 Nascendo',
+    proximo: '',  // não usado nesta tela como alert string
+    anilhar: '💍 Hora de anilhar',
+    separar: '🔀 Separar',
+    verificar: '⚠️ Verificar',
+}
+
 // Função para calcular alertas e previsão
 function getPosturaAlerts(postura: PosturaListItem): PosturaAlertResult {
-    const result: PosturaAlertResult = { alerts: [] }
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-
-    // Busca dias de choco/anilha/separa: primeiro do campo direto (PosturaResource),
-    // depois do macho.especie, depois da femea.especie, por fim usa padrão
-    const diasChoco = postura.casal?.dias_choco
-        ?? postura.casal?.macho?.especie?.dias_choco
-        ?? postura.casal?.femea?.especie?.dias_choco
-        ?? 21
-    const diasAnilha = postura.casal?.dias_anilha
-        ?? postura.casal?.macho?.especie?.dias_anilha
-        ?? postura.casal?.femea?.especie?.dias_anilha
-        ?? 7
-    const diasSepara = postura.casal?.dias_separa
-        ?? postura.casal?.macho?.especie?.dias_separa
-        ?? postura.casal?.femea?.especie?.dias_separa
-        ?? 45
-
-    // Se status é CHOCO ou FERTIL e data + dias_choco >= hoje => "Nascendo"
-    if ((postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL) && postura.data) {
-        const dataPostura = parseLocalDate(postura.data)
-        if (!dataPostura) return result
-        const dataNascendo = new Date(dataPostura)
-        dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
-
-        // Guarda a previsão de nascimento
-        result.previsao = dataNascendo
-        result.proximaAcao = dataNascendo
-
-        if (dataNascendo <= hoje) {
-            result.alerts.push('🐣 Nascendo')
-        }
-
-        // Se era para nascer e não nasceu após 30 dias
-        const dataVerificar = new Date(dataNascendo)
-        dataVerificar.setDate(dataVerificar.getDate() + 30)
-        if (!postura.data_nasc && dataVerificar <= hoje) {
-            result.alerts.push('⚠️ Verificar')
-        }
+    const config = getDiasConfig(postura.casal ?? undefined)
+    const input = {
+        sit: postura.sit,
+        data: postura.data,
+        data_nasc: postura.data_nasc,
+        data_separa: null,
+        nro_anel: postura.nro_anel,
+        ano_anel: postura.ano_anel,
+        passaro_id: postura.passaro?.id ?? null,
     }
+    const shared = calcPosturaAlerts(input, config)
 
-    // Se status é NASCIDO e não tem passaro_id (ainda não gerou filhote)
-    if (postura.sit === SitPostura.NASCIDO && !postura.passaro) {
-        if (postura.data_nasc) {
-            const dataNasc = parseLocalDate(postura.data_nasc)
-            if (!dataNasc) return result
+    // Mapeia AlertType[] para string[] com emojis (compatibilidade com AlertBadge e hasAlert)
+    const alerts = shared.alerts
+        .filter(a => a !== 'proximo') // 'proximo' não aparece como badge nesta tela
+        .map(a => ALERT_LABELS[a] ?? a)
 
-            // Verifica se já foi anilhado (tem nro_anel e ano_anel)
-            const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
+    // proximaAcao: usa previsaoAnilha > previsaoSepara > previsaoNascimento (em ordem de relevância)
+    const proximaAcao = shared.previsaoAnilha ?? shared.previsaoSepara ?? shared.previsaoNascimento
 
-            if (!jaAnilhado) {
-                // Se ainda não foi anilhado, verifica a data de anilhar
-                const dataAnilhar = new Date(dataNasc)
-                dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
-
-                // Data da próxima ação é a data de anilhar
-                result.proximaAcao = dataAnilhar
-
-                // Se chegou a hora de anilhar
-                if (dataAnilhar <= hoje) {
-                    result.alerts.push('💍 Hora de anilhar')
-                }
-
-                // Se era pra anilhar e não anilhou após 30 dias
-                const dataVerificarAnilhar = new Date(dataAnilhar)
-                dataVerificarAnilhar.setDate(dataVerificarAnilhar.getDate() + 30)
-                if (dataVerificarAnilhar <= hoje) {
-                    result.alerts.push('⚠️ Verificar')
-                }
-            } else {
-                // Se já foi anilhado, verifica se está na hora de separar
-                const dataSeparar = new Date(dataNasc)
-                dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
-
-                // Data da próxima ação é a data de separar
-                result.proximaAcao = dataSeparar
-
-                // Se chegou a hora de separar
-                if (dataSeparar <= hoje) {
-                    result.alerts.push('🔀 Separar')
-                }
-
-                // Se era pra separar e não separou após 30 dias
-                const dataVerificarSeparar = new Date(dataSeparar)
-                dataVerificarSeparar.setDate(dataVerificarSeparar.getDate() + 30)
-                if (dataVerificarSeparar <= hoje) {
-                    result.alerts.push('⚠️ Verificar')
-                }
-            }
-        }
+    return {
+        alerts,
+        previsao: shared.previsaoNascimento,
+        proximaAcao,
     }
-
-    return result
 }
 
 // Função para formatar data

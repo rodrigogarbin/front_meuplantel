@@ -64,13 +64,15 @@ export function CasalFormPage() {
             if (vigen_inicial && vigen_inicial.length > 10) {
                 vigen_inicial = vigen_inicial.slice(0, 10)
             }
+            const machoId = casal.passaro_macho_id ?? (casal.macho as { id?: number } | null)?.id ?? null
+            const femeaId = casal.passaro_femea_id ?? (casal.femea as { id?: number } | null)?.id ?? null
             setFormData({
                 nro: casal.nro?.toString() || '',
-                passaro_macho_id: casal.passaro_macho_id ?? (casal.macho as { id?: number } | null)?.id ?? null,
-                passaro_femea_id: casal.passaro_femea_id ?? (casal.femea as { id?: number } | null)?.id ?? null,
+                passaro_macho_id: machoId,
+                passaro_femea_id: femeaId,
                 vigen_inicial,
-                descr_pai: casal.descr_pai || '',
-                descr_mae: casal.descr_mae || '',
+                descr_pai: machoId ? '' : (casal.descr_pai || ''),
+                descr_mae: femeaId ? '' : (casal.descr_mae || ''),
             })
         }
     }, [casal, isEditing])
@@ -110,8 +112,8 @@ export function CasalFormPage() {
             passaro_macho_id: formData.passaro_macho_id || null,
             passaro_femea_id: formData.passaro_femea_id || null,
             vigen_inicial: formData.vigen_inicial || null,
-            descr_pai: formData.descr_pai.trim() || null,
-            descr_mae: formData.descr_mae.trim() || null,
+            descr_pai: formData.passaro_macho_id ? null : (formData.descr_pai.trim() || null),
+            descr_mae: formData.passaro_femea_id ? null : (formData.descr_mae.trim() || null),
         }
 
         try {
@@ -215,7 +217,10 @@ export function CasalFormPage() {
                                 label="Macho"
                                 value={formData.passaro_macho_id}
                                 freeText={formData.descr_pai}
-                                onChange={(id) => updateField('passaro_macho_id', id)}
+                                onChange={(id) => {
+                                    updateField('passaro_macho_id', id)
+                                    if (id) updateField('descr_pai', '')
+                                }}
                                 onFreeText={(text) => {
                                     updateField('descr_pai', text)
                                     if (text) updateField('passaro_macho_id', null)
@@ -238,7 +243,10 @@ export function CasalFormPage() {
                                 label="Fêmea"
                                 value={formData.passaro_femea_id}
                                 freeText={formData.descr_mae}
-                                onChange={(id) => updateField('passaro_femea_id', id)}
+                                onChange={(id) => {
+                                    updateField('passaro_femea_id', id)
+                                    if (id) updateField('descr_mae', '')
+                                }}
                                 onFreeText={(text) => {
                                     updateField('descr_mae', text)
                                     if (text) updateField('passaro_femea_id', null)

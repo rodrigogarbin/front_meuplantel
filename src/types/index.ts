@@ -278,12 +278,22 @@ export const SitPostura = {
 export type SitPosturaType = (typeof SitPostura)[keyof typeof SitPostura]
 
 export const SitPosturaLabels: Record<number, string> = {
-    [SitPostura.CHOCO]: 'Choco',
+    [SitPostura.CHOCO]: 'Chocando',
     [SitPostura.NASCIDO]: 'Nascido',
     [SitPostura.BRANCO]: 'Branco/Infértil',
     [SitPostura.EMBRIAO_MORTO]: 'Embrião Morto',
     [SitPostura.FILHOTE_MORTO]: 'Filhote Morto',
     [SitPostura.FERTIL]: 'Fértil',
+}
+
+// Color classes (Tailwind) for each postura status — used in UI components
+export const SitPosturaColors: Record<number, string> = {
+    [SitPostura.CHOCO]: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
+    [SitPostura.NASCIDO]: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
+    [SitPostura.BRANCO]: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+    [SitPostura.EMBRIAO_MORTO]: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
+    [SitPostura.FILHOTE_MORTO]: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
+    [SitPostura.FERTIL]: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
 }
 
 // Payload para criar postura

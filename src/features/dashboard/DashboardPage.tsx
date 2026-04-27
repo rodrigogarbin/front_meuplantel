@@ -41,13 +41,6 @@ export function DashboardPage() {
         }
     }, [especies, isLoadingEspecies, navigate])
 
-    // Dados para o gráfico de sexo
-    const sexoChartData = stats ? [
-        { label: 'Machos', value: stats.passarosPorSexo.machos, color: '#3B82F6' },
-        { label: 'Fêmeas', value: stats.passarosPorSexo.femeas, color: '#EC4899' },
-        { label: 'Indefinidos', value: stats.passarosPorSexo.indefinidos, color: '#9CA3AF' },
-    ] : []
-
     // Dados para o gráfico de status das posturas
     const posturasStatusData = stats?.posturasDetalhadas ? [
         { label: 'Nascidos', value: stats.posturasDetalhadas.nascidos, color: '#10B981' },
@@ -76,6 +69,11 @@ export function DashboardPage() {
                 label: 'Casais',
                 color: '#3B82F6',
                 data: stats.historicoPosturas.slice().map(item => item.gaiolas),
+            },
+            {
+                label: 'Mortalidade',
+                color: '#EF4444',
+                data: stats.historicoPosturas.slice().map(item => item.mortalidade ?? 0),
             },
         ],
     } : null
@@ -244,16 +242,6 @@ export function DashboardPage() {
                         </div>
                     </section>
 
-                    {/* Gráficos */}
-                    {stats && (stats.passarosPorSexo.machos > 0 || stats.passarosPorSexo.femeas > 0 || stats.passarosPorSexo.indefinidos > 0) && (
-                        <section className="mb-8 mt-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Distribuição por Sexo em {anoSelecionado}</h2>
-
-                            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                                <ApexPieChart data={sexoChartData} />
-                            </div>
-                        </section>
-                    )}
 
                     {/* Gráfico de Status das Posturas */}
                     {stats && posturasStatusData.length > 0 && (

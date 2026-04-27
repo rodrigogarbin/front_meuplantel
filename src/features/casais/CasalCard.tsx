@@ -6,6 +6,7 @@
 import type { Casal } from '@/types'
 import { formatPassaroCompleto } from '@/lib/passaro'
 import { formatDate } from '@/lib/date'
+import { calcPosturaAlerts } from '@/lib/posturaAlerts'
 
 interface CasalCardProps {
     casal: Casal
@@ -23,13 +24,12 @@ export function CasalCard({ casal, onClick }: CasalCardProps) {
     const todasNascidas = ovosAtivos > 0 && casal.posturas!.every(p => p.sit === 1)
     const totalFilhotes = todasNascidas ? ovosAtivos : 0
 
-    // Dias de cada fase derivados da espécie
-    const diasChoco = casal.macho?.especie?.dias_choco ?? casal.femea?.especie?.dias_choco ?? 21
-    const diasAnilha = casal.macho?.especie?.dias_anilha ?? casal.femea?.especie?.dias_anilha ?? 7
-    const diasSepara = casal.macho?.especie?.dias_separa ?? casal.femea?.especie?.dias_separa ?? 45
-
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
+    // Dias de cada fase derivados da espécie (undefined quando não configurado)
+    const diasConfig = {
+        diasChoco: casal.macho?.especie?.dias_choco ?? casal.femea?.especie?.dias_choco,
+        diasAnilha: casal.macho?.especie?.dias_anilha ?? casal.femea?.especie?.dias_anilha,
+        diasSepara: casal.macho?.especie?.dias_separa ?? casal.femea?.especie?.dias_separa,
+    }
 
     type AlertState = 'nascendo' | 'anilhar' | 'separar' | 'proximo' | null
 
@@ -41,30 +41,27 @@ export function CasalCard({ casal, onClick }: CasalCardProps) {
     let diasParaNascer: number | null = null
 
     for (const postura of casal.posturas ?? []) {
-        // Nascendo / Próximo de nascer (sit=0 CHOCO ou sit=5 FERTIL)
-        if ((postura.sit === 0 || postura.sit === 5) && postura.data) {
-            const dataNascendo = new Date(postura.data + 'T00:00:00')
-            dataNascendo.setDate(dataNascendo.getDate() + diasChoco)
-            const diffDias = Math.ceil((dataNascendo.getTime() - hoje.getTime()) / 86400000)
-            if (diffDias <= 0) {
-                hasNascendo = true
-            } else if (diffDias <= 3) {
-                hasProximo = true
-                if (diasParaNascer === null || diffDias < diasParaNascer) diasParaNascer = diffDias
-            }
-        }
-        // Anilhar / Separar (sit=1 NASCIDO)
-        if (postura.sit === 1 && postura.data_nasc) {
-            const dataNasc = new Date(postura.data_nasc + 'T00:00:00')
-            const jaAnilhado = !!(postura.nro_anel && postura.ano_anel)
-            if (!jaAnilhado) {
-                const dataAnilhar = new Date(dataNasc)
-                dataAnilhar.setDate(dataAnilhar.getDate() + diasAnilha)
-                if (dataAnilhar <= hoje) hasAnilhar = true
-            } else {
-                const dataSeparar = new Date(dataNasc)
-                dataSeparar.setDate(dataSeparar.getDate() + diasSepara)
-                if (dataSeparar <= hoje) hasSeparar = true
+        const result = calcPosturaAlerts(
+            {
+                sit: postura.sit ?? -1,
+                data: postura.data,
+                data_nasc: postura.data_nasc,
+                data_separa: postura.data_separa,
+                nro_anel: postura.nro_anel,
+                ano_anel: postura.ano_anel,
+                passaro_id: postura.passaro_id,
+            },
+            diasConfig
+        )
+
+        if (result.alerts.includes('nascendo')) hasNascendo = true
+        if (result.alerts.includes('anilhar')) hasAnilhar = true
+        if (result.alerts.includes('separar')) hasSeparar = true
+        if (result.alerts.includes('proximo')) {
+            hasProximo = true
+            const dias = result.diasRestantes
+            if (dias != null && (diasParaNascer === null || dias < diasParaNascer)) {
+                diasParaNascer = dias
             }
         }
     }

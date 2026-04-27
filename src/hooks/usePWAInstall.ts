@@ -1,5 +1,8 @@
 /**
  * Hook para gerenciar instalação do PWA
+ *
+ * O evento `beforeinstallprompt` dispara muito antes do React montar.
+ * Capturamos em nível de módulo (executa na importação) para não perder o evento.
  */
 
 import { useState, useEffect } from 'react'
@@ -9,68 +12,62 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+// Captura global — executado assim que o módulo é importado
+let _deferredPrompt: BeforeInstallPromptEvent | null = null
+let _installed = false
+const _listeners = new Set<() => void>()
+
+function notify() {
+    _listeners.forEach((fn) => fn())
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    _deferredPrompt = e as BeforeInstallPromptEvent
+    notify()
+})
+
+window.addEventListener('appinstalled', () => {
+    _deferredPrompt = null
+    _installed = true
+    notify()
+})
+
 export function usePWAInstall() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const [isInstallable, setIsInstallable] = useState(false)
-    const [isInstalled, setIsInstalled] = useState(false)
-    const [isIOS, setIsIOS] = useState(false)
+    const [, rerender] = useState(0)
 
     useEffect(() => {
-        // Detecta se é iOS
-        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
-        setIsIOS(isIOSDevice)
-
-        // Verifica se já está instalado (standalone mode)
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-            (window.navigator as unknown as { standalone?: boolean }).standalone === true
-        setIsInstalled(isStandalone)
-
-        // Listener para o evento beforeinstallprompt (Android/Desktop)
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault()
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
-            setIsInstallable(true)
-        }
-
-        // Listener para quando o app é instalado
-        const handleAppInstalled = () => {
-            setIsInstalled(true)
-            setIsInstallable(false)
-            setDeferredPrompt(null)
-        }
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-        window.addEventListener('appinstalled', handleAppInstalled)
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-            window.removeEventListener('appinstalled', handleAppInstalled)
-        }
+        const fn = () => rerender((n) => n + 1)
+        _listeners.add(fn)
+        return () => { _listeners.delete(fn) }
     }, [])
 
+    const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as unknown as { MSStream?: unknown }).MSStream
+
+    const isInstalled =
+        _installed ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true
+
+    const isInstallable = !isInstalled && (_deferredPrompt !== null || isIOS)
+
     const promptInstall = async (): Promise<boolean> => {
-        if (!deferredPrompt) return false
-
+        if (!_deferredPrompt) return false
         try {
-            await deferredPrompt.prompt()
-            const { outcome } = await deferredPrompt.userChoice
-
+            await _deferredPrompt.prompt()
+            const { outcome } = await _deferredPrompt.userChoice
             if (outcome === 'accepted') {
-                setIsInstalled(true)
-                setIsInstallable(false)
+                _deferredPrompt = null
+                _installed = true
+                notify()
             }
-
-            setDeferredPrompt(null)
             return outcome === 'accepted'
         } catch {
             return false
         }
     }
 
-    return {
-        isInstallable: isInstallable || (isIOS && !isInstalled),
-        isInstalled,
-        isIOS,
-        promptInstall
-    }
+    return { isInstallable, isInstalled, isIOS, promptInstall }
 }

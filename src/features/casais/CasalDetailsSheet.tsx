@@ -8,10 +8,11 @@ import { useNavigate } from 'react-router-dom'
 import { Dialog, Transition } from '@headlessui/react'
 import { QRCodeSVG } from 'qrcode.react'
 import type { Casal, Postura } from '@/types'
-import { SitPostura } from '@/types'
+import { SitPostura, SitPosturaLabels } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { formatPassaroCompleto } from '@/lib/passaro'
-import { formatDate, formatShortDate, parseLocalDate } from '@/lib/date'
+import { formatDate, formatShortDate } from '@/lib/date'
+import { calcPosturaAlerts } from '@/lib/posturaAlerts'
 import { getGaiolaAppUrl } from '@/lib/url'
 import { AddPosturaSheet } from './AddPosturaSheet'
 import { EditPosturaSheet } from './EditPosturaSheet'
@@ -24,24 +25,6 @@ interface CasalDetailsSheetProps {
     onRefresh?: () => void
 }
 
-function getSitPosturaLabel(sit: number | null | undefined): string {
-    switch (sit) {
-        case SitPostura.CHOCO:
-            return 'Chocando'
-        case SitPostura.NASCIDO:
-            return 'Nascido'
-        case SitPostura.BRANCO:
-            return 'Infértil'
-        case SitPostura.EMBRIAO_MORTO:
-            return 'Embrião Morto'
-        case SitPostura.FILHOTE_MORTO:
-            return 'Filhote Morto'
-        case SitPostura.FERTIL:
-            return 'Fértil'
-        default:
-            return '—'
-    }
-}
 
 function getSitPosturaColor(sit: number | null | undefined): string {
     switch (sit) {
@@ -114,19 +97,16 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const machoLabel = casal.macho ? formatPassaroCompleto(casal.macho) : casal.descr_pai || '—'
     const femeaLabel = casal.femea ? formatPassaroCompleto(casal.femea) : casal.descr_mae || '—'
 
-    // Obtém dias de choco da espécie (do macho ou da fêmea) - padrão 13 dias (canários)
+    // Obtém dias de choco da espécie (do macho ou da fêmea) — undefined quando não configurado
     // API retorna como 'especie' no CasalResource
     const diasChoco = casal.macho?.especie?.dias_choco
         ?? casal.femea?.especie?.dias_choco
-        ?? 13
 
     const diasAnilha = casal.macho?.especie?.dias_anilha
         ?? casal.femea?.especie?.dias_anilha
-        ?? 7
 
     const diasSepara = casal.macho?.especie?.dias_separa
         ?? casal.femea?.especie?.dias_separa
-        ?? 45
 
     // Verifica se uma postura NASCIDA precisa de ação (não tem pássaro vinculado ainda)
     const posturaPrecisaAcao = (postura: Postura): boolean => {
@@ -817,68 +797,42 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 // Chip unificado de ovo (chocando ou com ação pendente)
 function PosturaOvoChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
     postura: Postura
-    diasChoco: number
-    diasAnilha: number
-    diasSepara: number
+    diasChoco: number | null | undefined
+    diasAnilha: number | null | undefined
+    diasSepara: number | null | undefined
     onClick?: () => void
 }) {
     const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
-    const isNascido = postura.sit === SitPostura.NASCIDO
     const isFertil = postura.sit === SitPostura.FERTIL;
 
-    // Calcula previsão de nascimento (para ovos chocando)
-    const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if (!isChocando || !postura.data) return null;
-        try {
-            const dataPostura = parseLocalDate(postura.data);
-            if (!dataPostura) return null;
+    // Usa a função compartilhada para calcular alertas e previsão
+    const alertResult = calcPosturaAlerts(
+        {
+            sit: postura.sit ?? -1,
+            data: postura.data,
+            data_nasc: postura.data_nasc,
+            data_separa: postura.data_separa,
+            nro_anel: postura.nro_anel,
+            ano_anel: postura.ano_anel,
+            passaro_id: postura.passaro_id,
+        },
+        { diasChoco, diasAnilha, diasSepara }
+    )
 
-            const previsao = new Date(dataPostura);
-            previsao.setDate(previsao.getDate() + diasChoco);
+    // Formata a previsão de nascimento no formato esperado pelo render (dd/MM + diasRestantes)
+    const previsao = alertResult.previsaoNascimento
+        ? (() => {
+            const p = alertResult.previsaoNascimento!
+            const day = p.getDate().toString().padStart(2, '0')
+            const month = (p.getMonth() + 1).toString().padStart(2, '0')
+            return { data: `${day}/${month}`, diasRestantes: alertResult.diasRestantes ?? 0 }
+        })()
+        : null
 
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-
-            const diffTime = previsao.getTime() - hoje.getTime();
-            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            const day = previsao.getDate().toString().padStart(2, '0');
-            const month = (previsao.getMonth() + 1).toString().padStart(2, '0');
-
-            return {
-                data: `${day}/${month}`,
-                diasRestantes
-            };
-        } catch {
-            return null;
-        }
-    };
-
-    // Calcula alertas (para ovos nascidos)
-    const getAlerts = (): string[] => {
-        const alerts: string[] = [];
-        if (!isNascido || !postura.data_nasc) return alerts;
-
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        const dataNasc = parseLocalDate(postura.data_nasc);
-        if (!dataNasc) return alerts;
-
-        const diffTime = hoje.getTime() - dataNasc.getTime();
-        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diasDesdeNasc >= diasAnilha && !postura.nro_anel && !postura.ano_anel) {
-            alerts.push('Anilhar filhote');
-        }
-        if (diasDesdeNasc >= diasSepara && !postura.data_separa) {
-            alerts.push('Separar filhote');
-        }
-
-        return alerts;
-    }
-
-    const previsao = calcPrevisaoNascimento()
-    const alerts = getAlerts()
+    // Alertas de ações para ovos nascidos — mapeados para as strings usadas no render
+    const alerts: string[] = []
+    if (alertResult.alerts.includes('anilhar')) alerts.push('Anilhar filhote')
+    if (alertResult.alerts.includes('separar')) alerts.push('Separar filhote')
 
     // Cor do ícone e borda baseada no status
     const iconColor = isChocando ? 'text-amber-500' : 'text-emerald-500'
@@ -1003,7 +957,7 @@ function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?
                 <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500 dark:text-gray-400">Status:</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSitPosturaColor(postura.sit)}`}>
-                        {getSitPosturaLabel(postura.sit)}
+                        {SitPosturaLabels[postura.sit ?? -1] ?? '—'}
                     </span>
                 </div>
             </div>
@@ -1017,68 +971,42 @@ function PosturaHistoricoChip({ postura, onClick }: { postura: Postura; onClick?
 // Chip para postura recebida de outro casal (ovo que está chocando aqui mas veio de outro casal)
 function PosturaRecebidaChip({ postura, diasChoco, diasAnilha, diasSepara, onClick }: {
     postura: Postura
-    diasChoco: number
-    diasAnilha: number
-    diasSepara: number
+    diasChoco: number | null | undefined
+    diasAnilha: number | null | undefined
+    diasSepara: number | null | undefined
     onClick?: () => void
 }) {
     const isChocando = postura.sit === SitPostura.CHOCO || postura.sit === SitPostura.FERTIL
-    const isNascido = postura.sit === SitPostura.NASCIDO
     const isFertil = postura.sit === SitPostura.FERTIL
 
-    // Calcula previsão de nascimento (para ovos chocando)
-    const calcPrevisaoNascimento = (): { data: string; diasRestantes: number } | null => {
-        if (!isChocando || !postura.data) return null
-        try {
-            const dataPostura = parseLocalDate(postura.data)
-            if (!dataPostura) return null
+    // Usa a função compartilhada para calcular alertas e previsão
+    const alertResult = calcPosturaAlerts(
+        {
+            sit: postura.sit ?? -1,
+            data: postura.data,
+            data_nasc: postura.data_nasc,
+            data_separa: postura.data_separa,
+            nro_anel: postura.nro_anel,
+            ano_anel: postura.ano_anel,
+            passaro_id: postura.passaro_id,
+        },
+        { diasChoco, diasAnilha, diasSepara }
+    )
 
-            const previsao = new Date(dataPostura)
-            previsao.setDate(previsao.getDate() + diasChoco)
+    // Formata a previsão de nascimento no formato esperado pelo render (dd/MM + diasRestantes)
+    const previsao = alertResult.previsaoNascimento
+        ? (() => {
+            const p = alertResult.previsaoNascimento!
+            const day = p.getDate().toString().padStart(2, '0')
+            const month = (p.getMonth() + 1).toString().padStart(2, '0')
+            return { data: `${day}/${month}`, diasRestantes: alertResult.diasRestantes ?? 0 }
+        })()
+        : null
 
-            const hoje = new Date()
-            hoje.setHours(0, 0, 0, 0)
-
-            const diffTime = previsao.getTime() - hoje.getTime()
-            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-            const day = previsao.getDate().toString().padStart(2, '0')
-            const month = (previsao.getMonth() + 1).toString().padStart(2, '0')
-
-            return {
-                data: `${day}/${month}`,
-                diasRestantes
-            }
-        } catch {
-            return null
-        }
-    }
-
-    // Calcula alertas (para ovos nascidos)
-    const getAlerts = (): string[] => {
-        const alerts: string[] = []
-        if (!isNascido || !postura.data_nasc) return alerts
-
-        const hoje = new Date()
-        hoje.setHours(0, 0, 0, 0)
-        const dataNasc = parseLocalDate(postura.data_nasc)
-        if (!dataNasc) return alerts
-
-        const diffTime = hoje.getTime() - dataNasc.getTime()
-        const diasDesdeNasc = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-        if (diasDesdeNasc >= diasAnilha && !postura.nro_anel && !postura.ano_anel) {
-            alerts.push('Anilhar filhote')
-        }
-        if (diasDesdeNasc >= diasSepara && !postura.data_separa) {
-            alerts.push('Separar filhote')
-        }
-
-        return alerts
-    }
-
-    const previsao = calcPrevisaoNascimento()
-    const alerts = getAlerts()
+    // Alertas de ações para ovos nascidos — mapeados para as strings usadas no render
+    const alerts: string[] = []
+    if (alertResult.alerts.includes('anilhar')) alerts.push('Anilhar filhote')
+    if (alertResult.alerts.includes('separar')) alerts.push('Separar filhote')
 
     // Cor do ícone baseada no status
     const iconColor = isChocando ? 'text-amber-500' : 'text-emerald-500'
@@ -1201,7 +1129,7 @@ function PosturaTransferidaChip({ postura }: { postura: Postura }) {
                 <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500 dark:text-gray-400">Status:</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSitPosturaColor(postura.sit)}`}>
-                        {getSitPosturaLabel(postura.sit)}
+                        {SitPosturaLabels[postura.sit ?? -1] ?? '—'}
                     </span>
                 </div>
                 {/* Badge indicando para qual casal foi transferido */}

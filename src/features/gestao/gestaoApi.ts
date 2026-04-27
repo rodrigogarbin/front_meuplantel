@@ -116,6 +116,7 @@ export interface PeriodoParams {
     tipo: PeriodoTipo
     valor: number   // 0 = período atual
     valorFim?: number  // apenas para 'mes' (range De→Até)
+    especieId?: number | null
 }
 
 export function useGestaoEstatisticas(periodo?: PeriodoParams) {
@@ -128,6 +129,7 @@ export function useGestaoEstatisticas(periodo?: PeriodoParams) {
             if (periodo?.valorFim && periodo.valorFim !== periodo.valor) {
                 params.set('valor_fim', String(periodo.valorFim))
             }
+            if (periodo?.especieId != null) params.set('especie_usuario_id', String(periodo.especieId))
             const qs = params.toString()
             return (await api.get<EstatisticasData>(`/api/v1/gestao/estatisticas${qs ? '?' + qs : ''}`)).data
         },
@@ -140,12 +142,13 @@ export interface MelhoresReprodutoresPage {
     meta: { total: number; page: number; per_page: number; last_page: number }
 }
 
-export function useGestaoMelhoresReprodutoresInfinite(sexo: 0 | 1 | 2) {
+export function useGestaoMelhoresReprodutoresInfinite(sexo: 0 | 1 | 2, especieId?: number | null) {
     return useInfiniteQuery<MelhoresReprodutoresPage>({
-        queryKey: ['gestao', 'melhores-reprodutores', { sexo }],
+        queryKey: ['gestao', 'melhores-reprodutores', { sexo, especieId }],
         queryFn: async ({ pageParam }) => {
             const params = new URLSearchParams({ page: String(pageParam) })
             if (sexo > 0) params.append('sexo', String(sexo))
+            if (especieId != null) params.append('especie_usuario_id', String(especieId))
             return (await api.get<MelhoresReprodutoresPage>(`/api/v1/gestao/melhores-reprodutores?${params}`)).data
         },
         initialPageParam: 1,
