@@ -3,14 +3,18 @@
  * Bottom sheet com lista de notificações do usuário
  */
 
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BottomSheet } from '@/components/ui'
 import {
   useNotificacoes,
   useMarcarLida,
   useMarcarTodasLidas,
+  useExcluirNotificacao,
   type Notificacao,
 } from './notificacoesApi'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
 
 interface NotificacoesSheetProps {
   isOpen: boolean
@@ -55,55 +59,79 @@ function NotificacaoSkeleton() {
 interface NotificacaoItemProps {
   notificacao: Notificacao
   onPress: (notificacao: Notificacao) => void
+  onDelete: (notificacao: Notificacao) => void
 }
 
-function NotificacaoItem({ notificacao, onPress }: NotificacaoItemProps) {
+function NotificacaoItem({ notificacao, onPress, onDelete }: NotificacaoItemProps) {
   const isNaoLida = notificacao.lida_em === null
 
   return (
-    <button
-      onClick={() => onPress(notificacao)}
-      className={`w-full flex gap-3 px-4 py-3 text-left transition-colors active:bg-gray-100 dark:active:bg-gray-700 ${
+    <div
+      className={`flex items-stretch gap-0 ${
         isNaoLida
-          ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+          ? 'bg-blue-50 dark:bg-blue-900/20'
+          : ''
       }`}
     >
-      {/* Ícone */}
+      {/* Área clicável principal */}
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+        role="button"
+        tabIndex={0}
+        onClick={() => onPress(notificacao)}
+        onKeyDown={(e) => e.key === 'Enter' && onPress(notificacao)}
+        className={`flex-1 flex gap-3 px-4 py-3 text-left cursor-pointer transition-colors active:bg-gray-100 dark:active:bg-gray-700 ${
           isNaoLida
-            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+            ? 'hover:bg-blue-100 dark:hover:bg-blue-900/30'
+            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
         }`}
       >
-        <BellIcon className="w-4 h-4" />
+        {/* Ícone */}
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+            isNaoLida
+              ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          <BellIcon className="w-4 h-4" />
+        </div>
+
+        {/* Conteúdo */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p
+              className={`text-sm leading-snug ${
+                isNaoLida
+                  ? 'font-semibold text-gray-900 dark:text-gray-100'
+                  : 'font-medium text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {notificacao.titulo}
+            </p>
+            {isNaoLida && (
+              <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1.5" />
+            )}
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed line-clamp-2">
+            {notificacao.corpo}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            {notificacao.tempo_relativo}
+          </p>
+        </div>
       </div>
 
-      {/* Conteúdo */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p
-            className={`text-sm leading-snug ${
-              isNaoLida
-                ? 'font-semibold text-gray-900 dark:text-gray-100'
-                : 'font-medium text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            {notificacao.titulo}
-          </p>
-          {isNaoLida && (
-            <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1.5" />
-          )}
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed line-clamp-2">
-          {notificacao.corpo}
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-          {notificacao.tempo_relativo}
-        </p>
-      </div>
-    </button>
+      {/* Botão excluir */}
+      <button
+        onClick={() => onDelete(notificacao)}
+        aria-label="Excluir notificação"
+        className="px-3 flex items-center text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-400 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
   )
 }
 
@@ -112,20 +140,23 @@ export function NotificacoesSheet({ isOpen, onClose }: NotificacoesSheetProps) {
   const { data: notificacoes, isLoading } = useNotificacoes()
   const marcarLida = useMarcarLida()
   const marcarTodasLidas = useMarcarTodasLidas()
+  const excluirNotificacao = useExcluirNotificacao()
+
+  // Push notification state
+  const { isInstallable, isIOS, promptInstall } = usePWAInstall()
+  const { isSupported, permission, isSubscribed, subscribe, requestPermission } = usePushNotifications()
+  const [pushActivating, setPushActivating] = useState(false)
+  const [pushError, setPushError] = useState<string | null>(null)
 
   const naoLidas = notificacoes?.filter((n) => n.lida_em === null) ?? []
   const temNaoLidas = naoLidas.length > 0
 
   function handlePressNotificacao(notificacao: Notificacao) {
-    // Marca como lida se ainda não estiver
     if (notificacao.lida_em === null) {
       marcarLida.mutate(notificacao.id)
     }
-
-    // Navega para a URL se houver
     if (notificacao.url) {
       onClose()
-      // Se for URL relativa (começa com /), usa navigate. Caso contrário, abre em nova aba.
       if (notificacao.url.startsWith('/')) {
         navigate(notificacao.url)
       } else {
@@ -138,6 +169,26 @@ export function NotificacoesSheet({ isOpen, onClose }: NotificacoesSheetProps) {
     marcarTodasLidas.mutate()
   }
 
+  function handleExcluirNotificacao(notificacao: Notificacao) {
+    excluirNotificacao.mutate(notificacao.id)
+  }
+
+  const handleActivatePush = useCallback(async () => {
+    setPushError(null)
+    setPushActivating(true)
+    try {
+      if (permission !== 'granted') {
+        const result = await requestPermission()
+        if (result !== 'granted') return
+      }
+      await subscribe()
+    } catch {
+      setPushError('Não foi possível ativar. Tente recarregar a página.')
+    } finally {
+      setPushActivating(false)
+    }
+  }, [permission, requestPermission, subscribe])
+
   // Header com botão "Marcar todas como lidas"
   const headerAction = temNaoLidas ? (
     <button
@@ -149,6 +200,108 @@ export function NotificacoesSheet({ isOpen, onClose }: NotificacoesSheetProps) {
     </button>
   ) : null
 
+  // Banner exibido quando push não está configurado
+  // Só é renderizado após o carregamento para evitar flash em usuários já inscritos
+  const pushBanner = (() => {
+    if (isLoading) return null
+
+    // App não instalado — push requer PWA instalado (especialmente no iOS)
+    if (isInstallable) {
+      if (isIOS) {
+        return (
+          <div className="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+            <div className="flex gap-3">
+              <span className="text-xl shrink-0">📲</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                  Instale o app para receber alertas
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">
+                  No Safari, toque em <strong>Compartilhar</strong> e depois em{' '}
+                  <strong>Adicionar à Tela de Início</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      return (
+        <div className="mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">📲</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                Instale o app para receber alertas
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Instale o MeuPlantel para receber notificações do plantel.
+              </p>
+              <button
+                onClick={promptInstall}
+                className="mt-2 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 transition-colors"
+              >
+                Instalar app
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Notificações não suportadas neste navegador
+    if (!isSupported) return null
+
+    // Notificações bloqueadas nas configurações do navegador
+    if (permission === 'denied') {
+      return (
+        <div className="mb-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+          <div className="flex gap-3">
+            <span className="text-xl shrink-0">🔕</span>
+            <div>
+              <p className="text-sm font-semibold text-red-800 dark:text-red-200">
+                Notificações bloqueadas
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                Habilite as notificações nas configurações do seu navegador para receber alertas.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Não inscrito — botão para ativar
+    if (!isSubscribed) {
+      return (
+        <div className="mb-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">🔔</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                Ative as notificações
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Receba alertas sobre ovos nascendo, anilhamento e separação.
+              </p>
+              {pushError && (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1">{pushError}</p>
+              )}
+              <button
+                onClick={handleActivatePush}
+                disabled={pushActivating}
+                className="mt-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg px-3 py-1.5 transition-colors"
+              >
+                {pushActivating ? 'Ativando...' : 'Ativar notificações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return null
+  })()
+
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Notificações">
       {/* Ação do header — botão fora do título, dentro do conteúdo no topo */}
@@ -157,6 +310,9 @@ export function NotificacoesSheet({ isOpen, onClose }: NotificacoesSheetProps) {
           {headerAction}
         </div>
       )}
+
+      {/* Banner de push (instalação ou ativação) */}
+      {pushBanner}
 
       {/* Estado de loading */}
       {isLoading && (
@@ -175,13 +331,14 @@ export function NotificacoesSheet({ isOpen, onClose }: NotificacoesSheetProps) {
               key={notificacao.id}
               notificacao={notificacao}
               onPress={handlePressNotificacao}
+              onDelete={handleExcluirNotificacao}
             />
           ))}
         </div>
       )}
 
-      {/* Estado vazio */}
-      {!isLoading && (!notificacoes || notificacoes.length === 0) && (
+      {/* Estado vazio — omitido quando banner de push já orienta o usuário */}
+      {!isLoading && (!notificacoes || notificacoes.length === 0) && !pushBanner && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
             <BellIcon className="w-7 h-7 text-gray-400 dark:text-gray-500" />

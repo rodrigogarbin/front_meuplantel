@@ -72,6 +72,13 @@ async function marcarTodasLidas(): Promise<void> {
 }
 
 /**
+ * Exclui (soft-delete) uma notificação
+ */
+async function excluirNotificacao(id: number): Promise<void> {
+  await api.delete(`/api/v1/notificacoes/${id}`)
+}
+
+/**
  * Hook para buscar lista de notificações
  */
 export function useNotificacoes(lidas?: 0 | 1) {
@@ -122,6 +129,35 @@ export function useMarcarTodasLidas() {
   return useMutation({
     mutationFn: marcarTodasLidas,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes'] })
+    },
+  })
+}
+
+/**
+ * Mutation para excluir uma notificação (soft-delete)
+ * Remove imediatamente do cache via optimistic update
+ */
+export function useExcluirNotificacao() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: excluirNotificacao,
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['notificacoes'] })
+      const previous = queryClient.getQueryData<Notificacao[]>(['notificacoes', { lidas: undefined }])
+      queryClient.setQueryData<Notificacao[]>(
+        ['notificacoes', { lidas: undefined }],
+        (old) => old?.filter((n) => n.id !== id) ?? []
+      )
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notificacoes', { lidas: undefined }], context.previous)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notificacoes'] })
     },
   })
