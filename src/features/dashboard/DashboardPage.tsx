@@ -94,7 +94,7 @@ export function DashboardPage() {
 
     return (
         <>
-            <Topbar title="Dashboard" />
+            <Topbar title="MeuPlantel" />
 
             <PullToRefresh
                 onRefresh={async () => { await refetch() }}
@@ -103,38 +103,31 @@ export function DashboardPage() {
                 <div className="px-4 py-6 max-w-4xl mx-auto">
                     {/* Saudação */}
                     <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            {saudacao}, {user?.nome?.split(' ')[0] || 'Criador'}! 👋
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">🐦</span>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                {saudacao}, {user?.nome?.split(' ')[0] || 'Criador'}!
+                            </h1>
+                        </div>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
                             Aqui está o resumo do seu plantel
                         </p>
                     </div>
 
-                    {/* Seletor de Ano */}
-                    <section className="mb-6">
-                        <div className="flex items-center gap-2">
-                            <label htmlFor="ano-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Ano:
-                            </label>
+                    {/* Cards de Estatísticas */}
+                    <section className="mb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">Resumo</h2>
                             <select
-                                id="ano-select"
                                 value={anoSelecionado}
                                 onChange={(e) => setAnoSelecionado(Number(e.target.value))}
-                                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             >
                                 {anosDisponiveis.map((ano) => (
-                                    <option key={ano} value={ano}>
-                                        {ano}
-                                    </option>
+                                    <option key={ano} value={ano}>{ano}</option>
                                 ))}
                             </select>
                         </div>
-                    </section>
-
-                    {/* Cards de Estatísticas */}
-                    <section className="mb-8">
-                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Resumo de {anoSelecionado}</h2>
 
                         {isLoading ? (
                             <div className="grid grid-cols-2 gap-4">
@@ -150,8 +143,9 @@ export function DashboardPage() {
                         ) : stats ? (
                             <div className="grid grid-cols-2 gap-4">
                                 <StatCard
-                                    title="Total de Pássaros"
-                                    value={stats.totalPassaros}
+                                    title="Pássaros Ativos"
+                                    value={stats.passarosAtivos}
+                                    subtitle={`${stats.totalPassaros} no total`}
                                     icon={<BirdIcon />}
                                     color="blue"
                                     onClick={() => navigate('/passaros')}
@@ -182,52 +176,56 @@ export function DashboardPage() {
                     </section>
 
                     {/* Ações Rápidas */}
-                    <section>
-                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Ações Rápidas</h2>
+                    <section className="mt-6 mb-2">
+                        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Acesso rápido</h2>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => navigate('/passaros')}
-                                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                className="relative overflow-hidden bg-blue-500 rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
                             >
-                                <BirdIcon className="w-8 h-8 text-blue-500 mb-2" />
-                                <p className="font-medium text-gray-900 dark:text-gray-100">Ver Plantel</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Todos os pássaros</p>
+                                <div className="absolute -right-3 -top-3 w-16 h-16 bg-white/10 rounded-full" />
+                                <BirdIcon className="w-7 h-7 text-white mb-2 relative" />
+                                <p className="font-semibold text-white text-sm">Plantel</p>
+                                <p className="text-xs text-blue-100">Ver pássaros</p>
                             </button>
 
                             <button
                                 onClick={() => navigate('/casais')}
-                                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                className="relative overflow-hidden bg-rose-500 rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
                             >
-                                <CoupleIcon className="w-8 h-8 text-red-500 mb-2" />
-                                <p className="font-medium text-gray-900 dark:text-gray-100">Ver Casais</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Casais formados</p>
+                                <div className="absolute -right-3 -top-3 w-16 h-16 bg-white/10 rounded-full" />
+                                <CoupleIcon className="w-7 h-7 text-white mb-2 relative" />
+                                <p className="font-semibold text-white text-sm">Casais</p>
+                                <p className="text-xs text-rose-100">Casais ativos</p>
                             </button>
 
                             <button
                                 onClick={() => navigate('/posturas')}
-                                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                className="relative overflow-hidden bg-amber-500 rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
                             >
-                                <EggIcon className="w-8 h-8 text-yellow-500 mb-2" />
-                                <p className="font-medium text-gray-900 dark:text-gray-100">Ver Posturas</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Posturas ativas</p>
+                                <div className="absolute -right-3 -top-3 w-16 h-16 bg-white/10 rounded-full" />
+                                <EggIcon className="w-7 h-7 text-white mb-2 relative" />
+                                <p className="font-semibold text-white text-sm">Posturas</p>
+                                <p className="text-xs text-amber-100">Acompanhar ninhadas</p>
                             </button>
 
                             <button
                                 onClick={() => navigate('/passaros/novo')}
-                                className="bg-primary text-white rounded-xl p-4 shadow-sm text-left hover:bg-primary/90 transition-colors"
+                                className="relative overflow-hidden bg-emerald-500 rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
                             >
-                                <div className="w-8 h-8 mb-2 flex items-center justify-center">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <div className="absolute -right-3 -top-3 w-16 h-16 bg-white/10 rounded-full" />
+                                <div className="w-7 h-7 mb-2 relative flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                     </svg>
                                 </div>
-                                <p className="font-medium">Novo Pássaro</p>
-                                <p className="text-sm text-white/80">Cadastrar pássaro</p>
+                                <p className="font-semibold text-white text-sm">Novo Pássaro</p>
+                                <p className="text-xs text-emerald-100">Cadastrar</p>
                             </button>
                         </div>
 
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-2 flex justify-end">
                             <button
                                 onClick={() => temCasaisAtivos && setShowNumberScanner(true)}
                                 disabled={!temCasaisAtivos}
@@ -246,8 +244,7 @@ export function DashboardPage() {
                     {/* Gráfico de Status das Posturas */}
                     {stats && posturasStatusData.length > 0 && (
                         <section className="mb-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <EggIcon className="w-5 h-5 text-yellow-500" />
+                            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
                                 Status das Posturas em {anoSelecionado}
                             </h2>
 
@@ -260,9 +257,8 @@ export function DashboardPage() {
                     {/* Gráfico Histórico de Posturas e Nascimentos */}
                     {stats && historicoLineChartData && (
                         <section className="mb-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <EggIcon className="w-5 h-5 text-yellow-500" />
-                                Histórico de Posturas e Nascimentos
+                            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                Histórico de Reprodução
                             </h2>
 
                             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -277,9 +273,9 @@ export function DashboardPage() {
                     {/* Aniversariantes */}
                     {stats && stats.aniversariantes.length > 0 && (
                         <section className="mb-8">
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <CakeIcon className="w-5 h-5 text-purple-500" />
-                                Aniversariantes do Mês
+                            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <CakeIcon className="w-4 h-4 text-purple-500" />
+                                Aniversariantes do mês
                             </h2>
 
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">

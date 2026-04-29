@@ -173,7 +173,11 @@ export function ChatPage() {
                 <div className="flex gap-2 items-end">
                     <textarea
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={(e) => {
+                            setInput(e.target.value)
+                            e.target.style.height = 'auto'
+                            e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px'
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault()
@@ -183,12 +187,13 @@ export function ChatPage() {
                         placeholder="Pergunte sobre seu plantel…"
                         rows={1}
                         disabled={isPending}
-                        className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 max-h-32"
+                        className="flex-1 resize-none rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 overflow-hidden"
+                        style={{ minHeight: '44px', maxHeight: '128px' }}
                     />
                     <button
                         onClick={() => handleSend(input)}
                         disabled={!input.trim() || isPending}
-                        className="shrink-0 w-10 h-10 bg-blue-500 disabled:bg-gray-300 dark:disabled:bg-gray-600 rounded-xl flex items-center justify-center transition-colors"
+                        className="shrink-0 w-11 h-11 bg-blue-500 disabled:bg-gray-300 dark:disabled:bg-gray-600 rounded-xl flex items-center justify-center transition-colors active:scale-95"
                     >
                         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />

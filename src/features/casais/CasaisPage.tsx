@@ -177,27 +177,39 @@ export function CasaisPage() {
                 title="Casais Ativos"
             />
 
+            {/* Barra de busca sticky */}
+            <div className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <SearchIcon />
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Buscar casal... (use # para número)"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setShowNumberScanner(true)}
+                        aria-label="Escanear número da gaiola"
+                        className="w-11 h-11 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all shrink-0"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             <main className="page-content">
                 <PullToRefresh
                     onRefresh={async () => { await refetch() }}
                     disabled={isLoading}
                 >
-                    {/* Campo de busca */}
-                    <div className="px-4 pt-4">
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                <SearchIcon />
-                            </span>
-                            <input
-                                type="text"
-                                placeholder="Buscar casal... (use # para buscar por número)"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                            />
-                        </div>
-                    </div>
-
                     {/* Loading */}
                     {isLoading && (
                         <div className="p-4 space-y-4">

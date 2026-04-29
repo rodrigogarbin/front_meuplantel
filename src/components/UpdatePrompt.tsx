@@ -2,6 +2,7 @@
  * Componente que exibe notificação quando há uma atualização do PWA disponível
  */
 
+import { useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 export function UpdatePrompt() {
@@ -11,15 +12,21 @@ export function UpdatePrompt() {
         updateServiceWorker,
     } = useRegisterSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
-            // Verificar atualizações a cada 1 hora
-            r && setInterval(() => {
-                r.update()
-            }, 60 * 60 * 1000)
+            // Verificar atualizações a cada 10 minutos
+            r && setInterval(() => { r.update() }, 10 * 60 * 1000)
         },
         onRegisterError(error: unknown) {
             console.error('SW registration error', error)
         },
     })
+
+    // Recarrega automaticamente quando um novo SW assume o controle
+    useEffect(() => {
+        if (!('serviceWorker' in navigator)) return
+        const handleControllerChange = () => { window.location.reload() }
+        navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
+        return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+    }, [])
 
     const close = () => {
         setOfflineReady(false)

@@ -1,6 +1,6 @@
 /**
  * Componente Topbar
- * Header que rola junto com o conteúdo (não fixo).
+ * Header que rola junto com o conteúdo. Apenas a barra de busca fica sticky.
  * A safe area do notch/relógio é tratada pelo div raiz do MainLayout.
  */
 

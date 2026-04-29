@@ -9,9 +9,11 @@ interface SearchInputProps {
     value: string
     onChange: (value: string) => void
     placeholder?: string
+    onFocus?: () => void
+    onBlur?: () => void
 }
 
-export function SearchInput({ value, onChange, placeholder = 'Buscar...' }: SearchInputProps) {
+export function SearchInput({ value, onChange, placeholder = 'Buscar...', onFocus, onBlur }: SearchInputProps) {
     const inputRef = useRef<HTMLInputElement>(null)
 
     const handleClear = () => {
@@ -35,6 +37,8 @@ export function SearchInput({ value, onChange, placeholder = 'Buscar...' }: Sear
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
+                onFocus={onFocus}
+                onBlur={onBlur}
                 placeholder={placeholder}
                 className="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 border-2 border-transparent rounded-xl text-sm text-gray-900 dark:text-gray-100 transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900"
             />

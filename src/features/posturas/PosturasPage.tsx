@@ -3,8 +3,8 @@
  * Exibe todas as posturas ativas com alertas de ações
  */
 
-import { useState } from 'react'
-import { Topbar, SearchInput, EmptyState, ErrorState, PullToRefresh } from '@/components/ui'
+import { useState, type FocusEvent } from 'react'
+import { Topbar, SearchInput, EmptyState, ErrorState, PullToRefresh, BottomSheet } from '@/components/ui'
 import { usePosturas, type PosturaListItem } from './posturasApi'
 import { SitPostura } from '@/types'
 import { EditPosturaSheet } from '@/features/casais'
@@ -209,6 +209,9 @@ export function PosturasPage() {
     const { filterTypes, searchTerm } = posturasFilters
     const setSearchTerm = (v: string) => setPosturasFilters({ searchTerm: v })
 
+    // Estado de foco da busca (controla visibilidade dos chips de alerta)
+    const [isSearchFocused, setIsSearchFocused] = useState(false)
+
     const toggleFilter = (f: PosturasFilterType) => {
         setPosturasFilters({
             filterTypes: filterTypes.includes(f)
@@ -217,6 +220,18 @@ export function PosturasPage() {
         })
     }
     const clearFilters = () => setPosturasFilters({ filterTypes: [] })
+
+    // Chips ficam visíveis se a busca está focada OU se há filtro de alerta ativo
+    const hasActiveAlertFilter = filterTypes.length > 0
+    const showAlertChips = isSearchFocused || hasActiveAlertFilter
+
+    // Blur do container de filtros: fecha chips apenas se foco saiu do container inteiro
+    const handleFilterBlur = (e: FocusEvent<HTMLDivElement>) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsSearchFocused(false)
+        }
+    }
+
     const [selectedPostura, setSelectedPostura] = useState<PosturaListItem | null>(null)
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
     const [isAddPosturaOpen, setIsAddPosturaOpen] = useState(false);
@@ -351,22 +366,26 @@ export function PosturasPage() {
         <>
             <Topbar title="Posturas" />
 
-            <PullToRefresh
-                onRefresh={async () => { await refetch() }}
-                disabled={isLoading}
+            {/* Barra de busca e filtros sticky — busca sempre visível, chips colapsáveis */}
+            <div
+                className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700"
+                onBlur={handleFilterBlur}
             >
-                <div className="px-4 py-4 max-w-4xl mx-auto">
-                    {/* Barra de busca */}
-                    <div className="mb-4">
-                        <SearchInput
-                            value={searchTerm}
-                            onChange={setSearchTerm}
-                            placeholder="Buscar... (use # para buscar por número do casal)"
-                        />
-                    </div>
+                {/* Busca — sempre visível */}
+                <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    placeholder="Buscar... (use # para buscar por número do casal)"
+                    onFocus={() => setIsSearchFocused(true)}
+                />
 
-                    {/* Filtros por tipo de alerta (multi-seleção) */}
-                    <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+                {/* Chips de alerta — aparecem ao focar ou quando filtro ativo */}
+                <div
+                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                        showAlertChips ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                    }`}
+                >
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                         <button
                             onClick={clearFilters}
                             className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filterTypes.length === 0
@@ -413,7 +432,14 @@ export function PosturasPage() {
                             ⚠️ Verificar
                         </button>
                     </div>
+                </div>
+            </div>
 
+            <PullToRefresh
+                onRefresh={async () => { await refetch() }}
+                disabled={isLoading}
+            >
+                <div className="px-4 pt-4 pb-4 max-w-4xl mx-auto">
                     {/* Loading */}
                     {isLoading && (
                         <div className="space-y-3">
@@ -518,55 +544,50 @@ export function PosturasPage() {
                 </svg>
             </button>
 
-            {/* Modal para selecionar casal */}
-            {isAddPosturaOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-lg relative">
-                        <button
-                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                            onClick={() => setIsAddPosturaOpen(false)}
-                        >
-                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <h2 className="text-lg font-bold mb-4">Selecione o casal</h2>
-                        <div className="space-y-2 max-h-72 overflow-y-auto">
-                            {casais.length === 0 && <div className="text-gray-500">Nenhum casal ativo</div>}
-                            {casais.map((casal) => (
-                                <button
-                                    key={casal.id ?? casal.gaiola_id}
-                                    className="w-full text-left px-4 py-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all border border-gray-100 dark:border-gray-700 mb-1"
-                                    onClick={() => {
-                                        setCasalSelecionado(casal);
-                                        setIsAddPosturaOpen(false);
-                                    }}
-                                >
-                                    <div className="font-bold dark:text-gray-400 mb-1">
-                                        Casal: #{casal.nro}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                            ♂
-                                        </span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-200 truncate flex-1">
-                                            {casal.macho?.descr || casal.descr_pai || '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                            ♀
-                                        </span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-200 truncate flex-1">
-                                            {casal.femea?.descr || casal.descr_mae || '—'}
-                                        </span>
-                                    </div>
-                                </button>
-                            ))}
+            {/* BottomSheet para selecionar casal */}
+            <BottomSheet
+                isOpen={isAddPosturaOpen}
+                onClose={() => setIsAddPosturaOpen(false)}
+                title="Selecione o casal"
+            >
+                <div className="space-y-2 pb-4">
+                    {casais.length === 0 && (
+                        <div className="text-gray-500 dark:text-gray-400 text-sm py-4 text-center">
+                            Nenhum casal ativo
                         </div>
-                    </div>
+                    )}
+                    {casais.map((casal) => (
+                        <button
+                            key={casal.id ?? casal.gaiola_id}
+                            className="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-[0.98] transition-all border border-gray-100 dark:border-gray-700"
+                            onClick={() => {
+                                setCasalSelecionado(casal);
+                                setIsAddPosturaOpen(false);
+                            }}
+                        >
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                                Casal #{casal.nro}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                    ♂
+                                </span>
+                                <span className="text-sm text-gray-700 dark:text-gray-200 truncate">
+                                    {casal.macho?.descr || casal.descr_pai || '—'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                    ♀
+                                </span>
+                                <span className="text-sm text-gray-700 dark:text-gray-200 truncate">
+                                    {casal.femea?.descr || casal.descr_mae || '—'}
+                                </span>
+                            </div>
+                        </button>
+                    ))}
                 </div>
-            )}
+            </BottomSheet>
 
             {/* Sheet para adicionar postura */}
             <AddPosturaSheet

@@ -8,6 +8,7 @@ import api from '@/lib/api'
 
 // Estrutura de dados retornada pela API /passaros/dados
 interface PassarosDadosResponse {
+    passarosAtivos?: number
     passaros?: Array<{
         ano: number
         nascidos: number
@@ -37,6 +38,7 @@ interface PassarosDadosResponse {
 // Estrutura para o dashboard do frontend
 export interface DashboardStats {
     totalPassaros: number
+    passarosAtivos: number
     passarosPorSexo: {
         machos: number
         femeas: number
@@ -118,6 +120,7 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
 
         return {
             totalPassaros: totalNascidos,
+            passarosAtivos: data.passarosAtivos ?? 0,
             passarosPorSexo: {
                 machos: machosAno,
                 femeas: femeasAno,
@@ -158,6 +161,7 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
         console.warn('Erro ao buscar dados do dashboard, retornando dados vazios:', error)
         return {
             totalPassaros: 0,
+            passarosAtivos: 0,
             passarosPorSexo: {
                 machos: 0,
                 femeas: 0,

@@ -3,7 +3,7 @@
  * Mobile-first com filtros, busca e infinite scroll
  */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect, type FocusEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, EmptyStateOnboarding, ErrorState, PullToRefresh } from '@/components/ui'
 import { BirdCard } from './BirdCard'
@@ -42,6 +42,9 @@ export function PassarosPage() {
 
         return () => clearTimeout(timer)
     }, [searchQuery])
+
+    // Estado de foco da busca (controla visibilidade dos chips)
+    const [isSearchFocused, setIsSearchFocused] = useState(false)
 
     // Estado do modal de detalhes
     const [selectedBird, setSelectedBird] = useState<Passaro | null>(null)
@@ -119,6 +122,17 @@ export function PassarosPage() {
         return () => window.removeEventListener('focus', handleFocus)
     }, [refetch])
 
+    // Chips ficam visíveis se a busca está focada OU se há filtro ativo diferente do padrão
+    const hasActiveFilter = sexoFilter !== 'all' || situacaoFilter !== 'ativos'
+    const showChips = isSearchFocused || hasActiveFilter
+
+    // Blur do container de filtros: fecha chips apenas se foco saiu do container inteiro
+    const handleFilterBlur = (e: FocusEvent<HTMLDivElement>) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsSearchFocused(false)
+        }
+    }
+
     // Handlers
     const handleCardClick = (bird: Passaro) => {
         setSelectedBird(bird)
@@ -135,50 +149,61 @@ export function PassarosPage() {
         <>
             <Topbar title="Pássaros" />
 
-            {/* Área de filtros fixa */}
-            <div className="sticky top-14 z-30 bg-gray-50 dark:bg-gray-900 px-4 py-3 space-y-3 border-b border-gray-200 dark:border-gray-700">
-                {/* Busca */}
+            {/* Área de filtros sticky — busca sempre visível, chips colapsáveis */}
+            <div
+                className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700"
+                onBlur={handleFilterBlur}
+            >
+                {/* Busca — sempre visível */}
                 <SearchInput
                     value={searchQuery}
                     onChange={setSearchQuery}
                     placeholder="Buscar por anilha ou descrição..."
+                    onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Chips de filtro */}
-                <div className="flex gap-4">
-                    {/* Filtro de Sexo */}
-                    <ChipGroup>
-                        <Chip
-                            label="Todos"
-                            active={sexoFilter === 'all'}
-                            onClick={() => setSexoFilter('all')}
-                        />
-                        <Chip
-                            label="♂ Machos"
-                            active={sexoFilter === 'macho'}
-                            onClick={() => setSexoFilter('macho')}
-                        />
-                        <Chip
-                            label="♀ Fêmeas"
-                            active={sexoFilter === 'femea'}
-                            onClick={() => setSexoFilter('femea')}
-                        />
-                    </ChipGroup>
+                {/* Chips — aparecem ao focar ou quando filtro ativo */}
+                <div
+                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                        showChips ? 'max-h-32 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                    }`}
+                >
+                    <div className="flex gap-4">
+                        {/* Filtro de Sexo */}
+                        <ChipGroup>
+                            <Chip
+                                label="Todos"
+                                active={sexoFilter === 'all'}
+                                onClick={() => setSexoFilter('all')}
+                            />
+                            <Chip
+                                label="♂ Machos"
+                                active={sexoFilter === 'macho'}
+                                onClick={() => setSexoFilter('macho')}
+                            />
+                            <Chip
+                                label="♀ Fêmeas"
+                                active={sexoFilter === 'femea'}
+                                onClick={() => setSexoFilter('femea')}
+                            />
+                        </ChipGroup>
+                    </div>
+                    <div className="mt-2">
+                        {/* Filtro de Situação */}
+                        <ChipGroup>
+                            <Chip
+                                label="Ativos"
+                                active={situacaoFilter === 'ativos'}
+                                onClick={() => setSituacaoFilter('ativos')}
+                            />
+                            <Chip
+                                label="Todos"
+                                active={situacaoFilter === 'todos'}
+                                onClick={() => setSituacaoFilter('todos')}
+                            />
+                        </ChipGroup>
+                    </div>
                 </div>
-
-                {/* Filtro de Situação */}
-                <ChipGroup>
-                    <Chip
-                        label="Ativos"
-                        active={situacaoFilter === 'ativos'}
-                        onClick={() => setSituacaoFilter('ativos')}
-                    />
-                    <Chip
-                        label="Todos"
-                        active={situacaoFilter === 'todos'}
-                        onClick={() => setSituacaoFilter('todos')}
-                    />
-                </ChipGroup>
             </div>
 
             {/* Lista de pássaros */}
