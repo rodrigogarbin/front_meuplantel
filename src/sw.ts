@@ -14,8 +14,10 @@ declare global {
 
 declare let self: ServiceWorkerGlobalScope
 
-// Ativa imediatamente sem esperar todas as abas fecharem
-self.addEventListener('install', () => self.skipWaiting())
+// Ativa quando o usuário confirmar a atualização (via UpdatePrompt)
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
 
 // Em dev mode o manifest é [] — precacheAndRoute com lista vazia é seguro

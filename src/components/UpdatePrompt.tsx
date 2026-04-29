@@ -12,8 +12,13 @@ export function UpdatePrompt() {
         updateServiceWorker,
     } = useRegisterSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
+            if (!r) return
             // Verificar atualizações a cada 10 minutos
-            r && setInterval(() => { r.update() }, 10 * 60 * 1000)
+            setInterval(() => { r.update() }, 10 * 60 * 1000)
+            // Verificar ao voltar pro app (tab em background → foreground)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') r.update()
+            })
         },
         onRegisterError(error: unknown) {
             console.error('SW registration error', error)
