@@ -384,8 +384,9 @@ export function PassaroFormPage() {
             ...formData.pportador.map((descr) => ({ descr, tp: PortadorTipo.POSSIVEL_PORTADOR })),
         ]
 
-        // Garante que nro_criador seja string ou null
-        const nroCriador = formData.nro_criador ? String(formData.nro_criador).trim() : null
+        // Garante que nro_criador seja string ou null, com mínimo 3 dígitos
+        const nroCriadorRaw = formData.nro_criador ? String(formData.nro_criador).trim() : null
+        const nroCriador = nroCriadorRaw ? nroCriadorRaw.padStart(3, '0') : null
 
         return {
             ano: Number(formData.ano),

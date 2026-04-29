@@ -81,7 +81,7 @@ export function PassaroAutocomplete({
     const getPassaroLabel = (passaro: Passaro): string => {
         const parts: string[] = []
         if (passaro.anel?.sg_clube) parts.push(passaro.anel.sg_clube)
-        if (passaro.anel?.nro_criador) parts.push(passaro.anel.nro_criador)
+        if (passaro.anel?.nro_criador) parts.push(passaro.anel.nro_criador.padStart(3, '0'))
         const nro = passaro.anel?.nro?.toString().padStart(3, '0') ?? '000'
         const ano = passaro.anel?.ano ?? '????'
         parts.push(`${nro}/${ano}`)
