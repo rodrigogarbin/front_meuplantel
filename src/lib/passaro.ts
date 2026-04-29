@@ -31,7 +31,7 @@ export function formatRingComplete(anel: Anel | null | undefined): string {
         parts.push(anel.sg_clube)
     }
     if (anel.nro_criador) {
-        parts.push(anel.nro_criador.padStart(3, '0'))
+        parts.push(String(anel.nro_criador).padStart(3, '0'))
     }
 
     // Número/Ano do anel
