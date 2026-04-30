@@ -46,9 +46,25 @@ These chips no longer declare `isNascido` (unused after refactor). They DO still
 
 Added to `src/types/index.ts` — Tailwind class strings per sit value, available for future use.
 
+## qrcode.react — Custom Type Declaration Override
+
+`src/types/qrcode.react.d.ts` is an ambient module declaration that OVERRIDES the package's own types.
+It only declared `QRCodeSVG` originally — `QRCodeCanvas` had to be added manually.
+Any new exports from qrcode.react must also be added to this file.
+The package is v4.2.0 (not 4.1.0 as some docs may say).
+
+## Certificado Genealógico Feature
+
+- Certificate creation endpoint: `POST /api/v1/certificados` → `{ token: string }`
+- Verification endpoint: `GET /api/v1/certificados/{token}/verificar` → `CertificadoData`
+- Public verification page: `src/features/certificado/CertificadoVerificacaoPage.tsx`
+- Registered as public route `/verificar/:token` (no PrivateRoute wrapper) in `src/app/router.tsx`
+- QR code embedded in PDF header using `QRCodeCanvas` from qrcode.react, read via `canvas.toDataURL()`
+
 ## Build Command
 
 `pnpm run build` from `frontend/` directory. TypeScript strict mode — no `any`.
+Pre-existing: PWA workbox fails when main chunk exceeds 2MB (bundle size issue, not a TS error).
 
 ## Conventions
 

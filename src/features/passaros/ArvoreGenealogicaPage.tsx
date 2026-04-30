@@ -2,228 +2,19 @@
  * Página de Árvore Genealógica do Pássaro
  */
 
-import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { useRef, useState } from 'react'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
+import { QRCodeCanvas } from 'qrcode.react'
 import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useArvoreGenealogica } from './passarosApi'
-// import { useUserProfile } from '@/features/auth/userApi' // Temporariamente comentado (usado apenas para PDF)
-import { formatRingComplete, getFotoUrl } from '@/lib/passaro'
-import { SexoEnum } from '@/types'
-import type { Anel } from '@/types'
-import { API_BASE_URL } from '@/lib/api'
-// import { generateGenealogyPDF } from './pdfGenerator' // Temporariamente comentado
-// import type { PassaroArvore as PassaroArvorePDF } from './pdfGenerator' // Temporariamente comentado
-
-// Tipo recursivo para o pássaro na árvore genealógica
-// A API retorna os pais como pássaros completos, não apenas referências
-interface PassaroArvore {
-    passaro_id: number
-    descr?: string | null
-    dt_nasc?: string | null
-    sexo?: number | null
-    passaro_pai_id?: number | null
-    passaro_mae_id?: number | null
-    foto?: string | null
-    anel?: Anel | null
-    pai?: PassaroArvore | null
-    mae?: PassaroArvore | null
-}
-
-// Ícone de sexo
-function SexoIcon({ sexo }: { sexo?: number | null }) {
-    if (sexo === SexoEnum.MACHO) {
-        return <span className="text-blue-500">♂</span>
-    }
-    if (sexo === SexoEnum.FEMEA) {
-        return <span className="text-pink-500">♀</span>
-    }
-    return <span className="text-gray-400">?</span>
-}
-
-// ========================================
-// VISUALIZAÇÃO HORIZONTAL (estilo imagem)
-// ========================================
-
-// Card individual de pássaro na árvore horizontal
-interface BirdCardProps {
-    passaro: PassaroArvore | null | undefined
-    isMain?: boolean
-    size?: 'sm' | 'md' | 'lg'
-    label?: string
-}
-
-function BirdCard({ passaro, isMain = false, size = 'md', label }: BirdCardProps) {
-    const navigate = useNavigate()
-    const [imageError, setImageError] = useState(false)
-    const fotoUrl = passaro?.foto ? getFotoUrl(passaro.foto, API_BASE_URL) : null
-
-    // Padronização: todos os cards terão o mesmo tamanho na horizontal
-    const sizeClasses = {
-        sm: 'w-[220px] min-h-[80px] text-[10px] px-2 py-2',
-        md: 'w-[220px] min-h-[80px] text-xs px-3 py-2',
-        lg: 'w-[220px] min-h-[80px] text-sm px-2 py-2',
-    }
-
-    const photoSizes = {
-        sm: 'w-8 h-10',
-        md: 'w-12 h-14',
-        lg: 'w-14 h-16',
-    }
-
-    if (!passaro) {
-        return (
-            <div className={`
-                flex flex-col items-center justify-center rounded-lg border-2 border-dashed
-                border-gray-300 dark:border-gray-600 text-gray-400
-                ${sizeClasses[size]}
-            `}>
-                {label && <div className="text-[10px] mb-1 font-medium">{label}</div>}
-                <span>?</span>
-            </div>
-        )
-    }
-
-    const colorClass = passaro.sexo === SexoEnum.MACHO
-        ? 'bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900/60 dark:border-blue-500 dark:text-blue-200'
-        : passaro.sexo === SexoEnum.FEMEA
-            ? 'bg-pink-100 border-pink-400 text-pink-800 dark:bg-pink-900/60 dark:border-pink-500 dark:text-pink-200'
-            : 'bg-gray-100 border-gray-400 text-gray-700 dark:bg-gray-700 dark:border-gray-500 dark:text-gray-200'
-
-    const ringNumber = formatRingComplete(passaro.anel)
-
-    return (
-        <button
-            onClick={() => !isMain && navigate(`/passaros/${passaro.passaro_id}/arvore`)}
-            disabled={isMain}
-            className={`
-                flex items-center gap-2 rounded-lg border-2 font-medium
-                transition-all
-                ${colorClass}
-                ${sizeClasses[size]}
-                ${isMain ? 'ring-2 ring-primary-400 ring-offset-2 dark:ring-offset-gray-800' : 'hover:scale-105 hover:shadow-md cursor-pointer'}
-            `}
-        >
-            {/* Foto à esquerda */}
-            {fotoUrl && !imageError && (
-                <div className={`overflow-hidden rounded border-2 border-white dark:border-gray-700 shadow-sm flex-shrink-0 ${photoSizes[size]}`}>
-                    <img
-                        src={fotoUrl}
-                        alt={passaro.descr ?? 'Pássaro'}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={() => setImageError(true)}
-                    />
-                </div>
-            )}
-
-            {/* Conteúdo à direita */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-0.5 min-w-0">
-                {label && <div className="text-[10px] font-medium opacity-70">{label}</div>}
-
-                <div className="flex items-center justify-center gap-1 font-semibold">
-                    <SexoIcon sexo={passaro.sexo} />
-                    <span className="whitespace-nowrap">{ringNumber || `#${passaro.passaro_id}`}</span>
-                </div>
-
-                {passaro.descr && (
-                    <span className="opacity-70 text-[9px] leading-tight text-center break-words w-full">
-                        {passaro.descr}
-                    </span>
-                )}
-            </div>
-        </button>
-    )
-}
-
-// Conector horizontal (linha)
-function HorizontalLine({ width = 20 }: { width?: number }) {
-    return (
-        <div
-            className="h-0.5 bg-amber-400 dark:bg-amber-500"
-            style={{ width: `${width}px` }}
-        />
-    )
-}
-
-// Componente para renderizar um par (pai/mãe) com seus ancestrais
-interface AncestorPairProps {
-    pai: PassaroArvore | null | undefined
-    mae: PassaroArvore | null | undefined
-    level: number
-    maxLevel: number
-}
-
-function AncestorPair({ pai, mae, level, maxLevel }: AncestorPairProps) {
-    const showNextLevel = level < maxLevel
-
-    return (
-        <div className="flex flex-col justify-center">
-            {/* Pai (em cima) e seus ancestrais */}
-            <div className="flex items-center">
-                <BirdCard passaro={pai} size={level >= 2 ? 'sm' : 'md'} label="Pai" />
-                {showNextLevel && (
-                    <>
-                        <HorizontalLine width={16} />
-                        <AncestorPair
-                            pai={pai?.pai}
-                            mae={pai?.mae}
-                            level={level + 1}
-                            maxLevel={maxLevel}
-                        />
-                    </>
-                )}
-            </div>
-
-            {/* Espaçador com linha vertical conectora */}
-            <div className="flex items-stretch h-4">
-                <div className="flex items-center justify-end" style={{ width: '90px' }}>
-                    <div className="w-0.5 h-full bg-amber-400 dark:bg-amber-500 -mr-px" />
-                </div>
-            </div>
-
-            {/* Mãe (embaixo) e seus ancestrais */}
-            <div className="flex items-center">
-                <BirdCard passaro={mae} size={level >= 2 ? 'sm' : 'md'} label="Mãe" />
-                {showNextLevel && (
-                    <>
-                        <HorizontalLine width={16} />
-                        <AncestorPair
-                            pai={mae?.pai}
-                            mae={mae?.mae}
-                            level={level + 1}
-                            maxLevel={maxLevel}
-                        />
-                    </>
-                )}
-            </div>
-        </div>
-    )
-}
-
-// Árvore genealógica horizontal completa (estilo imagem de referência)
-function HorizontalTree({ passaro, maxGenerations = 3 }: { passaro: PassaroArvore; maxGenerations?: number }) {
-    return (
-        <div className="overflow-x-auto py-4">
-            <div className="min-w-fit flex items-center px-4">
-                {/* Pássaro principal à esquerda */}
-                <BirdCard passaro={passaro} isMain size="lg" />
-
-                {/* Linha conectora */}
-                <HorizontalLine width={24} />
-
-                {/* Ancestrais expandindo para direita */}
-                <AncestorPair
-                    pai={passaro.pai}
-                    mae={passaro.mae}
-                    level={1}
-                    maxLevel={maxGenerations}
-                />
-            </div>
-        </div>
-    )
-}
+import { formatRingComplete } from '@/lib/passaro'
+import api from '@/lib/api'
+import { HorizontalTree } from './GenealogyTree'
+import type { PassaroArvore } from './GenealogyTree'
 
 export function ArvoreGenealogicaPage() {
     const { id } = useParams<{ id: string }>()
@@ -232,359 +23,191 @@ export function ArvoreGenealogicaPage() {
     const { data: arvoreData, isLoading, error, refetch } = useArvoreGenealogica(passaroId)
     const passaro = arvoreData?.arvore
     const endogamia = arvoreData?.endogamia ?? 0
-    // const { data: userProfile } = useUserProfile() // Temporariamente comentado (usado apenas para PDF)
 
-    // Estados para geração de PDF - Temporariamente comentados
-    // const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
-    // const [pdfError, setPdfError] = useState<string | null>(null)
+    // Cast para nosso tipo local recursivo (disponível antes dos guards para o closure de handlePrint)
+    const passaroArvore = passaro as unknown as PassaroArvore
 
-    // Função para gerar PDF do certificado com jsPDF - Temporariamente comentada
-    /* const handleGeneratePDF = async (passaroData: PassaroArvore) => {
-        setIsGeneratingPDF(true)
-        setPdfError(null)
+    const treeRef = useRef<HTMLDivElement>(null)
+    const qrWrapperRef = useRef<HTMLDivElement>(null)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [certUrl, setCertUrl] = useState<string | null>(null)
 
+    const handlePrint = async () => {
+        const element = treeRef.current
+        if (!element) return
+
+        setIsGenerating(true)
+
+        // 1. Create certificate on backend
+        let token: string | null = null
         try {
-            const pdfBlob = await generateGenealogyPDF({
-                passaro: passaroData as PassaroArvorePDF,
-                userProfile: userProfile ?? null,
-                endogamia: endogamia,
-                includePhotos: true
+            const res = await api.post<{ token: string }>('/api/v1/certificados', {
+                passaro_id: passaroArvore.passaro_id,
             })
-
-            // Download automático
-            const ringNumber = formatRingComplete(passaroData.anel) || `passaro-${passaroData.passaro_id}`
-            const filename = `genealogia-${ringNumber.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
-
-            const url = URL.createObjectURL(pdfBlob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = filename
-            a.click()
-            URL.revokeObjectURL(url)
-
-        } catch (error) {
-            console.error('Erro ao gerar PDF:', error)
-            setPdfError(error instanceof Error ? error.message : 'Erro desconhecido ao gerar PDF')
-
-            // Fallback para window.print
-            if (confirm('Erro ao gerar PDF. Deseja tentar abrir janela de impressão?')) {
-                handlePrintFallback(passaroData)
-            }
-        } finally {
-            setIsGeneratingPDF(false)
-        }
-    } */
-
-    // Função fallback para impressão (método antigo) - Temporariamente comentada
-    /* const handlePrintFallback = (passaroData: PassaroArvore) => {
-        // Cria uma janela de impressão com o conteúdo formatado como certificado
-        const printWindow = window.open('', '_blank')
-        if (!printWindow) {
-            alert('Por favor, permita pop-ups para gerar o PDF')
+            token = res.data.token
+        } catch (err) {
+            console.error('Erro ao criar certificado:', err)
+            alert('Não foi possível gerar o certificado. Tente novamente.')
+            setIsGenerating(false)
             return
         }
 
-        const ringNumber = formatRingComplete(passaroData.anel)
-        const criadorInfo = userProfile
-            ? `${userProfile.sg_clube || ''} ${userProfile.nro_criador || ''}`.trim() || 'Não informado'
-            : 'Não informado'
-        const criadorNome = userProfile?.name || 'Criador'
-        const dataEmissao = new Date().toLocaleDateString('pt-BR')
+        // 2. Build verification URL and render QR
+        const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+        const verificationUrl = `${appUrl}/verificar/${token}`
+        setCertUrl(verificationUrl)
 
-        // Função auxiliar para renderizar um card de pássaro
-        const renderBird = (p: PassaroArvore | null | undefined, size: 'lg' | 'md' | 'sm' = 'md', isMain = false): string => {
-            const sizeClass = size === 'lg' ? 'bird-lg' : size === 'sm' ? 'bird-sm' : 'bird-md'
+        // 3. Force light mode for capture
+        const html = document.documentElement
+        const wasDark = html.classList.contains('dark')
+        if (wasDark) html.classList.remove('dark')
 
-            if (!p) {
-                return `<div class="bird ${sizeClass} empty">?</div>`
+        // 4. Remove overflow clipping so html2canvas captures full scroll width
+        const scrollEls: Array<{ el: HTMLElement; ox: string; oy: string }> = []
+        element.querySelectorAll<HTMLElement>('*').forEach(el => {
+            const cs = window.getComputedStyle(el)
+            if (cs.overflowX === 'auto' || cs.overflowX === 'scroll' || cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
+                scrollEls.push({ el, ox: el.style.overflowX, oy: el.style.overflowY })
+                el.style.overflowX = 'visible'
+                el.style.overflowY = 'visible'
+            }
+        })
+
+        try {
+            // 5. Load logo + wait for QR canvas to render (em paralelo)
+            const [logoDataUrl] = await Promise.all([
+                fetch('/icons/icon-128x128.png')
+                    .then(r => r.blob())
+                    .then(blob => new Promise<string>(resolve => {
+                        const reader = new FileReader()
+                        reader.onload = () => resolve(reader.result as string)
+                        reader.readAsDataURL(blob)
+                    }))
+                    .catch(() => ''),
+                new Promise(r => setTimeout(r, 200)),
+            ])
+
+            // 6. Get QR code as data URL
+            const qrCanvas = qrWrapperRef.current?.querySelector('canvas')
+            const qrDataUrl = qrCanvas?.toDataURL('image/png') ?? ''
+
+            // 7. Capture only the tree (no injected header)
+            const treeCanvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: element.scrollWidth,
+                height: element.scrollHeight,
+                windowWidth: element.scrollWidth,
+                scrollX: 0,
+                scrollY: 0,
+            })
+
+            // 8. Setup PDF (A5 landscape: 210×148mm)
+            const ringNumber = formatRingComplete(passaroArvore.anel) || `#${passaroArvore.passaro_id}`
+            const dataEmissao = new Date().toLocaleDateString('pt-BR')
+
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' })
+            const pageW = pdf.internal.pageSize.getWidth()   // 210mm
+            const pageH = pdf.internal.pageSize.getHeight()  // 148mm
+
+            // --- Blue top bar (full page width) ---
+            const blueH = 14
+            pdf.setFillColor(37, 99, 235)
+            pdf.rect(0, 0, pageW, blueH, 'F')
+
+            // Logo + nome
+            const logoSize = 10
+            const logoX = 3
+            const logoY = (blueH - logoSize) / 2
+            if (logoDataUrl) {
+                pdf.addImage(logoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize)
+            }
+            const textX = logoDataUrl ? logoX + logoSize + 2 : 6
+
+            pdf.setTextColor(255, 255, 255)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(13)
+            pdf.text('MeuPlantel', textX, 9)
+
+            pdf.setFont('helvetica', 'normal')
+            pdf.setFontSize(7)
+            pdf.setTextColor(191, 219, 254)
+            pdf.text('Sistema de Gerenciamento de Criação de Aves', textX, 13)
+
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(8)
+            pdf.setTextColor(191, 219, 254)
+            pdf.text('CERTIFICADO GENEALÓGICO', pageW - 6, 9, { align: 'right' })
+
+            // --- Compact info row (ring only) ---
+            pdf.setTextColor(17, 24, 39)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(12)
+            const birdTitle = passaroArvore.descr
+                ? `${ringNumber}  ·  ${passaroArvore.descr}`
+                : ringNumber
+            pdf.text(birdTitle, 6, blueH + 7)
+
+            // --- Separator line ---
+            const sepY = blueH + 10
+            pdf.setDrawColor(229, 231, 235)
+            pdf.setLineWidth(0.4)
+            pdf.line(0, sepY, pageW, sepY)
+
+            const qrSize = 16
+            const qrX = pageW - qrSize - 4
+            const qrY = pageH - qrSize - 5
+
+            // --- Tree image first (so footer renders on top) ---
+            const treeTop = sepY + 2
+            const treeAvailH = pageH - treeTop - 2
+            const maxImgW = pageW - 8   // usa quase toda a largura; QR e data ficam por cima
+
+            const imgAspect = treeCanvas.width / treeCanvas.height
+            let imgW = maxImgW
+            let imgH = maxImgW / imgAspect
+            if (imgH > treeAvailH) {
+                imgH = treeAvailH
+                imgW = treeAvailH * imgAspect
             }
 
-            const ring = formatRingComplete(p.anel) || `#${p.passaro_id}`
-            const sexoClass = p.sexo === SexoEnum.MACHO ? 'male' : p.sexo === SexoEnum.FEMEA ? 'female' : ''
-            const mainClass = isMain ? 'main' : ''
+            pdf.addImage(
+                treeCanvas.toDataURL('image/png'),
+                'PNG',
+                4,
+                treeTop,
+                imgW,
+                imgH,
+            )
 
-            return `
-                <div class="bird ${sizeClass} ${sexoClass} ${mainClass}">
-                    <span class="ring">${ring}</span>
-                    ${p.descr ? `<span class="descr">${p.descr}</span>` : ''}
-                </div>
-            `
-        }
+            // --- Data de emissão (bottom-left, sobre a árvore) ---
+            pdf.setFont('helvetica', 'normal')
+            pdf.setFontSize(5.5)
+            pdf.setTextColor(156, 163, 175)
+            pdf.text(`Emitido em ${dataEmissao}`, 4, pageH - 2)
 
-        // Função para renderizar um par de ancestrais (pai em cima, mãe embaixo)
-        const renderPair = (pai: PassaroArvore | null | undefined, mae: PassaroArvore | null | undefined, level: number, maxLevel: number): string => {
-            const size = level >= 3 ? 'sm' : 'md'
-            const showNext = level < maxLevel
+            // --- QR code (bottom-right, sobre a árvore) ---
+            if (qrDataUrl) {
+                pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+                pdf.setFontSize(5.5)
+                pdf.setTextColor(156, 163, 175)
+                pdf.text('Verificar autenticidade', qrX + qrSize / 2, pageH - 2, { align: 'center' })
+            }
 
-            return `
-                <div class="pair">
-                    <div class="pair-row">
-                        ${renderBird(pai, size)}
-                        ${showNext ? `<div class="h-line"></div>${renderPair(pai?.pai, pai?.mae, level + 1, maxLevel)}` : ''}
-                    </div>
-                    <div class="v-line-container">
-                        <div class="v-line"></div>
-                    </div>
-                    <div class="pair-row">
-                        ${renderBird(mae, size)}
-                        ${showNext ? `<div class="h-line"></div>${renderPair(mae?.pai, mae?.mae, level + 1, maxLevel)}` : ''}
-                    </div>
-                </div>
-            `
-        }
+            pdf.save(`genealogia-${ringNumber.replace(/[\s/]+/g, '-')}.pdf`)
 
-        const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Certificado Genealógico - ${ringNumber}</title>
-    <style>
-        @page { size: A4 landscape; margin: 10mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            background: white;
-            font-size: 10px;
+        } catch (err) {
+            console.error('Erro ao gerar PDF:', err)
+            alert('Não foi possível gerar o PDF. Tente novamente.')
+        } finally {
+            scrollEls.forEach(({ el, ox, oy }) => { el.style.overflowX = ox; el.style.overflowY = oy })
+            if (wasDark) html.classList.add('dark')
+            setCertUrl(null)
+            setIsGenerating(false)
         }
-        .certificate {
-            background: white;
-            border: 2px solid #1e40af;
-            border-radius: 6px;
-            padding: 15px;
-            width: 277mm;
-            height: 190mm;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        .certificate::before {
-            content: '';
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            right: 4px;
-            bottom: 4px;
-            border: 1px solid #93c5fd;
-            border-radius: 4px;
-            pointer-events: none;
-        }
-        .header {
-            text-align: center;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #1e40af;
-            flex-shrink: 0;
-        }
-        .logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: #1e40af;
-        }
-        .subtitle {
-            font-size: 11px;
-            color: #6b7280;
-        }
-        .title {
-            font-size: 14px;
-            color: #1e40af;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
-            font-weight: bold;
-        }
-        
-        .tree-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 15px 10px;
-            overflow: hidden;
-        }
-        
-        .tree {
-            display: flex;
-            align-items: center;
-            gap: 0;
-        }
-        
-        .bird {
-            border: 2px solid #d1d5db;
-            border-radius: 6px;
-            background: #f9fafb;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 4px 8px;
-            flex-shrink: 0;
-        }
-        .bird-lg {
-            min-width: 90px;
-            min-height: 45px;
-            font-size: 11px;
-        }
-        .bird-md {
-            min-width: 75px;
-            min-height: 38px;
-            font-size: 10px;
-        }
-        .bird-sm {
-            min-width: 65px;
-            min-height: 32px;
-            font-size: 9px;
-        }
-        .bird.male {
-            background: #dbeafe;
-            border-color: #3b82f6;
-            color: #1e40af;
-        }
-        .bird.female {
-            background: #fce7f3;
-            border-color: #ec4899;
-            color: #9d174d;
-        }
-        .bird.empty {
-            border-style: dashed;
-            color: #9ca3af;
-        }
-        .bird.main {
-            border-width: 3px;
-            box-shadow: 0 0 0 2px #3b82f6;
-        }
-        .bird .ring {
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        .bird .descr {
-            font-size: 8px;
-            opacity: 0.8;
-            margin-top: 2px;
-            max-width: 80px;
-            line-height: 1.2;
-        }
-        
-        .h-line {
-            width: 12px;
-            height: 2px;
-            background: #f59e0b;
-            flex-shrink: 0;
-        }
-        
-        .pair {
-            display: flex;
-            flex-direction: column;
-        }
-        .pair-row {
-            display: flex;
-            align-items: center;
-        }
-        .v-line-container {
-            display: flex;
-            justify-content: flex-start;
-            padding-left: 37px;
-        }
-        .bird-md + .h-line ~ .pair .v-line-container {
-            padding-left: 32px;
-        }
-        .bird-sm + .h-line ~ .pair .v-line-container {
-            padding-left: 27px;
-        }
-        .v-line {
-            width: 2px;
-            height: 10px;
-            background: #f59e0b;
-        }
-        
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 10px;
-            border-top: 1px solid #e5e7eb;
-            flex-shrink: 0;
-        }
-        .footer-section { 
-            text-align: center;
-            font-size: 9px;
-            color: #6b7280;
-        }
-        .footer-section strong { 
-            color: #374151;
-            display: block;
-        }
-        .legend {
-            display: flex;
-            gap: 15px;
-            font-size: 9px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .legend-color {
-            width: 10px;
-            height: 10px;
-            border-radius: 2px;
-            border: 1px solid;
-        }
-        .legend-color.male { background: #dbeafe; border-color: #3b82f6; }
-        .legend-color.female { background: #fce7f3; border-color: #ec4899; }
-        
-        @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate">
-        <div class="header">
-            <div class="logo">🐦 MeuPlantel.com</div>
-            <div class="subtitle">Sistema de Gerenciamento de Criação de Aves</div>
-            <div class="title">Certificado Genealógico</div>
-        </div>
-
-        <div class="tree-container">
-            <div class="tree">
-                ${renderBird(passaroData, 'lg', true)}
-                <div class="h-line"></div>
-                ${renderPair(passaroData.pai, passaroData.mae, 1, 3)}
-            </div>
-        </div>
-
-        <div class="footer">
-            <div class="footer-section">
-                <strong>Criador</strong>
-                ${criadorNome}
-            </div>
-            <div class="legend">
-                <div class="legend-item"><div class="legend-color male"></div> Macho</div>
-                <div class="legend-item"><div class="legend-color female"></div> Fêmea</div>
-            </div>
-            <div class="footer-section">
-                <strong>Registro</strong>
-                ${criadorInfo}
-            </div>
-            <div class="footer-section">
-                <strong>Emissão</strong>
-                ${dataEmissao}
-            </div>
-        </div>
-    </div>
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
-</body>
-</html>
-        `
-
-        printWindow.document.write(htmlContent)
-        printWindow.document.close()
-    } */
+    }
 
     if (isLoading) {
         return (
@@ -611,9 +234,6 @@ export function ArvoreGenealogicaPage() {
             </div>
         )
     }
-
-    // Cast para nosso tipo local recursivo
-    const passaroArvore = passaro as unknown as PassaroArvore
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
@@ -664,7 +284,7 @@ export function ArvoreGenealogicaPage() {
                     </div>
                 </section>
 
-                {/* Lista hierárquica */}
+                {/* Visualização em Lista */}
                 <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                         <h2 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
@@ -673,59 +293,47 @@ export function ArvoreGenealogicaPage() {
                             </svg>
                             Visualização em Lista
                         </h2>
-                        {/* Botão Gerar PDF temporariamente oculto */}
-                        {/* <button
-                            onClick={() => handleGeneratePDF(passaroArvore)}
-                            disabled={isGeneratingPDF}
-                            className={`
-                                flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors
-                                ${isGeneratingPDF
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-primary-500 hover:bg-primary-600'
-                                }
-                            `}
+                        <button
+                            onClick={handlePrint}
+                            disabled={isGenerating}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors ${
+                                isGenerating ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600'
+                            }`}
                         >
-                            {isGeneratingPDF ? (
+                            {isGenerating ? (
                                 <>
                                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
-                                    Gerando PDF...
+                                    Gerando...
                                 </>
                             ) : (
                                 <>
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                     </svg>
-                                    Gerar PDF
+                                    Imprimir / PDF
                                 </>
                             )}
-                        </button> */}
+                        </button>
                     </div>
-                    <div id="arvore-pdf-content" className="p-4">
+                    <div ref={treeRef} id="arvore-pdf-content" className="p-4">
                         <HorizontalTree passaro={passaroArvore} maxGenerations={3} />
                     </div>
                 </section>
             </div>
 
-            {/* Toast de erro - Temporariamente comentado */}
-            {/* {pdfError && (
-                <div className="fixed bottom-24 left-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-start gap-2">
-                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                        <p className="font-semibold">Erro ao gerar PDF</p>
-                        <p className="text-sm opacity-90">{pdfError}</p>
-                    </div>
-                    <button onClick={() => setPdfError(null)} className="flex-shrink-0">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+            {/* Hidden QR canvas used during PDF generation */}
+            {certUrl && (
+                <div
+                    ref={qrWrapperRef}
+                    style={{ position: 'fixed', left: -9999, top: 0, visibility: 'hidden', pointerEvents: 'none' }}
+                    aria-hidden="true"
+                >
+                    <QRCodeCanvas value={certUrl} size={150} />
                 </div>
-            )} */}
+            )}
         </div>
     )
 }

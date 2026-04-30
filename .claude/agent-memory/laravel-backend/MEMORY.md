@@ -42,6 +42,14 @@
 - All endpoints need `@OA\` annotations; run `php artisan l5-swagger:generate` after changes
 - Security: `security={{"bearerAuth":{}}}` for authenticated endpoints
 
+## Certificados (added 2026-04-30)
+
+- Table `certificado`, PK `certificado_id`; no `timestamps()` — only `criado_em` (timestamp)
+- Token is a UUID (`Str::uuid()->toString()`), stored in `token` (varchar 36, unique)
+- Public endpoint (`verificar`) uses `->except('verificar')` in constructor middleware
+- Anel label format: `"{sg_clube} {nro_criador} {nro}/{ano}"` — null parts omitted; fallback `"#passaro_{id}"`
+- `criado_em` formatted as `"d/m/Y \à\s H:i"` in verificar response
+
 ## Web Push (added 2026-04-24)
 
 - Package: `minishlink/web-push`
