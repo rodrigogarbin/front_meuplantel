@@ -1,20 +1,19 @@
 /**
  * Página de callback do login social
  *
- * Rota dedicada que recebe o redirect do backend após autenticação OAuth,
- * processando o ?token= sem conflitar com rotas Blade do Laravel em produção.
+ * Rota dedicada que recebe o redirect do backend após autenticação OAuth.
+ * O JWT agora vem como cookie HttpOnly — basta chamar /me para validar.
  */
 
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import axios from 'axios'
 import { useAuthStore } from './authStore'
-import { API_BASE_URL } from '@/lib/api'
 import { BirdLogo } from '@/components/BirdLogo'
 
 export function SocialCallbackPage() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
+    const validateSession = useAuthStore((state) => state.validateSession)
 
     useEffect(() => {
         const socialError = searchParams.get('social_error')
@@ -23,45 +22,16 @@ export function SocialCallbackPage() {
             return
         }
 
-        const token = searchParams.get('token')
-        if (!token) {
-            navigate('/login', { replace: true })
-            return
-        }
-
         const isNewUser = searchParams.get('new_user') === '1'
 
-        // Remove o token da URL imediatamente para não ficar exposto no histórico
-        // do navegador ou em logs de proxies.
-        window.history.replaceState(null, document.title, window.location.pathname)
-
-        axios
-            .get(`${API_BASE_URL}/api/v1/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((res) => {
-                const data = res.data.data || res.data
-                useAuthStore.setState({
-                    token,
-                    user: {
-                        usuario_id:     data.usuario_id,
-                        nome:           data.name,
-                        username:       data.name,
-                        email:          data.email,
-                        needs_email:    data.needs_email,
-                        email_verified: data.email_verified,
-                        is_admin:       data.is_admin,
-                        sg_clube:       data.sg_clube,
-                        nro_criador:    data.nro_criador,
-                    },
-                    expiresAt:       Date.now() + 3600 * 1000,
-                    isAuthenticated: true,
-                    isLoading:       false,
-                })
-                navigate(isNewUser ? '/completar-perfil' : '/', { replace: true })
-            })
-            .catch(() => {
-                navigate('/login?social_error=Sess%C3%A3o+expirada.+Fa%C3%A7a+login+novamente.', { replace: true })
+        // Cookie foi definido pelo backend no redirect — valida com /me
+        validateSession()
+            .then((ok) => {
+                if (ok) {
+                    navigate(isNewUser ? '/completar-perfil' : '/', { replace: true })
+                } else {
+                    navigate('/login?social_error=Sess%C3%A3o+expirada.+Fa%C3%A7a+login+novamente.', { replace: true })
+                }
             })
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

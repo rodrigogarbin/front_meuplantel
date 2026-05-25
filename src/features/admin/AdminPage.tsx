@@ -112,17 +112,15 @@ export function AdminPage() {
         try {
             const result = await impersonateUser(id)
             impersonate(
-                result.access_token,
                 {
-                    usuario_id: result.user.usuario_id,
-                    nome: result.user.name,
-                    username: result.user.name,
-                    email: result.user.email,
-                    needs_email: result.user.needs_email,
+                    usuario_id:     result.user.usuario_id,
+                    nome:           result.user.name,
+                    username:       result.user.name,
+                    email:          result.user.email,
+                    needs_email:    result.user.needs_email,
                     email_verified: result.user.email_verified,
-                    is_admin: result.user.is_admin,
+                    is_admin:       result.user.is_admin,
                 },
-                result.admin_token,
                 result.expires_in
             )
             navigate('/')

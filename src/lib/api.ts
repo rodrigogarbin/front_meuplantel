@@ -1,8 +1,8 @@
 /**
  * Cliente API com Axios
- * 
+ *
  * Implementa:
- * - Interceptor para adicionar token em todas as requests
+ * - withCredentials para envio automático de cookies HttpOnly
  * - Interceptor para refresh automático em caso de 401
  * - Queue de requests durante o refresh para evitar múltiplas tentativas
  */
@@ -20,6 +20,7 @@ export const api = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
+    withCredentials: true, // envia cookies HttpOnly automaticamente
     timeout: 30000, // 30 segundos
 })
 
@@ -28,46 +29,27 @@ let isRefreshing = false
 
 // Fila de requests que falharam com 401 enquanto o refresh estava em andamento
 let failedQueue: Array<{
-    resolve: (token: string) => void
+    resolve: () => void
     reject: (error: Error) => void
 }> = []
 
 /**
  * Processa a fila de requests pendentes
  */
-const processQueue = (error: Error | null, token: string | null = null) => {
+const processQueue = (error: Error | null) => {
     failedQueue.forEach((promise) => {
         if (error) {
             promise.reject(error)
-        } else if (token) {
-            promise.resolve(token)
+        } else {
+            promise.resolve()
         }
     })
     failedQueue = []
 }
 
 /**
- * Interceptor de Request
- * Adiciona o token de autenticação em todas as requests
- */
-api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const { token } = useAuthStore.getState()
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
-    }
-)
-
-/**
  * Interceptor de Response
- * Trata erros 401 tentando refresh do token
+ * Trata erros 401 tentando refresh do token via cookie
  */
 api.interceptors.response.use(
     (response) => response,
@@ -89,13 +71,8 @@ api.interceptors.response.use(
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
                 failedQueue.push({
-                    resolve: (token: string) => {
-                        originalRequest.headers.Authorization = `Bearer ${token}`
-                        resolve(api(originalRequest))
-                    },
-                    reject: (err: Error) => {
-                        reject(err)
-                    },
+                    resolve: () => resolve(api(originalRequest)),
+                    reject: (err: Error) => reject(err),
                 })
             })
         }
@@ -105,26 +82,19 @@ api.interceptors.response.use(
         isRefreshing = true
 
         try {
-            const { token, refresh } = useAuthStore.getState()
+            // Tenta fazer refresh — o cookie é enviado automaticamente
+            const success = await useAuthStore.getState().refresh()
 
-            if (!token) {
-                throw new Error('No token available')
-            }
-
-            // Tenta fazer refresh
-            const newToken = await refresh()
-
-            if (newToken) {
+            if (success !== null) {
                 // Sucesso! Processa a fila e refaz a request original
-                processQueue(null, newToken)
-                originalRequest.headers.Authorization = `Bearer ${newToken}`
+                processQueue(null)
                 return api(originalRequest)
             } else {
                 throw new Error('Refresh failed')
             }
         } catch (refreshError) {
             // Falha no refresh - limpa auth e processa a fila com erro
-            processQueue(refreshError as Error, null)
+            processQueue(refreshError as Error)
             useAuthStore.getState().logout()
 
             // Redireciona para login

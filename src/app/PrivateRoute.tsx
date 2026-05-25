@@ -4,7 +4,8 @@
  */
 
 import { Navigate, useLocation } from 'react-router-dom'
-import { useIsAuthenticated, useHasHydrated } from '@/features/auth'
+import { useEffect, useState } from 'react'
+import { useIsAuthenticated, useHasHydrated, useAuthStore } from '@/features/auth'
 
 interface PrivateRouteProps {
     children: React.ReactNode
@@ -13,10 +14,28 @@ interface PrivateRouteProps {
 export function PrivateRoute({ children }: PrivateRouteProps) {
     const isAuthenticated = useIsAuthenticated()
     const hasHydrated = useHasHydrated()
+    const validateSession = useAuthStore((state) => state.validateSession)
     const location = useLocation()
+    const [isValidating, setIsValidating] = useState(false)
+    const [validated, setValidated] = useState(false)
 
-    // Se ainda não hidratou do localStorage, mostra loading
-    if (!hasHydrated) {
+    // Ao montar, valida se o cookie ainda é válido chamando /me
+    useEffect(() => {
+        if (!hasHydrated) return
+        if (!isAuthenticated) {
+            setValidated(true)
+            return
+        }
+
+        setIsValidating(true)
+        validateSession().finally(() => {
+            setIsValidating(false)
+            setValidated(true)
+        })
+    }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Aguarda hidratação do localStorage
+    if (!hasHydrated || isValidating || !validated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
                 <div className="text-center">
@@ -32,6 +51,5 @@ export function PrivateRoute({ children }: PrivateRouteProps) {
         return <Navigate to="/login" state={{ from: location }} replace />
     }
 
-    // Se está autenticado, renderiza o conteúdo
     return <>{children}</>
 }

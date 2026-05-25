@@ -14,7 +14,7 @@ import axios, { AxiosError } from 'axios'
 
 export function CompletarPerfilPage() {
     const navigate = useNavigate()
-    const { token, user, updateUser } = useAuthStore()
+    const { user, updateUser } = useAuthStore()
 
     const [sgClube, setSgClube] = useState('')
     const [nroCriador, setNroCriador] = useState('')
@@ -32,7 +32,7 @@ export function CompletarPerfilPage() {
             const res = await axios.put(
                 `${API_BASE_URL}/api/v1/me`,
                 { sg_clube: sgClube, nro_criador: nroCriador },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { withCredentials: true }
             )
 
             const data = res.data.data
