@@ -9,8 +9,6 @@ import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import { useAuthStore } from './authStore'
 import { AxiosError } from 'axios'
-import axios from 'axios'
-import { API_BASE_URL } from '@/lib/api'
 import { Turnstile, type TurnstileRef } from '@/components/Turnstile'
 import { BirdLogo } from '@/components/BirdLogo'
 import { useEffectiveTheme } from '@/lib/theme'
@@ -46,9 +44,6 @@ export function LoginPage() {
     // Countdown de bloqueio temporário
     const [countdown, setCountdown] = useState(0)
 
-    // Auto-login via token (redirect da landing page)
-    const [tokenLogin, setTokenLogin] = useState(false)
-
     const currentTheme = useEffectiveTheme()
     const from = (location.state as { from?: Location })?.from?.pathname || '/'
 
@@ -73,51 +68,6 @@ export function LoginPage() {
         if (socialError) {
             setError(socialError)
         }
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Auto-login via ?token=<jwt> (redirect da landing page)
-    useEffect(() => {
-        const token = searchParams.get('token')
-        if (!token) return
-
-        // Remove o token da URL imediatamente para não ficar exposto no histórico
-        // do navegador ou em logs de proxies.
-        window.history.replaceState(null, document.title, window.location.pathname)
-
-        setTokenLogin(true)
-        setIsLoading(true)
-
-        axios
-            .get(`${API_BASE_URL}/api/v1/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((res) => {
-                const data = res.data.data || res.data
-                const isNewUser = searchParams.get('new_user') === '1'
-                useAuthStore.setState({
-                    token,
-                    user: {
-                        usuario_id:     data.usuario_id,
-                        nome:           data.name,
-                        username:       data.name,
-                        email:          data.email,
-                        needs_email:    data.needs_email,
-                        email_verified: data.email_verified,
-                        is_admin:       data.is_admin,
-                        sg_clube:       data.sg_clube,
-                        nro_criador:    data.nro_criador,
-                    },
-                    expiresAt:       Date.now() + 3600 * 1000,
-                    isAuthenticated: true,
-                    isLoading:       false,
-                })
-                navigate(isNewUser ? '/completar-perfil' : '/', { replace: true })
-            })
-            .catch(() => {
-                setTokenLogin(false)
-                setIsLoading(false)
-                setError('Sessão expirada. Faça login novamente.')
-            })
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSubmit = async (e: FormEvent) => {
@@ -178,26 +128,6 @@ export function LoginPage() {
         } finally {
             setIsLoading(false)
         }
-    }
-
-    // Tela de loading para auto-login via token
-    if (tokenLogin && isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex items-center justify-center p-4 safe-top safe-bottom">
-                <div className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <BirdLogo size="lg" />
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-white">
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        <span>Entrando...</span>
-                    </div>
-                </div>
-            </div>
-        )
     }
 
     const isSubmitDisabled = isLoading || (requiresCaptcha && !captchaToken) || countdown > 0

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { ImpersonateResponse } from '@/types'
+export type { ImpersonateResponse }
 
 export interface AdminUsuario {
     usuario_id: number

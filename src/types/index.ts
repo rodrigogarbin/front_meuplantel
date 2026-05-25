@@ -106,6 +106,7 @@ export interface User {
     needs_email?: boolean
     email_verified?: boolean
     is_admin?: boolean
+    is_demo?: boolean
     sg_clube?: string | null
     nro_criador?: string | null
 }
@@ -122,26 +123,19 @@ export interface ImpersonateUser {
 
 // Resposta de impersonação
 export interface ImpersonateResponse {
-    access_token: string
-    token_type: string
     expires_in: number
     user: ImpersonateUser
     impersonating: boolean
-    admin_token: string
 }
 
 // Resposta de login
 export interface LoginResponse {
-    access_token: string
-    token_type: string
     expires_in: number
     user: User
 }
 
 // Resposta de refresh
 export interface RefreshResponse {
-    access_token: string
-    token_type: string
     expires_in: number
 }
 
