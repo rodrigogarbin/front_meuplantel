@@ -160,7 +160,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                             <div className="mx-3 border-t border-gray-100 dark:border-gray-700 mb-2" />
 
                             <div className="flex flex-col">
-                                {/* Assistente */}
+                                {/* Assistente — apenas admin */}
+                                {user?.is_admin && (
                                 <button
                                     onClick={() => navigateTo('/chat')}
                                     className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
@@ -178,6 +179,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                     </svg>
                                 </button>
+                                )}
 
                                     {/* Gestão do Plantel — apenas admin */}
                                 {user?.is_admin && (

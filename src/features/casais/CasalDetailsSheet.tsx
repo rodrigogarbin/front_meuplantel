@@ -72,6 +72,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const [showConfirmEncerrar, setShowConfirmEncerrar] = useState(false)
     const [showConfirmExcluir, setShowConfirmExcluir] = useState(false)
     const [excluirError, setExcluirError] = useState<string | null>(null)
+    const [showTransferidasHistorico, setShowTransferidasHistorico] = useState(false)
 
     // Obtém o ID do casal
     const casalId = casal?.id ?? casal?.gaiola_id ?? null
@@ -413,22 +414,79 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                 )}
 
                 {/* Ovos Transferidos para Outros Casais */}
-                {(casal.posturas_transferidas && casal.posturas_transferidas.length > 0) && (
-                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4 space-y-3">
-                        <h3 className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-2">
-                            <TransferIcon className="w-5 h-5" />
-                            Ovos Transferidos ({casal.posturas_transferidas.length})
-                        </h3>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {casal.posturas_transferidas.map((postura) => (
-                                <PosturaTransferidaChip
-                                    key={postura.postura_id}
-                                    postura={postura}
-                                />
-                            ))}
+                {(() => {
+                    const transferidas = casal.posturas_transferidas ?? []
+                    const transferidasAtivas = transferidas.filter(
+                        p => p.sit === SitPostura.CHOCO || p.sit === SitPostura.FERTIL || (p.sit === SitPostura.NASCIDO && !p.passaro_id)
+                    )
+                    const transferidasFinalizadas = transferidas.filter(
+                        p => p.sit === SitPostura.BRANCO || p.sit === SitPostura.EMBRIAO_MORTO || p.sit === SitPostura.FILHOTE_MORTO || (p.sit === SitPostura.NASCIDO && !!p.passaro_id)
+                    )
+
+                    if (transferidas.length === 0) return null
+
+                    // Se não há ativos mas há finalizados: inicia colapsado por padrão (controlado pelo estado)
+                    const apenasHistorico = transferidasAtivas.length === 0 && transferidasFinalizadas.length > 0
+
+                    return (
+                        <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4 space-y-3">
+                            <h3 className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                                <TransferIcon className="w-5 h-5" />
+                                {apenasHistorico
+                                    ? `Ovos Transferidos (${transferidasFinalizadas.length})`
+                                    : `Ovos Transferidos (${transferidasAtivas.length})`
+                                }
+                            </h3>
+
+                            {/* Ativos */}
+                            {transferidasAtivas.length > 0 && (
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {transferidasAtivas.map((postura) => (
+                                        <PosturaTransferidaChip
+                                            key={postura.postura_id}
+                                            postura={postura}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Histórico (finalizados) — colapsável */}
+                            {transferidasFinalizadas.length > 0 && (
+                                <div>
+                                    <button
+                                        onClick={() => setShowTransferidasHistorico(prev => !prev)}
+                                        className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg bg-purple-100 dark:bg-purple-800/40 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-colors"
+                                    >
+                                        <span>
+                                            {apenasHistorico
+                                                ? (showTransferidasHistorico ? 'Ocultar histórico' : 'Ver histórico')
+                                                : `Histórico (${transferidasFinalizadas.length})`
+                                            }
+                                        </span>
+                                        <svg
+                                            className={`w-4 h-4 transition-transform ${showTransferidasHistorico ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+
+                                    {showTransferidasHistorico && (
+                                        <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                                            {transferidasFinalizadas.map((postura) => (
+                                                <div key={postura.postura_id} className="opacity-60">
+                                                    <PosturaTransferidaChip postura={postura} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )}
+                    )
+                })()}
 
                 {/* Histórico de Posturas */}
                 {posturasConcluidas.length > 0 && (
