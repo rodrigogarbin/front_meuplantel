@@ -250,7 +250,7 @@ export function ConfigPage() {
                         <div className="section-card space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600 dark:text-gray-400">Versão</span>
-                                <span className="text-gray-900 dark:text-gray-100 font-medium">1.0.0</span>
+                                <span className="text-gray-900 dark:text-gray-100 font-medium">{__APP_VERSION__}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600 dark:text-gray-400">Desenvolvido por</span>
