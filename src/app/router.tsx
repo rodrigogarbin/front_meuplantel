@@ -15,6 +15,7 @@ import { GestaoPage } from '@/features/gestao/GestaoPage'
 import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicamentos'
 import { ChatPage } from '@/features/chat'
 import { CertificadoVerificacaoPage } from '@/features/certificado/CertificadoVerificacaoPage'
+import { UnsubscribePage } from '@/pages/UnsubscribePage'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
@@ -201,6 +202,11 @@ export const router = createBrowserRouter([
         // Rota pública de verificação de certificado genealógico (sem autenticação)
         path: '/verificar/:token',
         element: <CertificadoVerificacaoPage />,
+    },
+    {
+        // Rota pública de descadastro de emails de campanha (sem autenticação)
+        path: '/unsubscribe',
+        element: <UnsubscribePage />,
     },
     {
         // Catch-all para rotas não encontradas

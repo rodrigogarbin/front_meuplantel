@@ -7,6 +7,7 @@ import type { AdminUsuario, VersaoFilter, SortField, SortOrder } from './adminAp
 import { useLoginStats } from './loginStatsApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
+import { CampanhasTab } from './CampanhasTab'
 
 // Ícones inline para os stat cards
 function UsersIcon() {
@@ -58,7 +59,7 @@ function StarIcon() {
     )
 }
 
-type Tab = 'dashboard' | 'usuarios' | 'logins'
+type Tab = 'dashboard' | 'usuarios' | 'logins' | 'campanhas'
 
 export function AdminPage() {
     const navigate = useNavigate()
@@ -232,6 +233,16 @@ export function AdminPage() {
                         }`}
                     >
                         Logins
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('campanhas')}
+                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                            activeTab === 'campanhas'
+                                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        Campanhas
                     </button>
                 </div>
 
@@ -766,6 +777,9 @@ export function AdminPage() {
                         )}
                     </div>
                 )}
+
+                {/* Conteúdo da aba Campanhas */}
+                {activeTab === 'campanhas' && <CampanhasTab />}
             </main>
 
             {/* Modal de confirmação de exclusão em lote */}

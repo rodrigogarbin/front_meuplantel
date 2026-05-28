@@ -111,3 +111,28 @@ export async function bulkDeleteUsuarios(ids: number[]): Promise<{ deleted_count
     const { data } = await api.post('/api/v1/admin/usuarios/bulk-delete', { ids })
     return data
 }
+
+// --- Campanhas de Email ---
+
+export interface CampanhaTemplate {
+    id: string
+    nome: string
+    descricao: string
+    filtro_sugerido: string
+}
+
+export async function getCampanhaTemplates(): Promise<CampanhaTemplate[]> {
+    const { data } = await api.get('/api/v1/admin/campanhas/templates')
+    return data
+}
+
+export async function enviarCampanha(
+    template: string,
+    userIds: number[]
+): Promise<{ enviados: number; sem_email: number }> {
+    const { data } = await api.post('/api/v1/admin/campanhas/enviar', {
+        template,
+        user_ids: userIds,
+    })
+    return data
+}
