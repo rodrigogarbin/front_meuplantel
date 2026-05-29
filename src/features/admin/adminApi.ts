@@ -129,7 +129,7 @@ export async function getCampanhaTemplates(): Promise<CampanhaTemplate[]> {
 export async function enviarCampanha(
     template: string,
     userIds: number[]
-): Promise<{ enviados: number; sem_email: number }> {
+): Promise<{ enviados: number; sem_email: number; falhas: number }> {
     const { data } = await api.post('/api/v1/admin/campanhas/enviar', {
         template,
         user_ids: userIds,

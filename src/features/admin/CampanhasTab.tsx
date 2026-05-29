@@ -142,9 +142,12 @@ export function CampanhasTab() {
             return enviarCampanha(templateSelecionado.id, Array.from(selecionados))
         },
         onSuccess: (resultado) => {
+            const partes = [`${resultado.enviados} email${resultado.enviados !== 1 ? 's' : ''} enviado${resultado.enviados !== 1 ? 's' : ''}`]
+            if (resultado.sem_email > 0) partes.push(`${resultado.sem_email} sem email`)
+            if (resultado.falhas > 0) partes.push(`${resultado.falhas} com falha`)
             setToast({
-                message: `Campanha enviada! ${resultado.enviados} email${resultado.enviados !== 1 ? 's' : ''} enviado${resultado.enviados !== 1 ? 's' : ''}${resultado.sem_email > 0 ? ` (${resultado.sem_email} sem email)` : ''}.`,
-                type: 'success',
+                message: `Campanha processada! ${partes.join(' · ')}.`,
+                type: resultado.falhas > 0 ? 'error' : 'success',
             })
             setStep(1)
             setTemplateSelecionado(null)
