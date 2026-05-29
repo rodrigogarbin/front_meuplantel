@@ -107,7 +107,7 @@ export function UnsubscribePage() {
                 {/* Link de retorno */}
                 {status !== 'loading' && (
                     <a
-                        href="https://app.meuplantel.com"
+                        href="https://app2.meuplantel.com"
                         className="inline-block mt-6 text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
                     >
                         Voltar ao MeuPlantel
