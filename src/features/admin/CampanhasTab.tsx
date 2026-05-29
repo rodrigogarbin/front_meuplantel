@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { getCampanhaTemplates, enviarCampanha } from './adminApi'
 import type { CampanhaTemplate, AdminUsuario, VersaoFilter } from './adminApi'
@@ -43,45 +43,7 @@ function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
     )
 }
 
-// Filtros de destinatários disponíveis
-type FiltroKey = 'inativo_30' | 'inativo_60' | 'v1' | 'todos'
-
-interface FiltroOpcao {
-    key: FiltroKey
-    label: string
-    versao: VersaoFilter
-    inativoDias?: number
-}
-
-const FILTROS: FiltroOpcao[] = [
-    { key: 'inativo_30', label: 'Inativos 30 dias', versao: '', inativoDias: 30 },
-    { key: 'inativo_60', label: 'Inativos 60 dias', versao: '', inativoDias: 60 },
-    { key: 'v1', label: 'Usuários v1', versao: 'v1' },
-    { key: 'todos', label: 'Todos com email', versao: '' },
-]
-
-// Hook auxiliar para buscar usuários pelo filtro selecionado
-function useFiltroUsuarios(filtro: FiltroOpcao | null) {
-    return useQuery({
-        queryKey: ['admin', 'campanhas', 'usuarios', filtro?.key ?? null],
-        queryFn: async () => {
-            if (!filtro) return []
-            const params = new URLSearchParams()
-            params.set('page', '1')
-            params.set('per_page', '500')
-            if (filtro.versao) params.set('versao', filtro.versao)
-            if (filtro.inativoDias) params.set('inativo_dias', String(filtro.inativoDias))
-            const { data } = await api.get(`/api/v1/admin/usuarios?${params}`)
-            // retorna apenas usuários com email
-            const usuarios: AdminUsuario[] = data.data ?? []
-            return usuarios.filter(u => u.email && u.email.trim() !== '')
-        },
-        enabled: filtro !== null,
-        staleTime: 60 * 1000,
-    })
-}
-
-// Cards dos templates — ícones via texto para evitar dependências extras
+// Cards dos templates
 function TemplateCard({
     template,
     onClick,
@@ -126,10 +88,13 @@ function TemplateCard({
 export function CampanhasTab() {
     const [step, setStep] = useState<1 | 2 | 3>(1)
     const [templateSelecionado, setTemplateSelecionado] = useState<CampanhaTemplate | null>(null)
-    const [filtroSelecionado, setFiltroSelecionado] = useState<FiltroOpcao | null>(null)
-    const [filtroAtivo, setFiltroAtivo] = useState<FiltroOpcao | null>(null)
     const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
     const [toast, setToast] = useState<ToastState | null>(null)
+
+    // Filtros da etapa 2
+    const [filtroVersao, setFiltroVersao] = useState<VersaoFilter>('')
+    const [filtroInativo, setFiltroInativo] = useState<number | null>(null)
+    const [busca, setBusca] = useState('')
 
     const { data: templates, isLoading: isLoadingTemplates, isError: isErrorTemplates } = useQuery({
         queryKey: ['admin', 'campanhas', 'templates'],
@@ -137,7 +102,39 @@ export function CampanhasTab() {
         staleTime: 5 * 60 * 1000,
     })
 
-    const { data: usuariosFiltrados, isLoading: isLoadingUsuarios } = useFiltroUsuarios(filtroAtivo)
+    // Busca usuários assim que chega na etapa 2; re-busca quando filtro muda
+    const { data: todosUsuarios, isLoading: isLoadingUsuarios } = useQuery({
+        queryKey: ['admin', 'campanhas', 'usuarios', filtroVersao, filtroInativo],
+        queryFn: async () => {
+            const params = new URLSearchParams({ per_page: '500' })
+            if (filtroVersao) params.set('versao', filtroVersao)
+            if (filtroInativo) params.set('inativo_dias', String(filtroInativo))
+            const { data } = await api.get(`/api/v1/admin/usuarios?${params}`)
+            const lista: AdminUsuario[] = data.data ?? []
+            return lista.filter(u => u.email && u.email.trim() !== '')
+        },
+        enabled: step >= 2,
+        staleTime: 60 * 1000,
+    })
+
+    // Filtro de busca textual aplicado client-side
+    const usuariosVisiveis = useMemo(() => {
+        if (!todosUsuarios) return []
+        const q = busca.trim().toLowerCase()
+        if (!q) return todosUsuarios
+        return todosUsuarios.filter(u =>
+            u.nome?.toLowerCase().includes(q) ||
+            u.email?.toLowerCase().includes(q) ||
+            u.username?.toLowerCase().includes(q)
+        )
+    }, [todosUsuarios, busca])
+
+    // Seleciona todos automaticamente quando a lista muda (filtro de servidor mudou)
+    useEffect(() => {
+        if (todosUsuarios) {
+            setSelecionados(new Set(todosUsuarios.map(u => u.usuario_id)))
+        }
+    }, [todosUsuarios])
 
     const { mutate: doEnviar, isPending: isEnviando } = useMutation({
         mutationFn: () => {
@@ -146,64 +143,66 @@ export function CampanhasTab() {
         },
         onSuccess: (resultado) => {
             setToast({
-                message: `Campanha enviada com sucesso! ${resultado.enviados} email${resultado.enviados !== 1 ? 's' : ''} enviado${resultado.enviados !== 1 ? 's' : ''}${resultado.sem_email > 0 ? ` (${resultado.sem_email} sem email)` : ''}.`,
+                message: `Campanha enviada! ${resultado.enviados} email${resultado.enviados !== 1 ? 's' : ''} enviado${resultado.enviados !== 1 ? 's' : ''}${resultado.sem_email > 0 ? ` (${resultado.sem_email} sem email)` : ''}.`,
                 type: 'success',
             })
-            // Resetar para etapa 1
             setStep(1)
             setTemplateSelecionado(null)
-            setFiltroSelecionado(null)
-            setFiltroAtivo(null)
             setSelecionados(new Set())
+            setFiltroVersao('')
+            setFiltroInativo(null)
+            setBusca('')
         },
         onError: () => {
             setToast({ message: 'Erro ao enviar a campanha. Tente novamente.', type: 'error' })
         },
     })
 
-    // Quando os usuários carregam, pré-seleciona todos
-    useEffect(() => {
-        if (usuariosFiltrados) {
-            setSelecionados(new Set(usuariosFiltrados.map(u => u.usuario_id)))
-        }
-    }, [usuariosFiltrados])
-
     const handleEscolherTemplate = (template: CampanhaTemplate) => {
         setTemplateSelecionado(template)
-        setFiltroSelecionado(null)
-        setFiltroAtivo(null)
         setSelecionados(new Set())
+        setFiltroVersao('')
+        setFiltroInativo(null)
+        setBusca('')
         setStep(2)
-    }
-
-    const handleEscolherFiltro = (filtro: FiltroOpcao) => {
-        setFiltroSelecionado(filtro)
-        setFiltroAtivo(filtro)
-        setSelecionados(new Set())
     }
 
     const handleToggleUsuario = (id: number) => {
         setSelecionados(prev => {
             const next = new Set(prev)
-            if (next.has(id)) {
-                next.delete(id)
-            } else {
-                next.add(id)
-            }
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
             return next
         })
     }
 
     const handleSelecionarTodos = () => {
-        if (!usuariosFiltrados) return
-        setSelecionados(new Set(usuariosFiltrados.map(u => u.usuario_id)))
+        if (!todosUsuarios) return
+        setSelecionados(new Set(todosUsuarios.map(u => u.usuario_id)))
     }
 
-    const handleDeselecionarTodos = () => {
-        setSelecionados(new Set())
+    const handleDeselecionarTodos = () => setSelecionados(new Set())
+
+    // Seleciona apenas os visíveis (após busca textual)
+    const handleSelecionarVisiveis = () => {
+        setSelecionados(prev => {
+            const next = new Set(prev)
+            usuariosVisiveis.forEach(u => next.add(u.usuario_id))
+            return next
+        })
     }
 
-    const usuariosSelecionadosDetalhes = usuariosFiltrados?.filter(u => selecionados.has(u.usuario_id)) ?? []
+    const handleToggleFiltroInativo = (dias: number) => {
+        setFiltroInativo(prev => (prev === dias ? null : dias))
+    }
+
+    const handleToggleFiltroVersao = (v: 'v1') => {
+        setFiltroVersao(prev => (prev === v ? '' : v))
+    }
+
+    const usuariosSelecionadosDetalhes = todosUsuarios?.filter(u => selecionados.has(u.usuario_id)) ?? []
+
+    const filtrosAtivos = filtroVersao !== '' || filtroInativo !== null
 
     return (
         <div className="p-4 space-y-6 max-w-2xl mx-auto">
@@ -274,13 +273,13 @@ export function CampanhasTab() {
                 </section>
             )}
 
-            {/* --- Etapa 2: Filtrar destinatários --- */}
+            {/* --- Etapa 2: Destinatários --- */}
             {step === 2 && templateSelecionado && (
                 <section className="space-y-5">
                     {/* Cabeçalho com voltar */}
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => { setStep(1); setFiltroSelecionado(null); setFiltroAtivo(null); setSelecionados(new Set()) }}
+                            onClick={() => { setStep(1); setSelecionados(new Set()) }}
                             className="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -295,100 +294,158 @@ export function CampanhasTab() {
                         </div>
                     </div>
 
-                    {/* Filtros */}
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                            Filtrar destinatarios
-                        </h2>
-                        <div className="grid grid-cols-2 gap-2">
-                            {FILTROS.map(filtro => (
+                    {/* Busca + filtros */}
+                    <div className="space-y-3">
+                        {/* Campo de busca */}
+                        <div className="relative">
+                            <svg
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                value={busca}
+                                onChange={e => setBusca(e.target.value)}
+                                placeholder="Buscar por nome, email ou username..."
+                                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {busca && (
                                 <button
-                                    key={filtro.key}
-                                    onClick={() => handleEscolherFiltro(filtro)}
-                                    className={`px-3 py-2.5 rounded-xl text-sm font-medium text-center transition-all active:scale-[0.97] ${
-                                        filtroSelecionado?.key === filtro.key
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    onClick={() => setBusca('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Chips de filtro */}
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 self-center mr-1">Filtros:</span>
+                            {(
+                                [
+                                    { label: 'Só v1', action: () => handleToggleFiltroVersao('v1'), active: filtroVersao === 'v1' },
+                                    { label: 'Inativos 30d', action: () => handleToggleFiltroInativo(30), active: filtroInativo === 30 },
+                                    { label: 'Inativos 60d', action: () => handleToggleFiltroInativo(60), active: filtroInativo === 60 },
+                                ] as { label: string; action: () => void; active: boolean }[]
+                            ).map(f => (
+                                <button
+                                    key={f.label}
+                                    onClick={f.action}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                        f.active
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                     }`}
                                 >
-                                    {filtro.label}
+                                    {f.active && (
+                                        <span className="mr-1">✕</span>
+                                    )}
+                                    {f.label}
                                 </button>
                             ))}
+                            {filtrosAtivos && (
+                                <button
+                                    onClick={() => { setFiltroVersao(''); setFiltroInativo(null) }}
+                                    className="px-3 py-1 rounded-full text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
+                                >
+                                    Limpar filtros
+                                </button>
+                            )}
                         </div>
                     </div>
 
                     {/* Lista de usuários */}
-                    {filtroAtivo && (
-                        <div>
-                            {isLoadingUsuarios ? (
-                                <div className="space-y-2">
-                                    {[0, 1, 2, 3].map(i => (
-                                        <div key={i} className="h-12 rounded-xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
-                                    ))}
-                                </div>
-                            ) : usuariosFiltrados && usuariosFiltrados.length === 0 ? (
-                                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm text-center">
-                                    Nenhum usuario encontrado para este filtro.
-                                </div>
-                            ) : usuariosFiltrados ? (
-                                <>
-                                    {/* Acoes de selecao */}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                                            {selecionados.size} de {usuariosFiltrados.length} selecionado{selecionados.size !== 1 ? 's' : ''}
-                                        </span>
-                                        <div className="flex gap-3">
-                                            <button
-                                                onClick={handleSelecionarTodos}
-                                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                                            >
-                                                Todos
-                                            </button>
-                                            <button
-                                                onClick={handleDeselecionarTodos}
-                                                className="text-xs text-gray-500 dark:text-gray-400 hover:underline"
-                                            >
-                                                Nenhum
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Lista scrollavel */}
-                                    <div className="section-card divide-y divide-gray-100 dark:divide-gray-700 max-h-72 overflow-y-auto">
-                                        {usuariosFiltrados.map(u => (
-                                            <label
-                                                key={u.usuario_id}
-                                                className="flex items-center gap-3 py-3 px-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selecionados.has(u.usuario_id)}
-                                                    onChange={() => handleToggleUsuario(u.usuario_id)}
-                                                    className="w-4 h-4 accent-blue-600 flex-shrink-0"
-                                                />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                                        {u.nome || u.username}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                        {u.email}
-                                                    </p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : null}
+                    {isLoadingUsuarios ? (
+                        <div className="space-y-2">
+                            {[0, 1, 2, 3, 4].map(i => (
+                                <div key={i} className="h-12 rounded-xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
+                            ))}
                         </div>
-                    )}
+                    ) : todosUsuarios && todosUsuarios.length === 0 ? (
+                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm text-center">
+                            Nenhum usuario encontrado{filtrosAtivos ? ' para estes filtros' : ''}.
+                        </div>
+                    ) : todosUsuarios ? (
+                        <>
+                            {/* Contadores e ações em massa */}
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {busca
+                                        ? `${usuariosVisiveis.length} de ${todosUsuarios.length} exibidos`
+                                        : `${todosUsuarios.length} usuário${todosUsuarios.length !== 1 ? 's' : ''}`
+                                    }
+                                    {' · '}
+                                    <span className="font-medium">{selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}</span>
+                                </span>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={busca ? handleSelecionarVisiveis : handleSelecionarTodos}
+                                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                    >
+                                        {busca ? 'Sel. visíveis' : 'Todos'}
+                                    </button>
+                                    <button
+                                        onClick={handleDeselecionarTodos}
+                                        className="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                                    >
+                                        Nenhum
+                                    </button>
+                                </div>
+                            </div>
 
-                    {/* Botao Proximo */}
+                            {/* Lista scrollavel */}
+                            <div className="section-card divide-y divide-gray-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
+                                {usuariosVisiveis.length === 0 ? (
+                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+                                        Nenhum resultado para "{busca}"
+                                    </p>
+                                ) : (
+                                    usuariosVisiveis.map(u => (
+                                        <label
+                                            key={u.usuario_id}
+                                            className="flex items-center gap-3 py-3 px-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selecionados.has(u.usuario_id)}
+                                                onChange={() => handleToggleUsuario(u.usuario_id)}
+                                                className="w-4 h-4 accent-blue-600 flex-shrink-0"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                    {u.nome || u.username}
+                                                    {!u.usa_v2 && (
+                                                        <span className="ml-1.5 px-1 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs rounded">v1</span>
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                    {u.email}
+                                                </p>
+                                            </div>
+                                            {u.ultimo_login && (
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 shrink-0 hidden sm:block">
+                                                    {new Date(u.ultimo_login).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            )}
+                                        </label>
+                                    ))
+                                )}
+                            </div>
+                        </>
+                    ) : null}
+
+                    {/* Botão Próximo */}
                     {selecionados.size > 0 && (
                         <button
                             onClick={() => setStep(3)}
                             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                         >
-                            Proximo
+                            Próximo — {selecionados.size} destinatário{selecionados.size !== 1 ? 's' : ''}
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                             </svg>
@@ -400,7 +457,6 @@ export function CampanhasTab() {
             {/* --- Etapa 3: Revisar e Enviar --- */}
             {step === 3 && templateSelecionado && (
                 <section className="space-y-5">
-                    {/* Cabeçalho com voltar */}
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setStep(2)}
@@ -446,17 +502,14 @@ export function CampanhasTab() {
                         </div>
                     </div>
 
-                    {/* Lista de destinatarios selecionados */}
+                    {/* Lista de destinatários */}
                     <div>
                         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Lista de destinatarios
                         </h3>
                         <div className="section-card divide-y divide-gray-100 dark:divide-gray-700 max-h-64 overflow-y-auto">
-                            {usuariosSelecionadosDetalhes.map((u, index) => (
-                                <div
-                                    key={u.usuario_id}
-                                    className={`flex items-center gap-3 py-2.5 ${index === 0 ? '' : ''}`}
-                                >
+                            {usuariosSelecionadosDetalhes.map(u => (
+                                <div key={u.usuario_id} className="flex items-center gap-3 py-2.5">
                                     <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                                         <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                                             {(u.nome || u.username).charAt(0).toUpperCase()}
@@ -473,7 +526,7 @@ export function CampanhasTab() {
                         </div>
                     </div>
 
-                    {/* Botao de envio */}
+                    {/* Botão de envio */}
                     <button
                         onClick={() => doEnviar()}
                         disabled={isEnviando || selecionados.size === 0}
