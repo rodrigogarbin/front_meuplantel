@@ -2,7 +2,7 @@
  * Layout principal com navegação bottom
  */
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ImpersonationBanner } from '@/features/admin'
 import { useIsImpersonating } from '@/features/auth/authStore'
@@ -10,6 +10,7 @@ import { usePosturasPendentes } from '@/features/posturas/posturasApi'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useEmailVerificationStatus } from '@/features/auth'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { useMyFeatureFlags, useFeatureFlagsStore } from '@/features/featureFlags'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -24,11 +25,19 @@ export function MainLayout({ children }: MainLayoutProps) {
     const { isInstallable, isIOS, promptInstall } = usePWAInstall()
     const { data: emailStatus } = useEmailVerificationStatus()
     const hasConfigBadge = emailStatus && emailStatus.email && !emailStatus.email_verified
+    const { data: myFlags } = useMyFeatureFlags()
+    const setFlags = useFeatureFlagsStore((s) => s.setFlags)
+    const isEnabled = useFeatureFlagsStore((s) => s.isEnabled)
     const [showMaisMenu, setShowMaisMenu] = useState(false)
+
+    // Sincroniza flags ao carregar
+    React.useEffect(() => {
+        if (myFlags) setFlags(myFlags)
+    }, [myFlags, setFlags])
 
     const isActive = (path: string) => location.pathname === path
 
-    const maisRoutes = ['/config', '/admin', '/medicamentos', '/doencas', '/sintomas', '/gestao', '/chat']
+    const maisRoutes = ['/config', '/admin', '/medicamentos', '/doencas', '/sintomas', '/gestao', '/chat', '/financeiro']
     const isMaisActive = maisRoutes.some(p => location.pathname.startsWith(p))
 
     function navigateTo(path: string) {
@@ -202,7 +211,29 @@ export function MainLayout({ children }: MainLayoutProps) {
                                 </button>
                                 )}
 
+                                {/* Financeiro */}
+                                {isEnabled('financeiro') && (
+                                <button
+                                    onClick={() => navigateTo('/financeiro')}
+                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
+                                >
+                                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-base font-medium text-gray-900 dark:text-gray-100">Financeiro</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Receitas, despesas e saldo</p>
+                                    </div>
+                                    <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                )}
+
                                 {/* Medicamentos */}
+                                {isEnabled('medicamentos') && (
                                 <button
                                     onClick={() => navigateTo('/medicamentos')}
                                     className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
@@ -220,6 +251,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                     </svg>
                                 </button>
+                                )}
 
                                 {/* Espécies */}
                                 <button

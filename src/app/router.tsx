@@ -12,6 +12,7 @@ import { CasaisPage, CasalFormPage } from '@/features/casais'
 import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage, GestaoConfigPage } from '@/features/config'
 import { GestaoPage } from '@/features/gestao/GestaoPage'
+import { FinanceiroPage } from '@/features/financeiro/FinanceiroPage'
 import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicamentos'
 import { ChatPage } from '@/features/chat'
 import { CertificadoVerificacaoPage } from '@/features/certificado/CertificadoVerificacaoPage'
@@ -19,6 +20,8 @@ import { UnsubscribePage } from '@/pages/UnsubscribePage'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
+import { useFeatureFlagsStore } from '@/features/featureFlags'
+import type { FeatureFlagChave } from '@/features/featureFlags'
 
 /**
  * Protege rotas que exigem is_admin=true.
@@ -28,6 +31,16 @@ import { EmailVerificationGuard } from './EmailVerificationGuard'
 function AdminRoute({ children }: { children: React.ReactNode }) {
     const user = useUser()
     if (!user?.is_admin) return <Navigate to="/" replace />
+    return <>{children}</>
+}
+
+/**
+ * Protege rotas que exigem uma feature flag habilitada.
+ * Redireciona para home se a feature não estiver ativa.
+ */
+function FeatureGuard({ flag, children }: { flag: FeatureFlagChave; children: React.ReactNode }) {
+    const isEnabled = useFeatureFlagsStore((s) => s.isEnabled)
+    if (!isEnabled(flag)) return <Navigate to="/" replace />
     return <>{children}</>
 }
 
@@ -143,6 +156,10 @@ export const router = createBrowserRouter([
                 element: <GestaoPage />,
             },
             {
+                path: '/financeiro',
+                element: <FeatureGuard flag="financeiro"><FinanceiroPage /></FeatureGuard>,
+            },
+            {
                 path: '/passaros/:id/arvore',
                 element: <ArvoreGenealogicaPage />,
             },
@@ -186,15 +203,15 @@ export const router = createBrowserRouter([
             },
             {
                 path: '/medicamentos',
-                element: <MedicamentosPage />,
+                element: <FeatureGuard flag="medicamentos"><MedicamentosPage /></FeatureGuard>,
             },
             {
                 path: '/doencas',
-                element: <DoencasPage />,
+                element: <FeatureGuard flag="medicamentos"><DoencasPage /></FeatureGuard>,
             },
             {
                 path: '/sintomas',
-                element: <SintomasPage />,
+                element: <FeatureGuard flag="medicamentos"><SintomasPage /></FeatureGuard>,
             },
         ],
     },

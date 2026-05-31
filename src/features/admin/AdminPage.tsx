@@ -8,6 +8,8 @@ import { useLoginStats } from './loginStatsApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 import { CampanhasTab } from './CampanhasTab'
+import { FuncionalidadesTab } from './FuncionalidadesTab'
+import { UsuarioFeatureFlagsPanel } from './UsuarioFeatureFlagsPanel'
 
 // Ícones inline para os stat cards
 function UsersIcon() {
@@ -59,7 +61,7 @@ function StarIcon() {
     )
 }
 
-type Tab = 'dashboard' | 'usuarios' | 'logins' | 'campanhas'
+type Tab = 'dashboard' | 'usuarios' | 'logins' | 'campanhas' | 'funcionalidades'
 
 export function AdminPage() {
     const navigate = useNavigate()
@@ -80,6 +82,7 @@ export function AdminPage() {
     const [versaoFilter, setVersaoFilter] = useState<VersaoFilter>('')
     const [sortField, setSortField] = useState<SortField>('nome')
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+    const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
 
     const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page, versaoFilter, sortField, sortOrder)
     const { data: stats, isLoading: isLoadingStats } = useAdminStats()
@@ -243,6 +246,16 @@ export function AdminPage() {
                         }`}
                     >
                         Campanhas
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('funcionalidades')}
+                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                            activeTab === 'funcionalidades'
+                                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        Funcional.
                     </button>
                 </div>
 
@@ -499,8 +512,10 @@ export function AdminPage() {
                                 {usuariosData?.data?.map((u) => (
                                     <div
                                         key={u.usuario_id}
-                                        className="section-card flex items-center gap-3"
+                                        className="section-card overflow-hidden"
                                     >
+                                        {/* Linha principal do usuário */}
+                                        <div className="flex items-center gap-3">
                                         {/* Checkbox */}
                                         {u.usuario_id !== user?.usuario_id && (
                                             <input
@@ -616,6 +631,21 @@ export function AdminPage() {
                                                     </button>
                                                 )}
                                             </div>
+                                        )}
+                                        </div>
+
+                                        {/* Toggle flags panel */}
+                                        <button
+                                            onClick={() => setExpandedUserId(expandedUserId === u.usuario_id ? null : u.usuario_id)}
+                                            className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 border-t border-gray-100 dark:border-gray-700 transition-colors"
+                                        >
+                                            <span>Funcionalidades</span>
+                                            <svg className={`w-3 h-3 transition-transform ${expandedUserId === u.usuario_id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                        {expandedUserId === u.usuario_id && (
+                                            <UsuarioFeatureFlagsPanel userId={u.usuario_id} />
                                         )}
                                     </div>
                                 ))}
@@ -780,6 +810,9 @@ export function AdminPage() {
 
                 {/* Conteúdo da aba Campanhas */}
                 {activeTab === 'campanhas' && <CampanhasTab />}
+
+                {/* Conteúdo da aba Funcionalidades */}
+                {activeTab === 'funcionalidades' && <FuncionalidadesTab />}
             </main>
 
             {/* Modal de confirmação de exclusão em lote */}
