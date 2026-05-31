@@ -132,6 +132,7 @@ import { SexoEnum, SexoLabels, SituacaoEnum, SituacaoLabels, PortadorTipo } from
 import type { CreatePassaroPayload, Portador } from '@/types'
 import { getFotoUrl } from '@/lib/passaro'
 import { API_BASE_URL } from '@/lib/api'
+import { VendaRegistroSheet } from '@/features/financeiro/VendaRegistroSheet'
 
 // Opções de sexo para o segmented control
 const sexoOptions = [
@@ -210,6 +211,11 @@ export function PassaroFormPage() {
     const [fotoSelecionada, setFotoSelecionada] = useState<File | null>(null)
     const [fotoPreview, setFotoPreview] = useState<string | null>(null)
 
+    // Estado para sheet de registro de venda (abre quando sit muda para 2=Vendido)
+    const [vendaPassaro, setVendaPassaro] = useState<{ passaro_id: number; descr?: string; anel?: string } | null>(null)
+    // Guarda o sit original antes da edição para detectar mudança para Vendido
+    const originalSitRef = useRef<number | null>(null)
+
     // Queries
     const { data: passaro, isLoading: loadingPassaro, error: errorPassaro } = usePassaro(passaroId)
     const { data: especies = [], isLoading: loadingEspecies } = useEspecies()
@@ -261,6 +267,11 @@ export function PassaroFormPage() {
     // Preenche o formulário quando carregar um pássaro existente
     useEffect(() => {
         if (passaro && isEditing) {
+            // Captura sit original (apenas na primeira carga)
+            if (originalSitRef.current === null) {
+                originalSitRef.current = passaro.sit ?? SituacaoEnum.ATIVO
+            }
+
             // Parse portadores do JSON
             let portadorList: string[] = []
             let pportadorList: string[] = []
@@ -444,6 +455,23 @@ export function PassaroFormPage() {
                     // Pequeno delay para usuário ver a mensagem
                     await new Promise(resolve => setTimeout(resolve, 2000))
                 }
+            }
+
+            // 3. Verifica se o pássaro foi marcado como Vendido (sit=2) e não era Vendido antes
+            // sit=2 = Vendido no backend (SituacaoEnum usa INATIVO=2, mas o domínio é Vendido)
+            const SIT_VENDIDO = 2
+            const novoSit = payload.sit
+            const sitOriginal = originalSitRef.current
+            const marcadoComoVendido = novoSit === SIT_VENDIDO && sitOriginal !== SIT_VENDIDO
+
+            if (isEditing && marcadoComoVendido && finalPassaroId) {
+                // Abre sheet de registro de venda — navegação acontece no onClose/onPular
+                setVendaPassaro({
+                    passaro_id: finalPassaroId,
+                    descr: formData.descr || undefined,
+                    anel: formData.nro && formData.ano ? `${formData.nro}/${formData.ano}` : undefined,
+                })
+                return
             }
 
             // Redireciona com base na origem da navegação
@@ -918,6 +946,14 @@ export function PassaroFormPage() {
                     </div>
                 </div>
             </form>
+
+            {/* Sheet de registro de venda (abre quando pássaro é marcado como Vendido) */}
+            <VendaRegistroSheet
+                isOpen={!!vendaPassaro}
+                onClose={() => { setVendaPassaro(null); navigate(getReturnPath()) }}
+                onPular={() => { setVendaPassaro(null); navigate(getReturnPath()) }}
+                passaro={vendaPassaro}
+            />
         </div>
     )
 }
