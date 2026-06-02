@@ -10,6 +10,7 @@ import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 import { CampanhasTab } from './CampanhasTab'
 import { FuncionalidadesTab } from './FuncionalidadesTab'
 import { UsuarioFeatureFlagsPanel } from './UsuarioFeatureFlagsPanel'
+import { NpsTab } from '@/features/nps/NpsTab'
 
 // Ícones inline para os stat cards
 function UsersIcon() {
@@ -61,7 +62,7 @@ function StarIcon() {
     )
 }
 
-type Tab = 'dashboard' | 'usuarios' | 'logins' | 'campanhas' | 'funcionalidades'
+type Tab = 'dashboard' | 'usuarios' | 'logins' | 'campanhas' | 'funcionalidades' | 'nps'
 
 export function AdminPage() {
     const navigate = useNavigate()
@@ -256,6 +257,16 @@ export function AdminPage() {
                         }`}
                     >
                         Funcional.
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('nps')}
+                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                            activeTab === 'nps'
+                                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
+                                : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        NPS
                     </button>
                 </div>
 
@@ -813,6 +824,9 @@ export function AdminPage() {
 
                 {/* Conteúdo da aba Funcionalidades */}
                 {activeTab === 'funcionalidades' && <FuncionalidadesTab />}
+
+                {/* Conteúdo da aba NPS */}
+                {activeTab === 'nps' && <NpsTab />}
             </main>
 
             {/* Modal de confirmação de exclusão em lote */}

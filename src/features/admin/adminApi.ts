@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { ImpersonateResponse } from '@/types'
 export type { ImpersonateResponse }
@@ -135,4 +135,22 @@ export async function enviarCampanha(
         user_ids: userIds,
     })
     return data
+}
+
+export function useAdminUsuariosInfinite(search: string) {
+    return useInfiniteQuery<PaginatedResponse>({
+        queryKey: ['admin', 'usuarios-infinite', search],
+        queryFn: async ({ pageParam = 1 }) => {
+            const params = new URLSearchParams()
+            if (search) params.set('q', search)
+            params.set('page', String(pageParam))
+            params.set('sort', 'nome')
+            params.set('order', 'asc')
+            const { data } = await api.get(`/api/v1/admin/usuarios?${params}`)
+            return data
+        },
+        getNextPageParam: (lastPage) =>
+            lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined,
+        initialPageParam: 1,
+    })
 }

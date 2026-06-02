@@ -11,6 +11,8 @@ import { useAuthStore } from '@/features/auth/authStore'
 import { useEmailVerificationStatus } from '@/features/auth'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useMyFeatureFlags, useFeatureFlagsStore } from '@/features/featureFlags'
+import { useNpsPendente, isNpsSnoozed } from '@/features/nps/npsApi'
+import { NpsSheet } from '@/features/nps/NpsSheet'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -29,11 +31,18 @@ export function MainLayout({ children }: MainLayoutProps) {
     const setFlags = useFeatureFlagsStore((s) => s.setFlags)
     const isEnabled = useFeatureFlagsStore((s) => s.isEnabled)
     const [showMaisMenu, setShowMaisMenu] = useState(false)
+    const [showNps, setShowNps] = useState(false)
+    const { data: npsPendente } = useNpsPendente()
 
     // Sincroniza flags ao carregar
     React.useEffect(() => {
         if (myFlags) setFlags(myFlags)
     }, [myFlags, setFlags])
+
+    // Abre pesquisa NPS quando backend sinaliza e não está em snooze
+    React.useEffect(() => {
+        if (npsPendente?.mostrar && !isNpsSnoozed()) setShowNps(true)
+    }, [npsPendente])
 
     const isActive = (path: string) => location.pathname === path
 
@@ -133,6 +142,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                     </button>
                 </div>
             </nav>
+
+            {/* Pesquisa NPS */}
+            {showNps && <NpsSheet onClose={() => setShowNps(false)} />}
 
             {/* Menu "Mais" — Bottom Sheet */}
             {showMaisMenu && (

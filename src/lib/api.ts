@@ -61,8 +61,8 @@ api.interceptors.response.use(
             return Promise.reject(error)
         }
 
-        // Ignora refresh em rotas de auth (login, logout, refresh)
-        const authPaths = ['/api/v1/login', '/api/v1/logout', '/api/v1/refresh']
+        // Ignora refresh em rotas de auth e em rotas públicas que fazem auth manual
+        const authPaths = ['/api/v1/login', '/api/v1/logout', '/api/v1/refresh', '/api/v1/nps']
         if (authPaths.some(path => originalRequest.url?.includes(path))) {
             return Promise.reject(error)
         }

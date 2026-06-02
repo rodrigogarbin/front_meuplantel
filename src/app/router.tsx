@@ -17,6 +17,7 @@ import { MedicamentosPage, DoencasPage, SintomasPage } from '@/features/medicame
 import { ChatPage } from '@/features/chat'
 import { CertificadoVerificacaoPage } from '@/features/certificado/CertificadoVerificacaoPage'
 import { UnsubscribePage } from '@/pages/UnsubscribePage'
+import { NpsEmailPage } from '@/pages/NpsEmailPage'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
@@ -224,6 +225,11 @@ export const router = createBrowserRouter([
         // Rota pública de descadastro de emails de campanha (sem autenticação)
         path: '/unsubscribe',
         element: <UnsubscribePage />,
+    },
+    {
+        // Rota pública de pesquisa NPS via email (sem autenticação)
+        path: '/nps',
+        element: <NpsEmailPage />,
     },
     {
         // Catch-all para rotas não encontradas
