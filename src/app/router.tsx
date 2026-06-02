@@ -154,7 +154,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: '/gestao',
-                element: <GestaoPage />,
+                element: <FeatureGuard flag="gestao"><GestaoPage /></FeatureGuard>,
             },
             {
                 path: '/financeiro',

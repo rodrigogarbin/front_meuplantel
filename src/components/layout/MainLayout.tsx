@@ -202,8 +202,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                                 </button>
                                 )}
 
-                                    {/* Gestão do Plantel — apenas admin */}
-                                {user?.is_admin && (
+                                    {/* Gestão do Plantel — controlado por feature flag */}
+                                {isEnabled('gestao') && (
                                 <button
                                     onClick={() => navigateTo('/gestao')}
                                     className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"

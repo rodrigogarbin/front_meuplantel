@@ -7,6 +7,7 @@ const FLAG_ICONS: Record<FeatureFlagChave, string> = {
     push_notifications: '🔔',
     medicamentos: '💊',
     assistente: '🤖',
+    gestao: '📊',
 }
 
 export function FuncionalidadesTab() {
