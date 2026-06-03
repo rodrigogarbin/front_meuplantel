@@ -207,7 +207,10 @@ export function AdminPage() {
 
             <main className="page-content">
                 {/* Abas */}
-                <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10 scrollbar-none">
+                <div className="relative sticky top-0 z-10 bg-white dark:bg-gray-800">
+                <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 scrollbar-hide">
+                    {/* Gradiente indicando mais conteúdo à direita */}
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-gray-800 to-transparent z-10" />
                     <button
                         onClick={() => setActiveTab('dashboard')}
                         className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -268,6 +271,7 @@ export function AdminPage() {
                     >
                         NPS
                     </button>
+                </div>
                 </div>
 
                 {/* Conteúdo da aba Dashboard */}
