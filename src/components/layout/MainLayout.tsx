@@ -156,13 +156,14 @@ export function MainLayout({ children }: MainLayoutProps) {
                     />
 
                     {/* Painel */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-[70] pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                        {/* Handle */}
-                        <div className="flex justify-center pt-3 pb-1">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-[70] flex flex-col"
+                         style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 2rem)' }}>
+                        {/* Handle — sempre visível no topo */}
+                        <div className="flex justify-center pt-3 pb-1 shrink-0">
                             <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
                         </div>
 
-                        <div className="px-2 pb-2">
+                        <div className="overflow-y-auto px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
                             {/* Card do usuário */}
                             <div className="flex items-center gap-3 px-3 py-4 mb-1">
                                 <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg font-semibold shrink-0">

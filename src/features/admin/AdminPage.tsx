@@ -207,10 +207,10 @@ export function AdminPage() {
 
             <main className="page-content">
                 {/* Abas */}
-                <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10">
+                <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-10 scrollbar-none">
                     <button
                         onClick={() => setActiveTab('dashboard')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'dashboard'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
@@ -220,7 +220,7 @@ export function AdminPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('usuarios')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'usuarios'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
@@ -230,7 +230,7 @@ export function AdminPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('logins')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'logins'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
@@ -240,7 +240,7 @@ export function AdminPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('campanhas')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'campanhas'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
@@ -250,17 +250,17 @@ export function AdminPage() {
                     </button>
                     <button
                         onClick={() => setActiveTab('funcionalidades')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'funcionalidades'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
                         }`}
                     >
-                        Funcional.
+                        Funcionalidades
                     </button>
                     <button
                         onClick={() => setActiveTab('nps')}
-                        className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                        className={`shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                             activeTab === 'nps'
                                 ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
                                 : 'text-gray-500 dark:text-gray-400'
