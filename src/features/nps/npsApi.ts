@@ -18,11 +18,21 @@ export interface NpsPendente {
     mostrar: boolean
 }
 
+export interface NpsResposta {
+    nps_resposta_id: number
+    nota: number
+    sugestao: string | null
+    origem: string
+    dt_resposta: string
+    usuario: { usuario_id: number; nome: string; email: string } | null
+}
+
 export interface NpsResultados {
     total: number
     media: number | null
     nps_score: number | null
     distribuicao: Record<string, number>
+    respostas: NpsResposta[]
     sugestoes: {
         nota: number
         sugestao: string

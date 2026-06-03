@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useNpsResultados, useEnviarNpsEmail } from './npsApi'
+import { useNpsResultados, useEnviarNpsEmail, type NpsResposta } from './npsApi'
 import { useAdminUsuariosInfinite } from '@/features/admin/adminApi'
 
 function NpsScoreDisplay({ score }: { score: number | null }) {
@@ -21,6 +21,65 @@ function DistribuicaoBar({ label, count, total, color }: { label: string; count:
                 <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
             </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-10 text-right">{pct}%</span>
+        </div>
+    )
+}
+
+function NotaBadge({ nota }: { nota: number }) {
+    const color =
+        nota >= 9 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' :
+        nota >= 7 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                   'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+    return (
+        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${color}`}>
+            {nota}
+        </span>
+    )
+}
+
+function RespostasSection({ respostas }: { respostas: NpsResposta[] }) {
+    const [expanded, setExpanded] = useState(false)
+    const visible = expanded ? respostas : respostas.slice(0, 5)
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    Respostas ({respostas.length})
+                </h3>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                {visible.map((r) => (
+                    <div key={r.nps_resposta_id} className="px-4 py-3 flex items-start gap-3">
+                        <NotaBadge nota={r.nota} />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                    {r.usuario?.nome ?? 'Usuário desconhecido'}
+                                </span>
+                                <span className="text-xs text-gray-400">{r.usuario?.email}</span>
+                                <span className="text-xs text-gray-400 ml-auto">
+                                    {new Date(r.dt_resposta).toLocaleDateString('pt-BR')}
+                                </span>
+                            </div>
+                            {r.sugestao ? (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{r.sugestao}</p>
+                            ) : (
+                                <p className="text-xs text-gray-400 mt-1 italic">Sem sugestão</p>
+                            )}
+                            <span className="text-xs text-gray-400 capitalize">{r.origem}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {respostas.length > 5 && (
+                <button
+                    onClick={() => setExpanded((v) => !v)}
+                    className="w-full py-3 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                    {expanded ? 'Ver menos' : `Ver mais ${respostas.length - 5} respostas`}
+                </button>
+            )}
         </div>
     )
 }
@@ -278,6 +337,11 @@ export function NpsTab() {
                         ))}
                     </div>
                 </div>
+            )}
+
+            {/* Respostas */}
+            {(data?.respostas?.length ?? 0) > 0 && (
+                <RespostasSection respostas={data!.respostas} />
             )}
 
             {/* Email panel — always visible */}
