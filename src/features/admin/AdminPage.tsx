@@ -551,6 +551,13 @@ export function AdminPage() {
                                                 <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                                     {u.nome}
                                                 </p>
+                                                {u.app_instalado_em && (
+                                                    <span title={`App instalado em ${new Date(u.app_instalado_em).toLocaleDateString('pt-BR')}`}>
+                                                        <svg className="w-3.5 h-3.5 text-blue-500 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </span>
+                                                )}
                                                 {u.is_admin && (
                                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
                                                         Admin

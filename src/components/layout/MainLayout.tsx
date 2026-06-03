@@ -13,6 +13,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { useMyFeatureFlags, useFeatureFlagsStore } from '@/features/featureFlags'
 import { useNpsPendente, isNpsSnoozed } from '@/features/nps/npsApi'
 import { NpsSheet } from '@/features/nps/NpsSheet'
+import { useReportAppInstall } from '@/hooks/useReportAppInstall'
 
 interface MainLayoutProps {
     children: React.ReactNode
@@ -33,6 +34,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     const [showMaisMenu, setShowMaisMenu] = useState(false)
     const [showNps, setShowNps] = useState(false)
     const { data: npsPendente } = useNpsPendente()
+
+    useReportAppInstall()
 
     // Sincroniza flags ao carregar
     React.useEffect(() => {

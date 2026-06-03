@@ -16,6 +16,7 @@ export interface AdminUsuario {
     dt_criacao: string | null
     email_verified_at: string | null
     ultimo_login: string | null
+    app_instalado_em: string | null
 }
 
 interface PaginatedResponse {
