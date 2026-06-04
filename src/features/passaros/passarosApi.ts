@@ -113,6 +113,12 @@ async function fetchPassarosPaginated(filters: PassaroFilters = {}, page: number
     if (filters.search !== undefined && filters.search.trim()) {
         params.append('search', filters.search.trim())
     }
+    if (filters.especie_usuario_id !== undefined) {
+        const ids = Array.isArray(filters.especie_usuario_id)
+            ? filters.especie_usuario_id
+            : [filters.especie_usuario_id]
+        ids.forEach(id => params.append('especie_usuario_id[]', id.toString()))
+    }
 
     const response = await api.get<PassarosResponse>(`/api/v1/passaros?${params.toString()}`)
     const data = response.data

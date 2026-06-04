@@ -6,6 +6,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect, type FocusEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, EmptyStateOnboarding, ErrorState, PullToRefresh } from '@/components/ui'
+import { MultiSelectCheckbox } from '@/components/ui/MultiSelectCheckbox'
 import { BirdCard } from './BirdCard'
 import { BirdDetailsSheet } from './BirdDetailsSheet'
 import { usePassarosInfinite } from './passarosApi'
@@ -28,11 +29,11 @@ export function PassarosPage() {
 
     // Filtros persistentes
     const { passaros: passarosFilters, setPassarosFilters } = useFiltersStore()
-    const { sexoFilter, situacaoFilter, searchQuery, especieFilter } = passarosFilters
+    const { sexoFilter, situacaoFilter, searchQuery, especiesFilter } = passarosFilters
     const setSexoFilter = (v: typeof sexoFilter) => setPassarosFilters({ sexoFilter: v })
     const setSituacaoFilter = (v: typeof situacaoFilter) => setPassarosFilters({ situacaoFilter: v })
     const setSearchQuery = (v: string) => setPassarosFilters({ searchQuery: v })
-    const setEspecieFilter = (v: number | null) => setPassarosFilters({ especieFilter: v })
+    const setEspeciesFilter = (v: number[]) => setPassarosFilters({ especiesFilter: v })
 
     const [debouncedSearch, setDebouncedSearch] = useState(searchQuery)
 
@@ -73,13 +74,13 @@ export function PassarosPage() {
             filters.search = debouncedSearch.trim()
         }
 
-        // Filtro por espécie
-        if (especieFilter !== null) {
-            filters.especie_usuario_id = especieFilter
+        // Filtro por espécie (múltipla seleção)
+        if (especiesFilter.length > 0) {
+            filters.especie_usuario_id = especiesFilter
         }
 
         return filters
-    }, [sexoFilter, situacaoFilter, debouncedSearch, especieFilter])
+    }, [sexoFilter, situacaoFilter, debouncedSearch, especiesFilter])
 
     // Query de pássaros com infinite scroll
     const {
@@ -102,7 +103,7 @@ export function PassarosPage() {
     const totalPassaros = Number(data?.pages?.[0]?.total) || 0
 
     // Detecta se é um usuário novo (sem pássaros e sem filtros ativos)
-    const isNewUser = totalPassaros === 0 && !debouncedSearch && sexoFilter === 'all' && situacaoFilter === 'ativos' && especieFilter === null
+    const isNewUser = totalPassaros === 0 && !debouncedSearch && sexoFilter === 'all' && situacaoFilter === 'ativos' && especiesFilter.length === 0
 
     // Espécies para filtro
     const { data: especies = [] } = useEspecies()
@@ -133,7 +134,7 @@ export function PassarosPage() {
     }, [refetch])
 
     // Chips ficam visíveis se a busca está focada OU se há filtro ativo diferente do padrão
-    const hasActiveFilter = sexoFilter !== 'all' || situacaoFilter !== 'ativos' || especieFilter !== null
+    const hasActiveFilter = sexoFilter !== 'all' || situacaoFilter !== 'ativos' || especiesFilter.length > 0
     const showChips = isSearchFocused || hasActiveFilter
 
     // Blur do container de filtros: fecha chips apenas se foco saiu do container inteiro
@@ -172,10 +173,10 @@ export function PassarosPage() {
                     onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Chips — aparecem ao focar ou quando filtro ativo */}
+                {/* Chips de sexo e situação — aparecem ao focar ou quando filtro ativo */}
                 <div
                     className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                        showChips ? 'max-h-40 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                        showChips ? 'max-h-32 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
                     }`}
                 >
                     <div className="flex gap-4">
@@ -213,29 +214,22 @@ export function PassarosPage() {
                             />
                         </ChipGroup>
                     </div>
-                    {especies.length > 0 && (
-                        <div className="mt-2 overflow-x-auto scrollbar-hide">
-                            <div className="flex gap-2 w-max">
-                                <Chip
-                                    label="Todas"
-                                    active={especieFilter === null}
-                                    onClick={() => setEspecieFilter(null)}
-                                />
-                                {especies.map((e) => {
-                                    const id = e.especie_usuario_id ?? e.id ?? 0
-                                    return (
-                                        <Chip
-                                            key={id}
-                                            label={e.descr ?? '—'}
-                                            active={especieFilter === id}
-                                            onClick={() => setEspecieFilter(especieFilter === id ? null : id)}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
                 </div>
+
+                {/* Filtro de Espécie — fora do div colapsável, sempre visível quando há espécies */}
+                {especies.length > 0 && (
+                    <div className="mt-2">
+                        <MultiSelectCheckbox
+                            placeholder="Filtrar por espécie..."
+                            options={especies.map((e) => ({
+                                id: e.especie_usuario_id ?? e.id ?? 0,
+                                label: e.descr ?? '—',
+                            }))}
+                            value={especiesFilter}
+                            onChange={setEspeciesFilter}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Lista de pássaros */}
