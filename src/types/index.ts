@@ -149,6 +149,7 @@ export interface PassaroFilters {
     nro?: string    // Busca parcial por número do anel
     descr?: string  // Busca parcial por descrição
     search?: string // Busca por anel OU descrição
+    especie_usuario_id?: number // Filtro por espécie
 }
 
 // Sexo enum helpers

@@ -23,6 +23,7 @@ interface PassarosFilters {
     sexoFilter: SexoFilter
     situacaoFilter: SituacaoFilter
     searchQuery: string
+    especieFilter: number | null
 }
 
 interface FiltersState {
@@ -48,6 +49,7 @@ export const useFiltersStore = create<FiltersState>()(
                 sexoFilter: 'all',
                 situacaoFilter: 'ativos',
                 searchQuery: '',
+                especieFilter: null,
             },
             setPosturasFilters: (filters) =>
                 set((state) => ({ posturas: { ...state.posturas, ...filters } })),
