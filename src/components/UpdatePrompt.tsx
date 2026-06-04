@@ -48,8 +48,8 @@ export function UpdatePrompt() {
     }
 
     return (
-        <div className="fixed bottom-20 left-0 right-0 z-[70] px-4">
-            <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 p-4 safe-bottom">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-0 right-0 z-[70] px-4">
+            <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-start gap-3">
                     {/* Ícone */}
                     <div className="flex-shrink-0">
