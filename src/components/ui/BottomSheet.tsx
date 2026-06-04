@@ -1,11 +1,12 @@
 /**
  * Componente BottomSheet / Modal
- * 
+ *
  * Exibe como bottom sheet no mobile e modal central no desktop
  * Usando Headless UI Dialog para acessibilidade
+ * Suporta arrastar para baixo para fechar no mobile
  */
 
-import { Fragment, ReactNode } from 'react'
+import { Fragment, ReactNode, useRef, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 
 interface BottomSheetProps {
@@ -16,6 +17,25 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetProps) {
+    const startYRef = useRef(0)
+    const [dragY, setDragY] = useState(0)
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        startYRef.current = e.touches[0].clientY
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        const delta = e.touches[0].clientY - startYRef.current
+        if (delta > 0) setDragY(delta)
+    }
+
+    const handleTouchEnd = () => {
+        if (dragY > 80) {
+            onClose()
+        }
+        setDragY(0)
+    }
+
     return (
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -44,9 +64,20 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
                         >
-                            <Dialog.Panel className="w-full sm:max-w-lg transform bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl shadow-xl transition-all max-h-[85vh] flex flex-col overflow-hidden">
-                                {/* Handle bar for mobile */}
-                                <div className="sm:hidden flex justify-center pt-3 pb-1">
+                            <Dialog.Panel
+                                className="w-full sm:max-w-lg transform bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl shadow-xl transition-all max-h-[85vh] flex flex-col overflow-hidden"
+                                style={{
+                                    transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+                                    transition: dragY > 0 ? 'none' : undefined,
+                                }}
+                            >
+                                {/* Handle bar — área de drag no mobile */}
+                                <div
+                                    className="sm:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+                                    onTouchStart={handleTouchStart}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
+                                >
                                     <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
                                 </div>
 
