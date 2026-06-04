@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNpsResultados, useEnviarNpsEmail, type NpsResposta } from './npsApi'
 import { useAdminUsuariosInfinite } from '@/features/admin/adminApi'
+import { Toast, useToast } from '@/components/ui'
 
 function NpsScoreDisplay({ score }: { score: number | null }) {
     if (score === null) return <span className="text-gray-400">N/A</span>
@@ -91,7 +92,7 @@ function EnviarEmailPanel() {
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-    const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+    const { toast, showToast, hideToast } = useToast()
     const enviarEmail = useEnviarNpsEmail()
 
     // Debounce search
@@ -150,21 +151,16 @@ function EnviarEmailPanel() {
         }
     }
 
-    function showToast(type: 'success' | 'error', msg: string) {
-        setToast({ type, msg })
-        setTimeout(() => setToast(null), 4000)
-    }
-
     function handleSend() {
         if (selectedIds.size === 0) return
         enviarEmail.mutate(
             { user_ids: Array.from(selectedIds) },
             {
                 onSuccess: (res: any) => {
-                    showToast('success', `${res.enviados} email(s) enviado(s)${res.falhas > 0 ? `, ${res.falhas} falha(s)` : ''}`)
+                    showToast(`${res.enviados} email(s) enviado(s)${res.falhas > 0 ? `, ${res.falhas} falha(s)` : ''}`, 'success')
                     setSelectedIds(new Set())
                 },
-                onError: () => showToast('error', 'Erro ao enviar emails.'),
+                onError: () => showToast('Erro ao enviar emails.', 'error'),
             }
         )
     }
@@ -172,11 +168,7 @@ function EnviarEmailPanel() {
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
             {/* Toast */}
-            {toast && (
-                <div className={`mx-4 mt-4 px-4 py-3 rounded-xl text-sm font-medium text-white ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-                    {toast.msg}
-                </div>
-            )}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
             <div className="px-4 pt-4 pb-2">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Enviar pesquisa por email</h3>

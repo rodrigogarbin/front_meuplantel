@@ -112,7 +112,7 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
     return (
         <div
             onClick={onClick}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 active:scale-[0.98] transition-transform cursor-pointer relative"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 active:scale-[0.98] transition-transform cursor-pointer relative"
         >
             {/* Alertas principais no canto superior direito */}
             {alertasPrincipais.length > 0 && (
@@ -187,7 +187,7 @@ function PosturaCard({ postura, onClick }: { postura: PosturaListItem; onClick: 
 // Skeleton do card
 function PosturaCardSkeleton() {
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 animate-pulse">
             <div className="flex items-start justify-between mb-3">
                 <div>
                     <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-1" />

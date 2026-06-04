@@ -136,7 +136,7 @@ export function VendaRegistroSheet({ isOpen, onClose, onPular, passaro }: Props)
                     <button
                         onClick={handleRegistrar}
                         disabled={createTransacao.isPending}
-                        className="w-full py-3.5 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {createTransacao.isPending ? (
                             <>

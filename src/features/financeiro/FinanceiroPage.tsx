@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Topbar, PullToRefresh } from '@/components/ui'
+import { Topbar, PullToRefresh, EmptyState } from '@/components/ui'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 import { ApexLineChart } from '@/features/dashboard/ApexLineChart'
@@ -76,7 +76,8 @@ export function FinanceiroPage() {
     const [tabIndex, setTabIndex] = useState(0)
     const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
     const [showFormSheet, setShowFormSheet] = useState(false)
-    const [deleteId, setDeleteId] = useState<number | null>(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+    const [deletingId, setDeletingId] = useState<number | null>(null)
 
     const tabOptions = [
         { value: 0, label: 'Dashboard' },
@@ -158,14 +159,13 @@ export function FinanceiroPage() {
             }))
     }, [dashboard])
 
-    const handleDelete = async (id: number) => {
-        const confirmar = window.confirm('Excluir esta transação?')
-        if (!confirmar) return
-        setDeleteId(id)
+    const handleDeleteConfirm = async (id: number) => {
+        setConfirmDeleteId(null)
+        setDeletingId(id)
         try {
             await deleteTransacao.mutateAsync(id)
         } finally {
-            setDeleteId(null)
+            setDeletingId(null)
         }
     }
 
@@ -273,11 +273,11 @@ export function FinanceiroPage() {
                             )}
 
                             {!isLoadingDashboard && !dashboard && (
-                                <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                                    <WalletIcon className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                                    <p className="font-medium">Nenhuma movimentação ainda</p>
-                                    <p className="text-sm mt-1">Adicione receitas e despesas pelo botão abaixo</p>
-                                </div>
+                                <EmptyState
+                                    title="Nenhuma movimentação ainda"
+                                    description="Adicione receitas e despesas pelo botão abaixo"
+                                    icon={<WalletIcon className="w-10 h-10 text-gray-400 dark:text-gray-500" />}
+                                />
                             )}
                         </>
                     )}
@@ -306,17 +306,17 @@ export function FinanceiroPage() {
                             {isLoadingTransacoes && (
                                 <div className="space-y-4">
                                     {[1, 2, 3].map((i) => (
-                                        <div key={i} className="animate-pulse">
-                                            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded mb-3" />
+                                        <div key={i}>
+                                            <div className="skeleton h-4 w-20 rounded mb-3" />
                                             <div className="bg-white dark:bg-gray-800 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
                                                 {[1, 2].map((j) => (
                                                     <div key={j} className="flex items-center gap-3 p-4">
-                                                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+                                                        <div className="skeleton w-10 h-10 rounded-xl" />
                                                         <div className="flex-1 space-y-2">
-                                                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
-                                                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                                                            <div className="skeleton h-3 rounded w-2/3" />
+                                                            <div className="skeleton h-3 rounded w-1/3" />
                                                         </div>
-                                                        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+                                                        <div className="skeleton h-5 rounded w-16" />
                                                     </div>
                                                 ))}
                                             </div>
@@ -329,10 +329,10 @@ export function FinanceiroPage() {
                             {!isLoadingTransacoes && (
                                 <>
                                     {Object.keys(transacoesPorMes).length === 0 ? (
-                                        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                                            <WalletIcon className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                                            <p className="font-medium">Nenhuma transação encontrada</p>
-                                        </div>
+                                        <EmptyState
+                                            title="Nenhuma transação encontrada"
+                                            icon={<WalletIcon className="w-10 h-10 text-gray-400 dark:text-gray-500" />}
+                                        />
                                     ) : (
                                         <div className="space-y-6">
                                             {Object.entries(transacoesPorMes).map(([mes, lista]) => {
@@ -382,30 +382,51 @@ export function FinanceiroPage() {
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Valor */}
+                                                                    {/* Valor + Ações */}
                                                                     <div className="flex items-center gap-2 shrink-0">
-                                                                        <span className={`text-sm font-bold ${t.tipo === 'receita' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                                            {t.tipo === 'receita' ? '+' : '-'}{formatCurrency(t.valor)}
-                                                                        </span>
+                                                                        {confirmDeleteId === t.financeiro_id ? (
+                                                                            /* Modo confirmação inline */
+                                                                            <div className="flex items-center gap-1">
+                                                                                <button
+                                                                                    onClick={() => handleDeleteConfirm(t.financeiro_id)}
+                                                                                    disabled={deletingId === t.financeiro_id}
+                                                                                    className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                                                                                >
+                                                                                    Confirmar
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                                    className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                                                                >
+                                                                                    Cancelar
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <span className={`text-sm font-bold ${t.tipo === 'receita' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                    {t.tipo === 'receita' ? '+' : '-'}{formatCurrency(t.valor)}
+                                                                                </span>
 
-                                                                        {/* Botão delete */}
-                                                                        <button
-                                                                            onClick={() => handleDelete(t.financeiro_id)}
-                                                                            disabled={deleteId === t.financeiro_id}
-                                                                            className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
-                                                                            aria-label="Excluir transação"
-                                                                        >
-                                                                            {deleteId === t.financeiro_id ? (
-                                                                                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                                                                </svg>
-                                                                            ) : (
-                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                                                                </svg>
-                                                                            )}
-                                                                        </button>
+                                                                                {/* Botão delete */}
+                                                                                <button
+                                                                                    onClick={() => setConfirmDeleteId(t.financeiro_id)}
+                                                                                    disabled={deletingId === t.financeiro_id}
+                                                                                    className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                                                                                    aria-label="Excluir transação"
+                                                                                >
+                                                                                    {deletingId === t.financeiro_id ? (
+                                                                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                                                        </svg>
+                                                                                    ) : (
+                                                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                                        </svg>
+                                                                                    )}
+                                                                                </button>
+                                                                            </>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             ))}

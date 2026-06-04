@@ -31,11 +31,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
                 ref={ref}
                 id={inputId}
                 className={`
-                    w-full px-3 py-2 border rounded-lg
+                    w-full px-3 py-3 border rounded-xl
                     text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
                     bg-white dark:bg-gray-700
-                    focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                     disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed
+                    transition-all
                     ${error ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-gray-300 dark:border-gray-600'}
                     ${className}
                 `}

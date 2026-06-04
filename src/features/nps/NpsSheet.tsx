@@ -55,12 +55,12 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/40 z-40"
+                className="fixed inset-0 bg-black/50 z-40"
                 onClick={step === 1 ? onClose : undefined}
             />
 
             {/* Sheet */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl px-5 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 rounded-t-3xl shadow-xl px-5 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 {/* Handle */}
                 <div className="flex justify-center mb-4">
                     <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
@@ -96,7 +96,7 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
 
                         <button
                             onClick={() => { snoozeNps(3); onClose() }}
-                            className="w-full py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            className="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-all active:scale-[0.98] hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                             Responder depois
                         </button>
@@ -125,7 +125,7 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
                             <button
                                 onClick={handleSkip}
                                 disabled={submitNps.isPending}
-                                className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-all active:scale-[0.98] hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
                             >
                                 Pular
                             </button>

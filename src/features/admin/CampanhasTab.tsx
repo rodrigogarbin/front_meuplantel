@@ -3,45 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { getCampanhaTemplates, enviarCampanha } from './adminApi'
 import type { CampanhaTemplate, AdminUsuario, VersaoFilter } from './adminApi'
 import { api } from '@/lib/api'
-
-// Toast simples inline — sem biblioteca externa
-interface ToastState {
-    message: string
-    type: 'success' | 'error'
-}
-
-function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
-    useEffect(() => {
-        const timer = setTimeout(onClose, 4000)
-        return () => clearTimeout(timer)
-    }, [onClose])
-
-    return (
-        <div
-            className={`fixed bottom-28 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs w-full transition-all ${
-                toast.type === 'success'
-                    ? 'bg-green-600 dark:bg-green-700'
-                    : 'bg-red-600 dark:bg-red-700'
-            }`}
-        >
-            {toast.type === 'success' ? (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-            ) : (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            )}
-            <span className="flex-1">{toast.message}</span>
-            <button onClick={onClose} className="ml-2 opacity-75 hover:opacity-100">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    )
-}
+import { Toast, useToast } from '@/components/ui'
 
 // Cards dos templates
 function TemplateCard({
@@ -89,7 +51,7 @@ export function CampanhasTab() {
     const [step, setStep] = useState<1 | 2 | 3>(1)
     const [templateSelecionado, setTemplateSelecionado] = useState<CampanhaTemplate | null>(null)
     const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
-    const [toast, setToast] = useState<ToastState | null>(null)
+    const { toast, showToast, hideToast } = useToast()
 
     // Filtros da etapa 2
     const [filtroVersao, setFiltroVersao] = useState<VersaoFilter>('')
@@ -147,10 +109,10 @@ export function CampanhasTab() {
             const partes = [`${resultado.enviados} email${resultado.enviados !== 1 ? 's' : ''} enviado${resultado.enviados !== 1 ? 's' : ''}`]
             if (resultado.sem_email > 0) partes.push(`${resultado.sem_email} sem email`)
             if (resultado.falhas > 0) partes.push(`${resultado.falhas} com falha`)
-            setToast({
-                message: `Campanha processada! ${partes.join(' · ')}.`,
-                type: resultado.falhas > 0 ? 'error' : 'success',
-            })
+            showToast(
+                `Campanha processada! ${partes.join(' · ')}.`,
+                resultado.falhas > 0 ? 'error' : 'success',
+            )
             setStep(1)
             setTemplateSelecionado(null)
             setSelecionados(new Set())
@@ -160,7 +122,7 @@ export function CampanhasTab() {
             setBusca('')
         },
         onError: () => {
-            setToast({ message: 'Erro ao enviar a campanha. Tente novamente.', type: 'error' })
+            showToast('Erro ao enviar a campanha. Tente novamente.', 'error')
         },
     })
 
@@ -214,7 +176,7 @@ export function CampanhasTab() {
     return (
         <div className="p-4 space-y-6 max-w-2xl mx-auto">
             {/* Toast */}
-            {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
             {/* Indicador de etapas */}
             <div className="flex items-center gap-2">
