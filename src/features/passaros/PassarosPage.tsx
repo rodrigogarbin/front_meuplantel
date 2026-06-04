@@ -173,10 +173,10 @@ export function PassarosPage() {
                     onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Chips de sexo e situação — aparecem ao focar ou quando filtro ativo */}
+                {/* Chips e filtros — aparecem ao focar ou quando filtro ativo */}
                 <div
                     className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                        showChips ? 'max-h-32 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                        showChips ? 'max-h-60 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
                     }`}
                 >
                     <div className="flex gap-4">
@@ -214,22 +214,21 @@ export function PassarosPage() {
                             />
                         </ChipGroup>
                     </div>
+                    {/* Filtro de Espécie */}
+                    {especies.length > 0 && (
+                        <div className="mt-2 md:max-w-xs">
+                            <MultiSelectCheckbox
+                                placeholder="Filtrar por espécie..."
+                                options={especies.map((e) => ({
+                                    id: e.especie_usuario_id ?? e.id ?? 0,
+                                    label: e.descr ?? '—',
+                                }))}
+                                value={especiesFilter}
+                                onChange={setEspeciesFilter}
+                            />
+                        </div>
+                    )}
                 </div>
-
-                {/* Filtro de Espécie — fora do div colapsável, sempre visível quando há espécies */}
-                {especies.length > 0 && (
-                    <div className="mt-2">
-                        <MultiSelectCheckbox
-                            placeholder="Filtrar por espécie..."
-                            options={especies.map((e) => ({
-                                id: e.especie_usuario_id ?? e.id ?? 0,
-                                label: e.descr ?? '—',
-                            }))}
-                            value={especiesFilter}
-                            onChange={setEspeciesFilter}
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Lista de pássaros */}
