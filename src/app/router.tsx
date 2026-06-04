@@ -9,6 +9,7 @@ import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
+import { CasaisHistoricoPage } from '@/features/casais/CasaisHistoricoPage'
 import { PosturasPage } from '@/features/posturas'
 import { ConfigPage, EspeciesPage, ProfileEditPage, GestaoConfigPage } from '@/features/config'
 import { GestaoPage } from '@/features/gestao/GestaoPage'
@@ -135,6 +136,10 @@ export const router = createBrowserRouter([
             {
                 path: '/casais',
                 element: <CasaisPage />,
+            },
+            {
+                path: '/casais/historico',
+                element: <CasaisHistoricoPage />,
             },
             {
                 path: '/gaiola/:id',

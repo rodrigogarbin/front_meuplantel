@@ -175,6 +175,17 @@ export function CasaisPage() {
         <>
             <Topbar
                 title="Casais Ativos"
+                action={
+                    <button
+                        onClick={() => navigate('/casais/historico')}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                        aria-label="Histórico de casais"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                }
             />
 
             {/* Barra de busca sticky */}

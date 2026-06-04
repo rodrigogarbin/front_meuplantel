@@ -163,6 +163,9 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
         .sort((a, b) => b - a)
 
 
+    // Casal encerrado — somente visualização
+    const isEncerrado = !!casal?.vigen_final
+
     const handleEdit = () => {
         onClose()
         navigate(`/casais/${casalId}/editar`)
@@ -333,14 +336,16 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     </div>
                 )}
 
-                {/* Adicionar Ovo */}
-                <button
-                    onClick={handleAddPostura}
-                    className="w-full py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-500/30"
-                >
-                    <EggIcon className="w-5 h-5" />
-                    Adicionar Ovo
-                </button>
+                {/* Adicionar Ovo — oculto para casais encerrados */}
+                {!isEncerrado && (
+                    <button
+                        onClick={handleAddPostura}
+                        className="w-full py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-500/30"
+                    >
+                        <EggIcon className="w-5 h-5" />
+                        Adicionar Ovo
+                    </button>
+                )}
 
                 {/* Ovos Ativos (chocando ou com ação pendente) */}
                 {ovosNativos.length > 0 && (
@@ -379,7 +384,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                                 diasChoco={diasChoco}
                                                 diasAnilha={diasAnilha}
                                                 diasSepara={diasSepara}
-                                                onClick={() => handleEditPostura(postura)}
+                                                onClick={!isEncerrado ? () => handleEditPostura(postura) : undefined}
                                             />
                                         ))}
                                     </div>
@@ -406,7 +411,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                     diasChoco={diasChoco}
                                     diasAnilha={diasAnilha}
                                     diasSepara={diasSepara}
-                                    onClick={() => handleEditPostura(postura)}
+                                    onClick={!isEncerrado ? () => handleEditPostura(postura) : undefined}
                                 />
                             ))}
                         </div>
@@ -524,7 +529,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                             <PosturaHistoricoChip
                                                 key={postura.postura_id}
                                                 postura={postura}
-                                                onClick={() => handleEditPostura(postura)}
+                                                onClick={!isEncerrado ? () => handleEditPostura(postura) : undefined}
                                             />
                                         ))}
                                     </div>
@@ -590,7 +595,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                                                 <PosturaHistoricoChip
                                                     key={postura.postura_id}
                                                     postura={postura}
-                                                    onClick={() => handleEditPostura(postura)}
+                                                    onClick={!isEncerrado ? () => handleEditPostura(postura) : undefined}
                                                 />
                                             ))}
                                         </div>
@@ -620,38 +625,43 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                         </button>
                     )} */}
 
-                    {/* Editar */}
-                    <button
-                        onClick={handleEdit}
-                        className="w-full py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-500/30"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Editar Casal
-                    </button>
+                    {/* Editar / Excluir / Finalizar — ocultos para casais encerrados */}
+                    {!isEncerrado && (
+                        <>
+                        {/* Editar */}
+                        <button
+                            onClick={handleEdit}
+                            className="w-full py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-500/30"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Editar Casal
+                        </button>
 
-                    {/* Excluir (sem histórico) ou Finalizar */}
-                    {podeExcluir ? (
-                        <button
-                            onClick={() => setShowConfirmExcluir(true)}
-                            className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Excluir Casal
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleFinalizarCasal}
-                            className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
-                            Finalizar Casal
-                        </button>
+                        {/* Excluir (sem histórico) ou Finalizar */}
+                        {podeExcluir ? (
+                            <button
+                                onClick={() => setShowConfirmExcluir(true)}
+                                className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Excluir Casal
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleFinalizarCasal}
+                                className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                                Finalizar Casal
+                            </button>
+                        )}
+                        </>
                     )}
                 </div>
             </div>

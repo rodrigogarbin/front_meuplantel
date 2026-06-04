@@ -13,9 +13,10 @@ interface TopbarProps {
     title: string
     showBack?: boolean
     onBack?: () => void
+    action?: React.ReactNode
 }
 
-export function Topbar({ title, showBack, onBack }: TopbarProps) {
+export function Topbar({ title, showBack, onBack, action }: TopbarProps) {
     const navigate = useNavigate()
     const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false)
     const { data: naoLidasCount } = useNaoLidasCount()
@@ -48,7 +49,9 @@ export function Topbar({ title, showBack, onBack }: TopbarProps) {
                     <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">{title}</h1>
                 </div>
 
-                {/* Botão sino de notificações */}
+                {/* Ações customizadas + sino de notificações */}
+                <div className="flex items-center gap-1">
+                {action && action}
                 <button
                     onClick={() => setIsNotificacoesOpen(true)}
                     className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg active:scale-95 transition-all"
@@ -63,6 +66,7 @@ export function Topbar({ title, showBack, onBack }: TopbarProps) {
                         </span>
                     )}
                 </button>
+                </div>
             </div>
         </header>
 
