@@ -60,6 +60,21 @@ export const useFiltersStore = create<FiltersState>()(
         }),
         {
             name: 'meuplantel-filters',
+            version: 1,
+            migrate: (persisted: unknown) => {
+                const s = persisted as Partial<FiltersState>
+                return {
+                    ...s,
+                    passaros: {
+                        sexoFilter: s.passaros?.sexoFilter ?? 'all',
+                        situacaoFilter: s.passaros?.situacaoFilter ?? 'ativos',
+                        searchQuery: s.passaros?.searchQuery ?? '',
+                        especiesFilter: Array.isArray(s.passaros?.especiesFilter)
+                            ? s.passaros.especiesFilter
+                            : [],
+                    },
+                }
+            },
         }
     )
 )
