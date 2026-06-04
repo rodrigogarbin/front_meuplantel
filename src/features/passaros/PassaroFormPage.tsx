@@ -130,7 +130,7 @@ import { usePostura } from '@/features/casais'
 import { useUserProfile } from '@/features/auth'
 import { SexoEnum, SexoLabels, SituacaoEnum, SituacaoLabels, PortadorTipo } from '@/types'
 import type { CreatePassaroPayload, Portador } from '@/types'
-import { getFotoUrl } from '@/lib/passaro'
+import { getFotoUrl, formatRingComplete } from '@/lib/passaro'
 import { API_BASE_URL } from '@/lib/api'
 import { VendaRegistroSheet } from '@/features/financeiro/VendaRegistroSheet'
 
@@ -232,6 +232,40 @@ export function PassaroFormPage() {
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending || uploadFotoMutation.isPending
     const isLoading = (isEditing && loadingPassaro) || (!isEditing && posturaId && loadingPostura)
+
+    // Debounced nro+ano+sg_clube+nro_criador para verificar duplicata de anel
+    const [debouncedAnelCheck, setDebouncedAnelCheck] = useState({ nro: '', ano: '', sg_clube: '', nro_criador: '' })
+    useEffect(() => {
+        if (isEditing) return
+        const timer = setTimeout(() => {
+            setDebouncedAnelCheck({
+                nro: formData.nro.trim(),
+                ano: formData.ano.trim(),
+                sg_clube: formData.sg_clube.trim(),
+                nro_criador: formData.nro_criador.trim(),
+            })
+        }, 600)
+        return () => clearTimeout(timer)
+    }, [formData.nro, formData.ano, formData.sg_clube, formData.nro_criador, isEditing])
+
+    const anelCheckEnabled = !isEditing && !!debouncedAnelCheck.nro && !!debouncedAnelCheck.ano
+    const { data: anelDuplicado } = useQuery({
+        queryKey: ['anel-check', debouncedAnelCheck],
+        queryFn: async () => {
+            const params = new URLSearchParams({ nro: debouncedAnelCheck.nro, ano: debouncedAnelCheck.ano, per_page: '5' })
+            const res = await api.get<any>(`/api/v1/passaros?${params}`)
+            const list: any[] = res.data?.passaros ?? res.data?.data ?? (Array.isArray(res.data) ? res.data : [])
+            const norm = (v: unknown) => (!v ? '' : String(v).trim())
+            return list.filter((p: any) =>
+                String(p.anel?.nro) === debouncedAnelCheck.nro &&
+                String(p.anel?.ano) === debouncedAnelCheck.ano &&
+                norm(p.anel?.sg_clube) === norm(debouncedAnelCheck.sg_clube) &&
+                norm(p.anel?.nro_criador) === norm(debouncedAnelCheck.nro_criador)
+            )
+        },
+        enabled: anelCheckEnabled,
+        staleTime: 2 * 60 * 1000,
+    })
 
     // Pré-preenche o formulário com dados da postura (quando vem de registro de filhote)
     useEffect(() => {
@@ -774,6 +808,20 @@ export function PassaroFormPage() {
                                 required
                             />
                         </div>
+
+                        {anelDuplicado && anelDuplicado.length > 0 && (
+                            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p className="text-sm text-amber-700 dark:text-amber-300">
+                                    Este anel já está cadastrado:{' '}
+                                    <span className="font-medium">
+                                        {anelDuplicado[0].descr || 'Sem descrição'} — {formatRingComplete(anelDuplicado[0].anel)}
+                                    </span>
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </section>
 
