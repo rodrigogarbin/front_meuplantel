@@ -1,6 +1,7 @@
 export { PassarosPage } from './PassarosPage'
 export { PassaroFormPage } from './PassaroFormPage'
 export { ArvoreGenealogicaPage } from './ArvoreGenealogicaPage'
+export { AncestralComumPage } from './AncestralComumPage'
 export { BirdCard } from './BirdCard'
 export { BirdDetailsSheet } from './BirdDetailsSheet'
 export {
@@ -11,5 +12,7 @@ export {
     useCreatePassaro,
     useUpdatePassaro,
     useDeletePassaro,
-    useArvoreGenealogica
+    useArvoreGenealogica,
+    useAncestresComuns,
+    usePassarosParaAutocomplete
 } from './passarosApi'

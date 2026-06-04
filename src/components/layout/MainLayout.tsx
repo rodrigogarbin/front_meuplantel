@@ -76,7 +76,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
     const isActive = (path: string) => location.pathname === path
 
-    const maisRoutes = ['/config', '/admin', '/medicamentos', '/doencas', '/sintomas', '/gestao', '/chat', '/financeiro']
+    const maisRoutes = ['/config', '/admin', '/medicamentos', '/doencas', '/sintomas', '/gestao', '/chat', '/financeiro', '/passaros/ancestrais-comuns']
     const isMaisActive = maisRoutes.some(p => location.pathname.startsWith(p))
 
     function navigateTo(path: string) {
@@ -304,6 +304,27 @@ export function MainLayout({ children }: MainLayoutProps) {
                                     <div className="flex-1 text-left">
                                         <p className="text-base font-medium text-gray-900 dark:text-gray-100">Medicamentos</p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Gerenciar medicamentos e doenças</p>
+                                    </div>
+                                    <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                )}
+
+                                {/* Ancestrais em Comum */}
+                                {isEnabled('ancestrais') && (
+                                <button
+                                    onClick={() => navigateTo('/passaros/ancestrais-comuns')}
+                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl active:bg-gray-100 dark:active:bg-gray-700 transition-colors"
+                                >
+                                    <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/40 rounded-xl flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-base font-medium text-gray-900 dark:text-gray-100">Ancestrais em Comum</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Compare a genealogia de duas aves</p>
                                     </div>
                                     <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

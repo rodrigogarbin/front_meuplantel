@@ -8,6 +8,7 @@ const FLAG_ICONS: Record<FeatureFlagChave, string> = {
     medicamentos: '💊',
     assistente: '🤖',
     gestao: '📊',
+    ancestrais: '🧬',
 }
 
 interface Props {

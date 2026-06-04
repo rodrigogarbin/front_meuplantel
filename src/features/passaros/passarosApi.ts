@@ -361,6 +361,49 @@ export function useArvoreGenealogica(id: number | null) {
     })
 }
 
+// ============================================
+// ANCESTRAIS EM COMUM
+// ============================================
+
+export interface AncestralComum {
+    passaro_id: number
+    descr: string | null
+    sexo: number
+    dt_nasc: string | null
+    anel: { nro: number; ano: number; sg_clube: string | null; nro_criador: string | null } | null
+    mutacao: string | null
+    especie: string | null
+    prof_p1: number
+    prof_p2: number
+}
+
+export interface AncestresComuns {
+    passaro1: { passaro_id: number; descr: string | null }
+    passaro2: { passaro_id: number; descr: string | null }
+    ancestrais_comuns: AncestralComum[]
+    total: number
+}
+
+export function useAncestresComuns(id1: number | null, id2: number | null) {
+    return useQuery({
+        queryKey: ['ancestres-comuns', id1, id2],
+        queryFn: async () => {
+            const res = await api.get<AncestresComuns>(`/api/v1/passaros/${id1}/ancestrais-comuns/${id2}`)
+            return res.data
+        },
+        enabled: !!id1 && !!id2 && id1 !== id2,
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+export function usePassarosParaAutocomplete() {
+    return useQuery({
+        queryKey: ['passaros', 'autocomplete-all'],
+        queryFn: () => fetchPassarosAutocomplete(),
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
 /**
  * Faz upload da foto de um pássaro
  */
