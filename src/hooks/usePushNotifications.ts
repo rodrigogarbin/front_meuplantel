@@ -90,7 +90,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         setIsLoading(true)
         try {
             // 1. Fetch VAPID public key from backend
-            const { data } = await api.get<{ public_key: string }>('/api/v1/push/vapid-public-key')
+            const { data } = await api.get<{ public_key: string | null }>('/api/v1/push/vapid-public-key')
+            if (!data?.public_key) {
+                throw new Error('Notificações push não estão configuradas no servidor.')
+            }
             const vapidPublicKey = urlBase64ToUint8Array(data.public_key)
 
             // 2. Get the active SW registration
