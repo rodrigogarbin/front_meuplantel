@@ -173,63 +173,48 @@ export function PassarosPage() {
                     onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Chips e filtros — aparecem ao focar ou quando filtro ativo */}
+                {/* Filtros — colapsáveis em mobile e desktop */}
                 <div
-                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                        showChips ? 'max-h-32 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                    className={`transition-all duration-200 ease-in-out ${
+                        showChips
+                            ? 'max-h-60 opacity-100 mt-3 overflow-visible'
+                            : 'max-h-0 opacity-0 mt-0 overflow-hidden'
                     }`}
                 >
-                    <div className="flex gap-4">
-                        {/* Filtro de Sexo */}
-                        <ChipGroup>
-                            <Chip
-                                label="Todos"
-                                active={sexoFilter === 'all'}
-                                onClick={() => setSexoFilter('all')}
-                            />
-                            <Chip
-                                label="♂ Machos"
-                                active={sexoFilter === 'macho'}
-                                onClick={() => setSexoFilter('macho')}
-                            />
-                            <Chip
-                                label="♀ Fêmeas"
-                                active={sexoFilter === 'femea'}
-                                onClick={() => setSexoFilter('femea')}
-                            />
-                        </ChipGroup>
-                    </div>
-                    <div className="mt-2">
-                        {/* Filtro de Situação */}
-                        <ChipGroup>
-                            <Chip
-                                label="Ativos"
-                                active={situacaoFilter === 'ativos'}
-                                onClick={() => setSituacaoFilter('ativos')}
-                            />
-                            <Chip
-                                label="Todos"
-                                active={situacaoFilter === 'todos'}
-                                onClick={() => setSituacaoFilter('todos')}
-                            />
-                        </ChipGroup>
+                    <div className="flex flex-col gap-2 md:grid md:grid-cols-3 md:gap-8">
+                        {/* Sexo */}
+                        <div className="flex flex-col gap-1">
+                            <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Sexo</span>
+                            <ChipGroup>
+                                <Chip label="Todos"    active={sexoFilter === 'all'}   onClick={() => setSexoFilter('all')} />
+                                <Chip label="♂ Machos" active={sexoFilter === 'macho'} onClick={() => setSexoFilter('macho')} />
+                                <Chip label="♀ Fêmeas" active={sexoFilter === 'femea'} onClick={() => setSexoFilter('femea')} />
+                            </ChipGroup>
+                        </div>
+
+                        {/* Situação */}
+                        <div className="flex flex-col gap-1">
+                            <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Situação</span>
+                            <ChipGroup>
+                                <Chip label="Ativos" active={situacaoFilter === 'ativos'} onClick={() => setSituacaoFilter('ativos')} />
+                                <Chip label="Todos"  active={situacaoFilter === 'todos'}  onClick={() => setSituacaoFilter('todos')} />
+                            </ChipGroup>
+                        </div>
+
+                        {/* Espécie */}
+                        {especies.length > 0 && (
+                            <div className="flex flex-col gap-1">
+                                <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Espécie</span>
+                                <MultiSelectCheckbox
+                                    placeholder="Todas as espécies"
+                                    options={especies.map((e) => ({ id: e.especie_usuario_id ?? e.id ?? 0, label: e.descr ?? '—' }))}
+                                    value={especiesFilter}
+                                    onChange={setEspeciesFilter}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
-
-                {/* Filtro de Espécie — fora do overflow-hidden para o dropdown não ser cortado */}
-                {showChips && especies.length > 0 && (
-                    <div className="mt-2 md:max-w-xs">
-                        <MultiSelectCheckbox
-                            placeholder="Filtrar por espécie..."
-                            options={especies.map((e) => ({
-                                id: e.especie_usuario_id ?? e.id ?? 0,
-                                label: e.descr ?? '—',
-                            }))}
-                            value={especiesFilter}
-                            onChange={setEspeciesFilter}
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Lista de pássaros */}
