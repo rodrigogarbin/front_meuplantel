@@ -13,8 +13,8 @@ export function UpdatePrompt() {
     } = useRegisterSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
             if (!r) return
-            // Verificar atualizações a cada 10 minutos
-            setInterval(() => { r.update() }, 10 * 60 * 1000)
+            // Verificar atualizações a cada 60 segundos
+            setInterval(() => { r.update() }, 60 * 1000)
             // Verificar ao voltar pro app (tab em background → foreground)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') r.update()
@@ -24,6 +24,11 @@ export function UpdatePrompt() {
             console.error('SW registration error', error)
         },
     })
+
+    // Aplica a atualização automaticamente assim que detectada
+    useEffect(() => {
+        if (needRefresh) updateServiceWorker(true)
+    }, [needRefresh, updateServiceWorker])
 
     // Recarrega automaticamente quando um novo SW assume o controle
     useEffect(() => {
