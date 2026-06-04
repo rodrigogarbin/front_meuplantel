@@ -380,6 +380,7 @@ export interface AncestralComum {
 export interface AncestresComuns {
     passaro1: { passaro_id: number; descr: string | null }
     passaro2: { passaro_id: number; descr: string | null }
+    is_siblings: boolean
     ancestrais_comuns: AncestralComum[]
     total: number
 }
