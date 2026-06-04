@@ -2,7 +2,7 @@
  * Layout principal com navegação bottom
  */
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ImpersonationBanner } from '@/features/admin'
 import { useIsImpersonating } from '@/features/auth/authStore'
@@ -33,6 +33,33 @@ export function MainLayout({ children }: MainLayoutProps) {
     const isEnabled = useFeatureFlagsStore((s) => s.isEnabled)
     const [showMaisMenu, setShowMaisMenu] = useState(false)
     const [showNps, setShowNps] = useState(false)
+    const panelRef = useRef<HTMLDivElement>(null)
+    const touchStartY = useRef(0)
+    const dragY = useRef(0)
+
+    function handleDragStart(e: React.TouchEvent) {
+        touchStartY.current = e.touches[0].clientY
+        dragY.current = 0
+        if (panelRef.current) panelRef.current.style.transition = 'none'
+    }
+
+    function handleDragMove(e: React.TouchEvent) {
+        const delta = e.touches[0].clientY - touchStartY.current
+        if (delta < 0) return
+        dragY.current = delta
+        if (panelRef.current) panelRef.current.style.transform = `translateY(${delta}px)`
+    }
+
+    function handleDragEnd() {
+        if (dragY.current > 120) {
+            setShowMaisMenu(false)
+        } else {
+            if (panelRef.current) {
+                panelRef.current.style.transition = 'transform 0.25s ease'
+                panelRef.current.style.transform = 'translateY(0)'
+            }
+        }
+    }
     const { data: npsPendente } = useNpsPendente()
 
     useReportAppInstall()
@@ -159,11 +186,26 @@ export function MainLayout({ children }: MainLayoutProps) {
                     />
 
                     {/* Painel */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-[70] flex flex-col"
+                    <div ref={panelRef} className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-[70] flex flex-col"
                          style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 2rem)' }}>
                         {/* Handle — sempre visível no topo */}
-                        <div className="flex justify-center pt-3 pb-1 shrink-0">
+                        <div
+                            className="flex justify-between items-center px-4 pt-3 pb-2 shrink-0"
+                            onTouchStart={handleDragStart}
+                            onTouchMove={handleDragMove}
+                            onTouchEnd={handleDragEnd}
+                        >
+                            <div className="w-8" /> {/* spacer */}
                             <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+                            <button
+                                onClick={() => setShowMaisMenu(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-600"
+                                aria-label="Fechar"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
 
                         <div className="overflow-y-auto px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
