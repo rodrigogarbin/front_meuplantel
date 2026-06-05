@@ -3,7 +3,7 @@
  * Bottom sheet / Modal com detalhes completos do casal
  */
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, Transition } from '@headlessui/react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -74,6 +74,19 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const [excluirError, setExcluirError] = useState<string | null>(null)
     const [showTransferidasHistorico, setShowTransferidasHistorico] = useState(false)
 
+    // Reseta estados ao abrir o sheet
+    useEffect(() => {
+        if (isOpen) {
+            setShowHistorico(false)
+            setShowTransferidasHistorico(false)
+            setShowConfirmEncerrar(false)
+            setShowConfirmExcluir(false)
+            setExcluirError(null)
+            setSelectedPostura(null)
+            setIsEditPosturaOpen(false)
+        }
+    }, [isOpen])
+
     // Obtém o ID do casal
     const casalId = casal?.id ?? casal?.gaiola_id ?? null
 
@@ -128,10 +141,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const ovosNativos = ovosAtivos.filter(p => !p.casal_origem)
     const ovosRecebidos = ovosAtivos.filter(p => !!p.casal_origem)
 
-    const posturasConcluidas = posturas.filter(p =>
-        p.sit !== SitPostura.CHOCO && !posturaPrecisaAcao(p)
-    )
-
     // Agrupa ovos nativos por rodada
     const ovosNativosPorRodada = ovosNativos.reduce((acc, postura) => {
         const rodada = postura.nro_rodada ?? 0
@@ -146,22 +155,6 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
     const rodadasAtivas = Object.keys(ovosNativosPorRodada)
         .map(Number)
         .sort((a, b) => b - a)
-
-    // Agrupa histórico por rodada
-    const historicoPorRodada = posturasConcluidas.reduce((acc, postura) => {
-        const rodada = postura.nro_rodada ?? 0
-        if (!acc[rodada]) {
-            acc[rodada] = []
-        }
-        acc[rodada].push(postura)
-        return acc
-    }, {} as Record<number, Postura[]>)
-
-    // Ordena as rodadas do histórico (mais recente primeiro)
-    const rodadasHistorico = Object.keys(historicoPorRodada)
-        .map(Number)
-        .sort((a, b) => b - a)
-
 
     // Casal encerrado — somente visualização
     const isEncerrado = !!casal?.vigen_final
@@ -182,14 +175,10 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
 
     const handlePosturaSuccess = () => {
         onRefresh?.()
-        if (showHistorico) {
-            refetchHistorico()
-        }
+        if (showHistorico) refetchHistorico()
     }
 
-    const handleToggleHistorico = () => {
-        setShowHistorico(prev => !prev)
-    }
+    const handleToggleHistorico = () => setShowHistorico(prev => !prev)
 
     const handleFinalizarCasal = () => {
         setShowConfirmEncerrar(true)
@@ -223,15 +212,20 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
         }
     }
 
-    // Prepara histórico completo agrupado por rodada
-    const historicoCompletoAgrupado = historicoCompleto?.reduce((acc, postura) => {
+    // Filtra posturas concluídas (exclui ovos ativos: chocando, fértil, nascidos sem pássaro vinculado)
+    const historicoConcluido = (historicoCompleto ?? []).filter(p =>
+        p.sit !== SitPostura.CHOCO &&
+        p.sit !== SitPostura.FERTIL &&
+        !(p.sit === SitPostura.NASCIDO && !p.passaro_id)
+    )
+
+    // Prepara histórico agrupado por rodada
+    const historicoCompletoAgrupado = historicoConcluido.reduce((acc, postura) => {
         const rodada = postura.nro_rodada ?? 0
-        if (!acc[rodada]) {
-            acc[rodada] = []
-        }
+        if (!acc[rodada]) acc[rodada] = []
         acc[rodada].push(postura)
         return acc
-    }, {} as Record<number, Postura[]>) ?? {}
+    }, {} as Record<number, Postura[]>)
 
     const rodadasHistoricoCompleto = Object.keys(historicoCompletoAgrupado)
         .map(Number)
@@ -493,53 +487,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     )
                 })()}
 
-                {/* Histórico de Posturas */}
-                {posturasConcluidas.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3">
-                        <h3 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            Histórico ({posturasConcluidas.length})
-                        </h3>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {rodadasHistorico.map((rodada, rodadaIdx) => (
-                                <div key={rodada}>
-                                    {/* Divisória entre rodadas */}
-                                    {rodadaIdx > 0 && (
-                                        <div className="flex items-center gap-2 my-3">
-                                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                                Rodada {rodada || '—'}
-                                            </span>
-                                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-                                        </div>
-                                    )}
-                                    {/* Label da primeira rodada se houver mais de uma */}
-                                    {rodadaIdx === 0 && rodadasHistorico.length > 1 && (
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                                Rodada {rodada || '—'}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {/* Posturas da rodada */}
-                                    <div className="space-y-2">
-                                        {historicoPorRodada[rodada].map((postura) => (
-                                            <PosturaHistoricoChip
-                                                key={postura.postura_id}
-                                                postura={postura}
-                                                onClick={!isEncerrado ? () => handleEditPostura(postura) : undefined}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Botão Ver Histórico Completo */}
+                {/* Botão toggle histórico */}
                 <button
                     onClick={handleToggleHistorico}
                     className="w-full py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center justify-center gap-2 transition-colors"
@@ -547,49 +495,46 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                     <svg className={`w-4 h-4 transition-transform ${showHistorico ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
-                    {showHistorico ? 'Ocultar histórico completo' : 'Ver histórico completo de posturas'}
+                    {showHistorico ? 'Ocultar histórico' : 'Ver histórico de posturas'}
                 </button>
 
-                {/* Histórico Completo de Posturas (carregado sob demanda) */}
+                {/* Histórico de Posturas */}
                 {showHistorico && (
-                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 space-y-3">
-                        <h3 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3">
+                        <h3 className="font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            Histórico Completo ({historicoCompleto?.length ?? 0})
+                            Histórico ({historicoConcluido.length})
                         </h3>
 
                         {isLoadingHistorico ? (
                             <div className="flex items-center justify-center py-4">
-                                <svg className="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
                             </div>
-                        ) : historicoCompleto && historicoCompleto.length > 0 ? (
+                        ) : historicoConcluido.length > 0 ? (
                             <div className="space-y-2 max-h-80 overflow-y-auto">
                                 {rodadasHistoricoCompleto.map((rodada, rodadaIdx) => (
                                     <div key={rodada}>
-                                        {/* Divisória entre rodadas */}
                                         {rodadaIdx > 0 && (
                                             <div className="flex items-center gap-2 my-3">
-                                                <div className="flex-1 h-px bg-blue-300 dark:bg-blue-700" />
-                                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                                     Rodada {rodada || '—'}
                                                 </span>
-                                                <div className="flex-1 h-px bg-blue-300 dark:bg-blue-700" />
+                                                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
                                             </div>
                                         )}
-                                        {/* Label da primeira rodada se houver mais de uma */}
                                         {rodadaIdx === 0 && rodadasHistoricoCompleto.length > 1 && (
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                                                     Rodada {rodada || '—'}
                                                 </span>
                                             </div>
                                         )}
-                                        {/* Posturas da rodada */}
                                         <div className="space-y-2">
                                             {historicoCompletoAgrupado[rodada].map((postura) => (
                                                 <PosturaHistoricoChip
@@ -604,7 +549,7 @@ export function CasalDetailsSheet({ casal, isOpen, onClose, onRefresh }: CasalDe
                             </div>
                         ) : (
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                                Nenhuma postura encontrada
+                                Nenhuma postura registrada
                             </p>
                         )}
                     </div>
