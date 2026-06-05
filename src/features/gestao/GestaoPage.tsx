@@ -23,8 +23,11 @@ import {
     useGestaoEstatisticas,
     useGestaoMelhoresReprodutoresInfinite,
     useGestaoPassaro,
+    useGestaoDistribuicaoEspecies,
 } from './gestaoApi'
 import type { ComparativoStats, MelhoresReprodutoresItem, PassaroAnalise, PeriodoTipo } from './gestaoApi'
+
+const ESPECIE_COLORS = ['#10B981','#3B82F6','#8B5CF6','#F59E0B','#EF4444','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1']
 
 // ——— helpers ——————————————————————————————————————————
 
@@ -412,6 +415,7 @@ function AbaVisaoGeral({ especieId }: { especieId: number | null }) {
         : undefined
 
     const { data, isLoading, isError, refetch } = useGestaoEstatisticas(periodoParams)
+    const { data: distribuicao } = useGestaoDistribuicaoEspecies()
     const theme = useThemeStore(s => s.mode)
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
@@ -536,6 +540,25 @@ function AbaVisaoGeral({ especieId }: { especieId: number | null }) {
                         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Distribuição de Posturas</h2>
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
                             <ApexPieChart data={posturasPieData} />
+                        </div>
+                    </section>
+                )}
+
+                {/* Distribuição por espécie */}
+                {distribuicao && distribuicao.especies.length > 1 && (
+                    <section className="mb-8">
+                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Distribuição por Espécie</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            {distribuicao.total} {distribuicao.total === 1 ? 'pássaro ativo' : 'pássaros ativos'}
+                        </p>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                            <ApexPieChart
+                                data={distribuicao.especies.map((e, i) => ({
+                                    label: e.descr,
+                                    value: e.total,
+                                    color: ESPECIE_COLORS[i % ESPECIE_COLORS.length],
+                                }))}
+                            />
                         </div>
                     </section>
                 )}

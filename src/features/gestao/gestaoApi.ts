@@ -165,3 +165,22 @@ export function useGestaoPassaro(id: number | null) {
         staleTime: 5 * 60 * 1000,
     })
 }
+
+export interface DistribuicaoEspecie {
+    especie_id: number | null
+    descr: string
+    total: number
+}
+
+export interface DistribuicaoEspeciesData {
+    especies: DistribuicaoEspecie[]
+    total: number
+}
+
+export function useGestaoDistribuicaoEspecies() {
+    return useQuery<DistribuicaoEspeciesData>({
+        queryKey: ['gestao', 'distribuicao-especies'],
+        queryFn: async () => (await api.get<DistribuicaoEspeciesData>('/api/v1/gestao/distribuicao-especies')).data,
+        staleTime: 5 * 60 * 1000,
+    })
+}
