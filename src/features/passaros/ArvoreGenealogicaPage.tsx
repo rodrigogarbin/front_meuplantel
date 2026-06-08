@@ -73,18 +73,26 @@ export function ArvoreGenealogicaPage() {
             }
         })
 
+        // Timeout global: se travar por mais de 30s (ex: service worker no PWA), aborta
+        const abort = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout ao gerar PDF. Tente novamente.')), 30000)
+        )
+
         try {
             // 5. Load logo + wait for QR canvas to render (em paralelo)
-            const [logoDataUrl] = await Promise.all([
-                fetch('/icons/icon-128x128.png')
-                    .then(r => r.blob())
-                    .then(blob => new Promise<string>(resolve => {
-                        const reader = new FileReader()
-                        reader.onload = () => resolve(reader.result as string)
-                        reader.readAsDataURL(blob)
-                    }))
-                    .catch(() => ''),
-                new Promise(r => setTimeout(r, 200)),
+            const [logoDataUrl] = await Promise.race([
+                Promise.all([
+                    fetch('/icons/icon-128x128.png')
+                        .then(r => r.blob())
+                        .then(blob => new Promise<string>(resolve => {
+                            const reader = new FileReader()
+                            reader.onload = () => resolve(reader.result as string)
+                            reader.readAsDataURL(blob)
+                        }))
+                        .catch(() => ''),
+                    new Promise(r => setTimeout(r, 200)),
+                ]),
+                abort,
             ])
 
             // 6. Get QR code as data URL
@@ -92,17 +100,23 @@ export function ArvoreGenealogicaPage() {
             const qrDataUrl = qrCanvas?.toDataURL('image/png') ?? ''
 
             // 7. Capture only the tree (no injected header)
-            const treeCanvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-                width: element.scrollWidth,
-                height: element.scrollHeight,
-                windowWidth: element.scrollWidth,
-                scrollX: 0,
-                scrollY: 0,
-            })
+            // imageTimeout: limita o tempo de carregamento por imagem (evita travar no PWA)
+            const treeCanvas = await Promise.race([
+                html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: false,
+                    imageTimeout: 8000,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: element.scrollWidth,
+                    height: element.scrollHeight,
+                    windowWidth: element.scrollWidth,
+                    scrollX: 0,
+                    scrollY: 0,
+                }),
+                abort,
+            ])
 
             // 8. Setup PDF (A5 landscape: 210×148mm)
             const ringNumber = formatRingComplete(passaroArvore.anel) || `#${passaroArvore.passaro_id}`
@@ -196,7 +210,22 @@ export function ArvoreGenealogicaPage() {
                 pdf.text('Verificar autenticidade', qrX + qrSize / 2, pageH - 2, { align: 'center' })
             }
 
-            pdf.save(`genealogia-${ringNumber.replace(/[\s/]+/g, '-')}.pdf`)
+            const filename = `genealogia-${ringNumber.replace(/[\s/]+/g, '-')}.pdf`
+            const pdfBlob = pdf.output('blob')
+
+            // Web Share API: funciona em PWA instalado (iOS e Android)
+            const file = new File([pdfBlob], filename, { type: 'application/pdf' })
+            if (navigator.canShare?.({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'Certificado Genealógico' })
+            } else {
+                // Fallback: download tradicional (desktop / browsers sem Share API)
+                const url = URL.createObjectURL(pdfBlob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename
+                a.click()
+                setTimeout(() => URL.revokeObjectURL(url), 10000)
+            }
 
         } catch (err) {
             console.error('Erro ao gerar PDF:', err)
