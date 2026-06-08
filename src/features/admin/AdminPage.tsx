@@ -1,16 +1,19 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario, bulkDeleteUsuarios } from './adminApi'
 import type { AdminUsuario, VersaoFilter, SortField, SortOrder } from './adminApi'
-import { useLoginStats } from './loginStatsApi'
+import { useLoginStats, useLoginFalhas } from './loginStatsApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { StatCard, StatCardSkeleton } from '@/features/dashboard/StatCard'
 import { CampanhasTab } from './CampanhasTab'
 import { FuncionalidadesTab } from './FuncionalidadesTab'
 import { UsuarioFeatureFlagsPanel } from './UsuarioFeatureFlagsPanel'
 import { NpsTab } from '@/features/nps/NpsTab'
+import Chart from 'react-apexcharts'
+import type { ApexOptions } from 'apexcharts'
+import { useThemeStore } from '@/lib/theme'
 
 // Ícones inline para os stat cards
 function UsersIcon() {
@@ -84,10 +87,59 @@ export function AdminPage() {
     const [sortField, setSortField] = useState<SortField>('nome')
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
     const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
+    const [loginPeriodo, setLoginPeriodo] = useState<7 | 30 | 90>(30)
+    const [falhasPage, setFalhasPage] = useState(1)
 
     const { data: usuariosData, isLoading: isLoadingUsuarios } = useAdminUsuarios(debouncedSearch, page, versaoFilter, sortField, sortOrder)
     const { data: stats, isLoading: isLoadingStats } = useAdminStats()
-    const { data: loginStats, isLoading: isLoadingLoginStats } = useLoginStats(30)
+    const { data: loginStats, isLoading: isLoadingLoginStats } = useLoginStats(loginPeriodo)
+    const { data: loginFalhas } = useLoginFalhas(loginPeriodo, falhasPage)
+    const theme = useThemeStore(s => s.mode)
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+    const loginChartOptions: ApexOptions = useMemo(() => ({
+        chart: {
+            type: 'bar',
+            stacked: true,
+            background: 'transparent',
+            fontFamily: 'inherit',
+            toolbar: { show: false },
+        },
+        plotOptions: { bar: { borderRadius: 3, columnWidth: loginPeriodo <= 7 ? '40%' : loginPeriodo <= 30 ? '60%' : '75%' } },
+        dataLabels: { enabled: false },
+        colors: ['#22C55E', '#EF4444'],
+        xaxis: {
+            categories: (loginStats?.logins_por_dia ?? []).map(d =>
+                new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+            ),
+            labels: {
+                style: { colors: isDark ? '#9CA3AF' : '#6B7280', fontSize: '11px' },
+                rotate: loginPeriodo >= 30 ? -45 : 0,
+            },
+            axisBorder: { color: isDark ? '#374151' : '#E5E7EB' },
+            axisTicks: { color: isDark ? '#374151' : '#E5E7EB' },
+        },
+        yaxis: {
+            labels: {
+                style: { colors: isDark ? '#9CA3AF' : '#6B7280', fontSize: '12px' },
+                formatter: (v) => Math.round(v).toString(),
+            },
+        },
+        grid: { borderColor: isDark ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+        legend: {
+            labels: { colors: isDark ? '#D1D5DB' : '#374151' },
+            position: 'top',
+        },
+        tooltip: {
+            theme: isDark ? 'dark' : 'light',
+            y: { formatter: (v) => `${v} login${v !== 1 ? 's' : ''}` },
+        },
+    }), [loginStats, isDark, loginPeriodo])
+
+    const loginChartSeries = useMemo(() => [
+        { name: 'Sucesso', data: (loginStats?.logins_por_dia ?? []).map(d => d.sucesso) },
+        { name: 'Falha',   data: (loginStats?.logins_por_dia ?? []).map(d => d.falha) },
+    ], [loginStats])
 
     const handleSearchChange = (value: string) => {
         setSearch(value)
@@ -716,9 +768,22 @@ export function AdminPage() {
                 {/* Conteúdo da aba Logins */}
                 {activeTab === 'logins' && (
                     <div className="p-4 space-y-6">
+                        {/* Seletor de período */}
+                        <div className="flex gap-2">
+                            {([7, 30, 90] as const).map(p => (
+                                <button
+                                    key={p}
+                                    onClick={() => { setLoginPeriodo(p); setFalhasPage(1) }}
+                                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${loginPeriodo === p ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                >
+                                    {p} dias
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Seção: Estatísticas de Login */}
                         <section>
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Últimos 30 dias</h2>
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Últimos {loginPeriodo} dias</h2>
                             {isLoadingLoginStats ? (
                                 <div className="grid grid-cols-2 gap-3">
                                     <StatCardSkeleton />
@@ -792,38 +857,90 @@ export function AdminPage() {
                         {loginStats && loginStats.logins_por_dia.length > 0 && (
                             <section>
                                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Logins por Dia</h2>
-                                <div className="section-card overflow-hidden">
-                                    {loginStats.logins_por_dia.slice(0, 15).map((dia, index) => (
-                                        <div
-                                            key={dia.data}
-                                            className={`py-3 ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                    {new Date(dia.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                                                </span>
-                                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                                    {dia.total} login{dia.total !== 1 ? 's' : ''}
-                                                </span>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                                    <Chart
+                                        type="bar"
+                                        height={220}
+                                        options={loginChartOptions}
+                                        series={loginChartSeries}
+                                    />
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Seção: Falhas de Login */}
+                        {loginStats && loginStats.logins_falha > 0 && (
+                            <section>
+                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">Falhas de Login</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                    {loginStats.logins_falha} tentativa{loginStats.logins_falha !== 1 ? 's' : ''} com falha nos últimos {loginPeriodo} dias
+                                </p>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                    {loginFalhas?.data.length === 0 ? (
+                                        <p className="p-4 text-sm text-gray-500 dark:text-gray-400">Nenhum registro nesta página.</p>
+                                    ) : (
+                                        loginFalhas?.data.map((f, index) => (
+                                            <div
+                                                key={f.id}
+                                                className={`flex items-start gap-3 px-4 py-3 ${index > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
+                                            >
+                                                {/* Ícone */}
+                                                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                                    </svg>
+                                                </div>
+                                                {/* Conteúdo */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                                            {f.usuario ? (f.usuario.nome || f.usuario.username) : `ID ${f.usuario_id}`}
+                                                        </span>
+                                                        {f.motivo && (
+                                                            <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-medium">
+                                                                {f.motivo === 'invalid_password' ? 'Senha inválida' : f.motivo}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                                        {f.ip_address && (
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">{f.ip_address}</span>
+                                                        )}
+                                                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                                                            {new Date(f.login_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    {f.usuario?.email && (
+                                                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{f.usuario.email}</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex gap-1 h-2">
-                                                <div
-                                                    className="bg-green-500 rounded-l"
-                                                    style={{ width: `${dia.total > 0 ? (dia.sucesso / dia.total) * 100 : 0}%` }}
-                                                    title={`${dia.sucesso} sucesso`}
-                                                />
-                                                <div
-                                                    className="bg-red-500 rounded-r"
-                                                    style={{ width: `${dia.total > 0 ? (dia.falha / dia.total) * 100 : 0}%` }}
-                                                    title={`${dia.falha} falhas`}
-                                                />
-                                            </div>
-                                            <div className="flex gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                <span>✓ {dia.sucesso}</span>
-                                                <span>✗ {dia.falha}</span>
+                                        ))
+                                    )}
+                                    {/* Paginação */}
+                                    {loginFalhas && loginFalhas.meta.last_page > 1 && (
+                                        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                Página {loginFalhas.meta.page} de {loginFalhas.meta.last_page}
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setFalhasPage(p => Math.max(1, p - 1))}
+                                                    disabled={falhasPage <= 1}
+                                                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    Anterior
+                                                </button>
+                                                <button
+                                                    onClick={() => setFalhasPage(p => Math.min(loginFalhas.meta.last_page, p + 1))}
+                                                    disabled={falhasPage >= loginFalhas.meta.last_page}
+                                                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                >
+                                                    Próxima
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </section>
                         )}

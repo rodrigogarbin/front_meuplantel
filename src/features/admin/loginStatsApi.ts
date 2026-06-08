@@ -70,6 +70,33 @@ export function useLoginStats(periodo: number = 30) {
     })
 }
 
+export interface LoginFalha {
+    id: number
+    usuario_id: number
+    usuario: { nome: string; username: string; email: string | null } | null
+    ip_address: string | null
+    motivo: string | null
+    login_at: string
+}
+
+export interface LoginFalhasResponse {
+    data: LoginFalha[]
+    meta: { total: number; page: number; per_page: number; last_page: number }
+}
+
+export function useLoginFalhas(periodo: number, page: number = 1) {
+    return useQuery({
+        queryKey: ['admin', 'login-falhas', periodo, page],
+        queryFn: async () => {
+            const { data } = await api.get<LoginFalhasResponse>(
+                `api/v1/login-stats/falhas?periodo=${periodo}&page=${page}&per_page=15`
+            )
+            return data
+        },
+        retry: false,
+    })
+}
+
 /**
  * Hook para buscar usuários ativos
  */
