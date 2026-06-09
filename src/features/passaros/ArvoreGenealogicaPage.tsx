@@ -31,6 +31,7 @@ export function ArvoreGenealogicaPage() {
     const qrWrapperRef = useRef<HTMLDivElement>(null)
     const [isGenerating, setIsGenerating] = useState(false)
     const [certUrl, setCertUrl] = useState<string | null>(null)
+    const [pdfReady, setPdfReady] = useState<{ blob: Blob; filename: string } | null>(null)
 
     const handlePrint = async () => {
         const element = treeRef.current
@@ -213,19 +214,10 @@ export function ArvoreGenealogicaPage() {
             const filename = `genealogia-${ringNumber.replace(/[\s/]+/g, '-')}.pdf`
             const pdfBlob = pdf.output('blob')
 
-            // Web Share API: funciona em PWA instalado (iOS e Android)
-            const file = new File([pdfBlob], filename, { type: 'application/pdf' })
-            if (navigator.canShare?.({ files: [file] })) {
-                await navigator.share({ files: [file], title: 'Certificado Genealógico' })
-            } else {
-                // Fallback: download tradicional (desktop / browsers sem Share API)
-                const url = URL.createObjectURL(pdfBlob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = filename
-                a.click()
-                setTimeout(() => URL.revokeObjectURL(url), 10000)
-            }
+            // Guarda o blob — o share/download acontece em handleOpenPdf (gesto fresco do usuário)
+            // Isso evita o NotAllowedError do iOS: navigator.share() precisa de gesto direto,
+            // mas o gesto original expira durante as operações assíncronas (html2canvas, etc.)
+            setPdfReady({ blob: pdfBlob, filename })
 
         } catch (err) {
             console.error('Erro ao gerar PDF:', err)
@@ -236,6 +228,32 @@ export function ArvoreGenealogicaPage() {
             setCertUrl(null)
             setIsGenerating(false)
         }
+    }
+
+    // Chamado diretamente pelo toque do usuário → gesto fresco → iOS permite navigator.share()
+    const handleOpenPdf = async () => {
+        if (!pdfReady) return
+        const { blob, filename } = pdfReady
+        const file = new File([blob], filename, { type: 'application/pdf' })
+        try {
+            if (navigator.canShare?.({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'Certificado Genealógico' })
+            } else {
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename
+                a.click()
+                setTimeout(() => URL.revokeObjectURL(url), 10000)
+            }
+        } catch (err: any) {
+            if (err?.name === 'AbortError') return // usuário cancelou o share — ok
+            // Fallback final: abre em nova aba (mostra o PDF com botão de compartilhar nativo do iOS)
+            const url = URL.createObjectURL(blob)
+            window.open(url, '_blank')
+            setTimeout(() => URL.revokeObjectURL(url), 30000)
+        }
+        setPdfReady(null)
     }
 
     if (isLoading) {
@@ -322,30 +340,53 @@ export function ArvoreGenealogicaPage() {
                             </svg>
                             Visualização em Lista
                         </h2>
-                        <button
-                            onClick={handlePrint}
-                            disabled={isGenerating}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors ${
-                                isGenerating ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600'
-                            }`}
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Gerando...
-                                </>
-                            ) : (
-                                <>
+                        {pdfReady ? (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleOpenPdf}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 transition-colors"
+                                >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                    Imprimir / PDF
-                                </>
-                            )}
-                        </button>
+                                    Abrir PDF
+                                </button>
+                                <button
+                                    onClick={() => setPdfReady(null)}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    title="Descartar"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handlePrint}
+                                disabled={isGenerating}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors ${
+                                    isGenerating ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-500 hover:bg-primary-600'
+                                }`}
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Gerando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        Imprimir / PDF
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                     <div ref={treeRef} id="arvore-pdf-content" className="p-4">
                         <HorizontalTree passaro={passaroArvore} maxGenerations={3} />
