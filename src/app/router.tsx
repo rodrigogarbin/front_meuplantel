@@ -7,7 +7,7 @@ import { useUser } from '@/features/auth'
 import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage, SocialCallbackPage } from '@/features/auth'
 import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
-import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage, AncestralComumPage } from '@/features/passaros'
+import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage, AncestralComumPage, RelatorioCriadouroPage } from '@/features/passaros'
 import { CasaisPage, CasalFormPage } from '@/features/casais'
 import { CasaisHistoricoPage } from '@/features/casais/CasaisHistoricoPage'
 import { PosturasPage } from '@/features/posturas'
@@ -172,6 +172,10 @@ export const router = createBrowserRouter([
             {
                 path: '/passaros/ancestrais-comuns',
                 element: <FeatureGuard flag="ancestrais"><AncestralComumPage /></FeatureGuard>,
+            },
+            {
+                path: '/passaros/relatorio',
+                element: <RelatorioCriadouroPage />,
             },
             {
                 path: '/config/perfil',

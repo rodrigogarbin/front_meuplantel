@@ -1,4 +1,5 @@
 export { PassarosPage } from './PassarosPage'
+export { RelatorioCriadouroPage } from './RelatorioCriadouroPage'
 export { PassaroFormPage } from './PassaroFormPage'
 export { ArvoreGenealogicaPage } from './ArvoreGenealogicaPage'
 export { AncestralComumPage } from './AncestralComumPage'

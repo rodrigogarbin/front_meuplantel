@@ -181,6 +181,23 @@ async function fetchPassarosAutocomplete(sexo?: number): Promise<Passaro[]> {
 }
 
 /**
+ * Busca todas as aves ativas sem limite de paginação (para relatórios)
+ */
+export function usePassarosAtivos() {
+    return useQuery({
+        queryKey: ['passaros', 'todos-ativos'],
+        queryFn: async () => {
+            const params = new URLSearchParams({ sit: '1', per_page: '1000' })
+            const response = await api.get<PassarosResponse | Passaro[]>(`/api/v1/passaros?${params}`)
+            const data = response.data
+            if (Array.isArray(data)) return data
+            return (data as PassarosResponse).passaros ?? (data as PassarosResponse).data ?? []
+        },
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
  * Hook para buscar machos para autocomplete
  */
 export function useMachos() {
