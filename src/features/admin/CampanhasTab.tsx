@@ -57,6 +57,7 @@ export function CampanhasTab() {
     const [filtroVersao, setFiltroVersao] = useState<VersaoFilter>('')
     const [filtroInativo, setFiltroInativo] = useState<number | null>(null)
     const [filtroSemPassaros, setFiltroSemPassaros] = useState(false)
+    const [filtroEmailNaoVerificado, setFiltroEmailNaoVerificado] = useState(false)
     const [busca, setBusca] = useState('')
 
     const { data: templates, isLoading: isLoadingTemplates, isError: isErrorTemplates } = useQuery({
@@ -67,12 +68,13 @@ export function CampanhasTab() {
 
     // Busca usuários assim que chega na etapa 2; re-busca quando filtro muda
     const { data: todosUsuarios, isLoading: isLoadingUsuarios } = useQuery({
-        queryKey: ['admin', 'campanhas', 'usuarios', filtroVersao, filtroInativo, filtroSemPassaros],
+        queryKey: ['admin', 'campanhas', 'usuarios', filtroVersao, filtroInativo, filtroSemPassaros, filtroEmailNaoVerificado],
         queryFn: async () => {
             const params = new URLSearchParams({ per_page: '500' })
             if (filtroVersao) params.set('versao', filtroVersao)
             if (filtroInativo) params.set('inativo_dias', String(filtroInativo))
             if (filtroSemPassaros) params.set('sem_passaros', '1')
+            if (filtroEmailNaoVerificado) params.set('filtro', 'email_nao_verificado')
             const { data } = await api.get(`/api/v1/admin/usuarios?${params}`)
             const lista: AdminUsuario[] = data.data ?? []
             return lista.filter(u => u.email && u.email.trim() !== '')
@@ -119,6 +121,7 @@ export function CampanhasTab() {
             setFiltroVersao('')
             setFiltroInativo(null)
             setFiltroSemPassaros(false)
+            setFiltroEmailNaoVerificado(false)
             setBusca('')
         },
         onError: () => {
@@ -132,6 +135,7 @@ export function CampanhasTab() {
         setFiltroVersao('')
         setFiltroInativo(null)
         setFiltroSemPassaros(false)
+        setFiltroEmailNaoVerificado(false)
         setBusca('')
         setStep(2)
     }
@@ -165,13 +169,13 @@ export function CampanhasTab() {
         setFiltroInativo(prev => (prev === dias ? null : dias))
     }
 
-    const handleToggleFiltroVersao = (v: 'v1') => {
+    const handleToggleFiltroVersao = (v: 'v1' | 'v2') => {
         setFiltroVersao(prev => (prev === v ? '' : v))
     }
 
     const usuariosSelecionadosDetalhes = todosUsuarios?.filter(u => selecionados.has(u.usuario_id)) ?? []
 
-    const filtrosAtivos = filtroVersao !== '' || filtroInativo !== null || filtroSemPassaros
+    const filtrosAtivos = filtroVersao !== '' || filtroInativo !== null || filtroSemPassaros || filtroEmailNaoVerificado
 
     return (
         <div className="p-4 space-y-6 max-w-2xl mx-auto">
@@ -298,9 +302,11 @@ export function CampanhasTab() {
                             {(
                                 [
                                     { label: 'Só v1', action: () => handleToggleFiltroVersao('v1'), active: filtroVersao === 'v1' },
+                                    { label: 'Só v2', action: () => handleToggleFiltroVersao('v2'), active: filtroVersao === 'v2' },
                                     { label: 'Inativos 30d', action: () => handleToggleFiltroInativo(30), active: filtroInativo === 30 },
                                     { label: 'Inativos 60d', action: () => handleToggleFiltroInativo(60), active: filtroInativo === 60 },
                                     { label: 'Sem pássaros', action: () => setFiltroSemPassaros(prev => !prev), active: filtroSemPassaros },
+                                    { label: 'Email não verificado', action: () => setFiltroEmailNaoVerificado(prev => !prev), active: filtroEmailNaoVerificado },
                                 ] as { label: string; action: () => void; active: boolean }[]
                             ).map(f => (
                                 <button
@@ -320,7 +326,7 @@ export function CampanhasTab() {
                             ))}
                             {filtrosAtivos && (
                                 <button
-                                    onClick={() => { setFiltroVersao(''); setFiltroInativo(null); setFiltroSemPassaros(false) }}
+                                    onClick={() => { setFiltroVersao(''); setFiltroInativo(null); setFiltroSemPassaros(false); setFiltroEmailNaoVerificado(false) }}
                                     className="px-3 py-1 rounded-full text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
                                 >
                                     Limpar filtros

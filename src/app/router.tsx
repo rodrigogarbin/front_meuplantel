@@ -4,7 +4,7 @@
 
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom'
 import { useUser } from '@/features/auth'
-import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage, SocialCallbackPage } from '@/features/auth'
+import { LoginPage, RegisterPage, ForgotPasswordPage, EmailVerificationPage, CompletarPerfilPage, SocialCallbackPage, VerificarEmailCampanhaPage } from '@/features/auth'
 import { AdminPage } from '@/features/admin'
 import { DashboardPage } from '@/features/dashboard'
 import { PassarosPage, PassaroFormPage, ArvoreGenealogicaPage, AncestralComumPage, RelatorioCriadouroPage } from '@/features/passaros'
@@ -228,6 +228,11 @@ export const router = createBrowserRouter([
                 element: <FeatureGuard flag="medicamentos"><SintomasPage /></FeatureGuard>,
             },
         ],
+    },
+    {
+        // Rota pública de verificação de email via link de campanha (sem autenticação)
+        path: '/verificar-email-campanha',
+        element: <VerificarEmailCampanhaPage />,
     },
     {
         // Rota pública de verificação de certificado genealógico (sem autenticação)

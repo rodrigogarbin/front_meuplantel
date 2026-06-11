@@ -45,7 +45,10 @@ export function LoginPage() {
     const [countdown, setCountdown] = useState(0)
 
     const currentTheme = useEffectiveTheme()
-    const from = (location.state as { from?: Location })?.from?.pathname || '/'
+    const fromLocation = (location.state as { from?: Location })?.from
+    const from = fromLocation
+        ? (fromLocation.pathname || '/') + (fromLocation.search || '')
+        : '/'
 
     // Inicia countdown quando retry_after é recebido
     useEffect(() => {

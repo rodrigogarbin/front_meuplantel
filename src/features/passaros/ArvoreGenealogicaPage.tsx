@@ -214,10 +214,22 @@ export function ArvoreGenealogicaPage() {
             const filename = `genealogia-${ringNumber.replace(/[\s/]+/g, '-')}.pdf`
             const pdfBlob = pdf.output('blob')
 
-            // Guarda o blob — o share/download acontece em handleOpenPdf (gesto fresco do usuário)
-            // Isso evita o NotAllowedError do iOS: navigator.share() precisa de gesto direto,
-            // mas o gesto original expira durante as operações assíncronas (html2canvas, etc.)
-            setPdfReady({ blob: pdfBlob, filename })
+            // Desktop: baixa direto
+            // Mobile/PWA instalado: guarda blob e exibe "Abrir PDF" para gesto fresco (evita NotAllowedError do iOS)
+            const isMobileOrPwa =
+                window.matchMedia('(display-mode: standalone)').matches ||
+                (window.navigator as any).standalone === true ||
+                /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+            if (!isMobileOrPwa) {
+                const url = URL.createObjectURL(pdfBlob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename
+                a.click()
+                setTimeout(() => URL.revokeObjectURL(url), 10000)
+            } else {
+                setPdfReady({ blob: pdfBlob, filename })
+            }
 
         } catch (err) {
             console.error('Erro ao gerar PDF:', err)

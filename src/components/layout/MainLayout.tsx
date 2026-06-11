@@ -176,6 +176,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             {/* Pesquisa NPS */}
             {showNps && <NpsSheet onClose={() => setShowNps(false)} />}
 
+
             {/* Menu "Mais" — Bottom Sheet */}
             {showMaisMenu && (
                 <>
