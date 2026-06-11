@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { PassaroAutocomplete } from '@/components/ui/PassaroAutocomplete'
 import { usePassarosAtivos } from './passarosApi'
+import { useEspecies } from '@/features/especies/especiesApi'
 import { formatRingComplete, formatPassaroCompleto } from '@/lib/passaro'
 import type { Passaro } from '@/types'
 
@@ -183,12 +184,14 @@ export function RelatorioCriadouroPage() {
 
     // Filtros
     const [sexoFilter, setSexoFilter] = useState<0 | 1 | 2>(0)
+    const [especieFilter, setEspecieFilter] = useState<number | ''>('')
     const [paiFilter, setPaiFilter] = useState<number | ''>('')
     const [maeFilter, setMaeFilter] = useState<number | ''>('')
     const [periodoInicio, setPeriodoInicio] = useState('')
     const [periodoFim, setPeriodoFim] = useState('')
 
     const { data: allBirds = [], isLoading, error, refetch } = usePassarosAtivos()
+    const { data: especies = [] } = useEspecies()
 
     // Listas únicas de pais/mães para o autocomplete
     const paiPassaros = useMemo(() => {
@@ -208,6 +211,7 @@ export function RelatorioCriadouroPage() {
         return allBirds
             .filter(b => {
                 if (sexoFilter !== 0 && b.sexo !== sexoFilter) return false
+                if (especieFilter !== '' && b.especie_usuario_id !== especieFilter) return false
                 if (paiFilter !== '' && b.passaro_pai_id !== paiFilter) return false
                 if (maeFilter !== '' && b.passaro_mae_id !== maeFilter) return false
                 if (periodoInicio && (b.dt_nasc ?? '') < periodoInicio) return false
@@ -215,7 +219,7 @@ export function RelatorioCriadouroPage() {
                 return true
             })
             .sort((a, b) => (a.dt_nasc ?? '').localeCompare(b.dt_nasc ?? ''))
-    }, [allBirds, sexoFilter, paiFilter, maeFilter, periodoInicio, periodoFim])
+    }, [allBirds, sexoFilter, especieFilter, paiFilter, maeFilter, periodoInicio, periodoFim])
 
     const totalPages = Math.max(1, Math.ceil(filteredBirds.length / PER_PAGE))
     const pagedBirds = filteredBirds.slice((previewPage - 1) * PER_PAGE, previewPage * PER_PAGE)
@@ -227,6 +231,10 @@ export function RelatorioCriadouroPage() {
         const parts: string[] = []
         if (sexoFilter === 1) parts.push('Machos')
         else if (sexoFilter === 2) parts.push('Fêmeas')
+        if (especieFilter !== '') {
+            const esp = especies.find(e => (e.especie_usuario_id ?? e.id) === especieFilter)
+            if (esp) parts.push(`Espécie: ${esp.descr ?? ''}`)
+        }
         if (paiFilter !== '') {
             const p = paiPassaros.find(o => o.passaro_id === paiFilter)
             if (p) parts.push(`Pai: ${formatPassaroCompleto(p)}`)
@@ -239,7 +247,7 @@ export function RelatorioCriadouroPage() {
             parts.push(`Nasc. ${fmtDate(periodoInicio) || '?'} – ${fmtDate(periodoFim) || '?'}`)
         }
         return parts.length ? `Relatório · ${parts.join(' · ')}` : 'Relatório de Aves do Criadouro'
-    }, [sexoFilter, paiFilter, maeFilter, periodoInicio, periodoFim, paiPassaros, maePassaros])
+    }, [sexoFilter, especieFilter, paiFilter, maeFilter, periodoInicio, periodoFim, especies, paiPassaros, maePassaros])
 
     const handleGenerate = async () => {
         setIsGenerating(true)
@@ -334,6 +342,29 @@ export function RelatorioCriadouroPage() {
                         ))}
                     </div>
 
+                    {/* Espécie */}
+                    {especies.length > 0 && (
+                        <div>
+                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Espécie</label>
+                            <select
+                                value={especieFilter}
+                                onChange={(e) => { setEspecieFilter(e.target.value === '' ? '' : Number(e.target.value)); resetPage() }}
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            >
+                                <option value="">Todas as espécies</option>
+                                {especies.map(esp => {
+                                    const id = esp.especie_usuario_id ?? esp.id
+                                    if (!id) return null
+                                    return (
+                                        <option key={id} value={id}>
+                                            {esp.descr ?? `Espécie ${id}`}
+                                        </option>
+                                    )
+                                })}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Pai */}
                     <PassaroAutocomplete
                         label="Pai"
@@ -373,10 +404,10 @@ export function RelatorioCriadouroPage() {
                     </div>
 
                     {/* Limpar filtros */}
-                    {(sexoFilter !== 0 || paiFilter !== '' || maeFilter !== '' || periodoInicio || periodoFim) && (
+                    {(sexoFilter !== 0 || especieFilter !== '' || paiFilter !== '' || maeFilter !== '' || periodoInicio || periodoFim) && (
                         <button
                             onClick={() => {
-                                setSexoFilter(0); setPaiFilter(''); setMaeFilter('')
+                                setSexoFilter(0); setEspecieFilter(''); setPaiFilter(''); setMaeFilter('')
                                 setPeriodoInicio(''); setPeriodoFim(''); resetPage()
                             }}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
