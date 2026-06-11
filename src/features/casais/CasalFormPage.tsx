@@ -2,15 +2,15 @@
  * Página de Cadastro/Edição de Casal
  */
 
-import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { Input } from '@/components/ui/Input'
 import { PassaroAutocomplete } from '@/components/ui/PassaroAutocomplete'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useCasal, useCreateCasal, useUpdateCasal } from './casaisApi'
-import { useMachos, useFemeas } from '@/features/passaros/passarosApi'
+import { useMachos, useFemeas, usePassaro } from '@/features/passaros/passarosApi'
 import type { CreateCasalPayload } from '@/types'
 import { getApiErrorMessage } from '@/lib/errorHandler'
 
@@ -35,12 +35,18 @@ const initialFormData: FormData = {
 
 export function CasalFormPage() {
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { id } = useParams<{ id: string }>()
     const isEditing = !!id
     const casalId = id ? Number(id) : null
 
+    // Replicação: busca o casal original pelo ID passado na URL
+    const replicarCasalId = !isEditing && searchParams.get('replicar_casal') ? Number(searchParams.get('replicar_casal')) : null
+    const { data: casalOrigem } = useCasal(replicarCasalId)
+
     // Form state
     const [formData, setFormData] = useState<FormData>(initialFormData)
+    const [replicarPreenchido, setReplicarPreenchido] = useState(false)
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
     const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -49,12 +55,47 @@ export function CasalFormPage() {
     const { data: machos = [], isLoading: loadingMachos } = useMachos()
     const { data: femeas = [], isLoading: loadingFemeas } = useFemeas()
 
+    // Extrai IDs do casal origem (CasalResource retorna macho.id, não macho.passaro_id)
+    const replicarMachoId = (casalOrigem?.passaro_macho_id ?? (casalOrigem?.macho as unknown as { id?: number } | null)?.id) ?? null
+    const replicarFemeaId = (casalOrigem?.passaro_femea_id ?? (casalOrigem?.femea as unknown as { id?: number } | null)?.id) ?? null
+
+    // Busca os pássaros individualmente para garantir que aparecem nas opções
+    const { data: replicarMacho } = usePassaro(replicarMachoId)
+    const { data: replicarFemea } = usePassaro(replicarFemeaId)
+
+    // Garante que pássaros replicados aparecem nas opções mesmo se não estiverem ativos
+    const machoOptions = useMemo(() => {
+        if (!replicarMacho) return machos
+        return machos.some(m => m.passaro_id === replicarMacho.passaro_id) ? machos : [replicarMacho, ...machos]
+    }, [machos, replicarMacho])
+
+    const femeaOptions = useMemo(() => {
+        if (!replicarFemea) return femeas
+        return femeas.some(f => f.passaro_id === replicarFemea.passaro_id) ? femeas : [replicarFemea, ...femeas]
+    }, [femeas, replicarFemea])
+
     // Mutations
     const createMutation = useCreateCasal()
     const updateMutation = useUpdateCasal()
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending
     const isLoading = isEditing && loadingCasal
+
+    // Preenche o formulário com dados do casal a ser replicado
+    useEffect(() => {
+        if (casalOrigem && replicarCasalId && !replicarPreenchido) {
+            setReplicarPreenchido(true)
+            const mId = (casalOrigem.passaro_macho_id ?? (casalOrigem.macho as unknown as { id?: number } | null)?.id) ?? null
+            const fId = (casalOrigem.passaro_femea_id ?? (casalOrigem.femea as unknown as { id?: number } | null)?.id) ?? null
+            setFormData((prev) => ({
+                ...prev,
+                passaro_macho_id: mId,
+                passaro_femea_id: fId,
+                descr_pai: mId ? '' : (casalOrigem.descr_pai ?? ''),
+                descr_mae: fId ? '' : (casalOrigem.descr_mae ?? ''),
+            }))
+        }
+    }, [casalOrigem, replicarCasalId, replicarPreenchido])
 
     // Preenche o formulário quando carregar um casal existente
     useEffect(() => {
@@ -225,7 +266,7 @@ export function CasalFormPage() {
                                     updateField('descr_pai', text)
                                     if (text) updateField('passaro_macho_id', null)
                                 }}
-                                options={machos}
+                                options={machoOptions}
                                 isLoading={loadingMachos}
                                 error={errors.passaro_macho_id}
                                 placeholder="Buscar macho no plantel..."
@@ -251,7 +292,7 @@ export function CasalFormPage() {
                                     updateField('descr_mae', text)
                                     if (text) updateField('passaro_femea_id', null)
                                 }}
-                                options={femeas}
+                                options={femeaOptions}
                                 isLoading={loadingFemeas}
                                 placeholder="Buscar fêmea no plantel..."
                             />
