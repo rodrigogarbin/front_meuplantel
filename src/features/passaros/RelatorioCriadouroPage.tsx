@@ -125,10 +125,11 @@ async function buildPdf(birds: Passaro[], logoDataUrl: string, subtitle: string)
         pdf.text(truncToWidth(pdf, bird.descr ?? '—', COLS[2] - PAD), colX(2) + 1.5, mainTextY)
 
         if (bird.obs) {
+            const obsOneLine = bird.obs.replace(/\r?\n|<br\s*\/?>/gi, ' | ').trim()
             pdf.setFont('helvetica', 'italic')
             pdf.setFontSize(6)
             pdf.setTextColor(148, 163, 184)
-            pdf.text(truncToWidth(pdf, bird.obs, COLS[1] + COLS[2] - PAD), colX(1) + 1.5, y + ROW_H - 1.5)
+            pdf.text(truncToWidth(pdf, obsOneLine, COLS[1] + COLS[2] - PAD), colX(1) + 1.5, y + ROW_H - 1.5)
         }
 
         const sexoRgb: [number, number, number] =
@@ -509,7 +510,7 @@ export function RelatorioCriadouroPage() {
                                                 {b.mutacao?.descr && <span className="text-xs text-gray-400 dark:text-gray-500">· {b.mutacao.descr}</span>}
                                             </div>
                                             {b.obs && (
-                                                <p className="text-xs text-gray-400 dark:text-gray-500 italic mt-1 mb-0.5">{b.obs}</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 italic mt-1 mb-0.5">{b.obs.replace(/\r?\n|<br\s*\/?>/gi, ' | ').trim()}</p>
                                             )}
                                             <div className="flex flex-col gap-0.5 pl-0.5">
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
