@@ -10,9 +10,10 @@ import { Topbar } from '@/components/ui/Topbar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { PassaroAutocomplete } from '@/components/ui/PassaroAutocomplete'
-import { usePassarosAtivos } from './passarosApi'
+import { usePassarosTodos } from './passarosApi'
 import { useEspecies } from '@/features/especies/especiesApi'
 import { formatRingComplete, formatPassaroCompleto } from '@/lib/passaro'
+import { SituacaoLabels } from '@/types'
 import type { Passaro } from '@/types'
 
 const PER_PAGE = 15
@@ -55,7 +56,7 @@ const PAD = 2
 
 // #(7) | Anel(40) | Nome(58) | Sexo(14) | Nascimento(22) | Genealogia(49) → 190mm
 const COLS = [7, 40, 58, 14, 22, 49] as const
-const COL_LABELS = ['#', 'Anel', 'Nome', 'Sexo', 'Nascimento', 'Genealogia']
+const COL_LABELS = ['#', 'Anel', 'Descrição', 'Sexo', 'Nascimento', 'Genealogia']
 
 function colX(i: number): number {
     return MARGIN + (COLS.slice(0, i) as number[]).reduce((a, b) => a + b, 0)
@@ -108,27 +109,35 @@ async function buildPdf(birds: Passaro[], logoDataUrl: string, subtitle: string)
             pdf.rect(MARGIN, y, CONTENT_W, ROW_H, 'F')
         }
 
-        // Linha vertical que centraliza as colunas 1-5 no meio da linha
+        // Se há obs, sobe o texto principal para dar espaço à linha de obs abaixo
         const midY = y + ROW_H / 2 + 2.5
+        const mainTextY = bird.obs ? y + 7.5 : midY
 
-        // ── Colunas principais (fonte 7.5pt, centradas verticalmente) ──
+        // ── Colunas principais (fonte 7.5pt) ──
         pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(7.5)
 
         pdf.setTextColor(107, 114, 128)
-        pdf.text(String(index + 1), colX(0) + COLS[0] / 2, midY, { align: 'center' })
+        pdf.text(String(index + 1), colX(0) + COLS[0] / 2, mainTextY, { align: 'center' })
 
         pdf.setTextColor(17, 24, 39)
-        pdf.text(truncToWidth(pdf, formatRingComplete(bird.anel), COLS[1] - PAD), colX(1) + 1.5, midY)
-        pdf.text(truncToWidth(pdf, bird.descr ?? '—', COLS[2] - PAD), colX(2) + 1.5, midY)
+        pdf.text(truncToWidth(pdf, formatRingComplete(bird.anel), COLS[1] - PAD), colX(1) + 1.5, mainTextY)
+        pdf.text(truncToWidth(pdf, bird.descr ?? '—', COLS[2] - PAD), colX(2) + 1.5, mainTextY)
+
+        if (bird.obs) {
+            pdf.setFont('helvetica', 'italic')
+            pdf.setFontSize(6)
+            pdf.setTextColor(148, 163, 184)
+            pdf.text(truncToWidth(pdf, bird.obs, COLS[1] + COLS[2] - PAD), colX(1) + 1.5, y + ROW_H - 1.5)
+        }
 
         const sexoRgb: [number, number, number] =
             bird.sexo === 1 ? [59, 130, 246] : bird.sexo === 2 ? [236, 72, 153] : [107, 114, 128]
         pdf.setTextColor(...sexoRgb)
-        pdf.text(fmtSexo(bird.sexo), colX(3) + 1.5, midY)
+        pdf.text(fmtSexo(bird.sexo), colX(3) + 1.5, mainTextY)
 
         pdf.setTextColor(17, 24, 39)
-        pdf.text(fmtDate(bird.dt_nasc), colX(4) + 1.5, midY)
+        pdf.text(fmtDate(bird.dt_nasc), colX(4) + 1.5, mainTextY)
 
         // ── Coluna Genealogia: pai e mãe empilhados (fonte 6pt, cinza) ──
         pdf.setFont('helvetica', 'normal')
@@ -139,6 +148,7 @@ async function buildPdf(birds: Passaro[], logoDataUrl: string, subtitle: string)
         const maxW = COLS[5] - PAD
         pdf.text(truncToWidth(pdf, 'Pai: ' + formatPassaroCompleto(bird.pai as Passaro), maxW), xGene, y + 4.5)
         pdf.text(truncToWidth(pdf, 'Mae: ' + formatPassaroCompleto(bird.mae as Passaro), maxW), xGene, y + 9.5)
+
 
         pdf.setDrawColor(229, 231, 235)
         pdf.setLineWidth(0.1)
@@ -184,13 +194,14 @@ export function RelatorioCriadouroPage() {
 
     // Filtros
     const [sexoFilter, setSexoFilter] = useState<0 | 1 | 2>(0)
+    const [sitFilter, setSitFilter] = useState<number | ''>('')
     const [especieFilter, setEspecieFilter] = useState<number | ''>('')
     const [paiFilter, setPaiFilter] = useState<number | ''>('')
     const [maeFilter, setMaeFilter] = useState<number | ''>('')
     const [periodoInicio, setPeriodoInicio] = useState('')
     const [periodoFim, setPeriodoFim] = useState('')
 
-    const { data: allBirds = [], isLoading, error, refetch } = usePassarosAtivos()
+    const { data: allBirds = [], isLoading, error, refetch } = usePassarosTodos()
     const { data: especies = [] } = useEspecies()
 
     // Listas únicas de pais/mães para o autocomplete
@@ -211,6 +222,7 @@ export function RelatorioCriadouroPage() {
         return allBirds
             .filter(b => {
                 if (sexoFilter !== 0 && b.sexo !== sexoFilter) return false
+                if (sitFilter !== '' && b.sit !== sitFilter) return false
                 if (especieFilter !== '' && b.especie_usuario_id !== especieFilter) return false
                 if (paiFilter !== '' && b.passaro_pai_id !== paiFilter) return false
                 if (maeFilter !== '' && b.passaro_mae_id !== maeFilter) return false
@@ -219,7 +231,7 @@ export function RelatorioCriadouroPage() {
                 return true
             })
             .sort((a, b) => (a.dt_nasc ?? '').localeCompare(b.dt_nasc ?? ''))
-    }, [allBirds, sexoFilter, especieFilter, paiFilter, maeFilter, periodoInicio, periodoFim])
+    }, [allBirds, sexoFilter, sitFilter, especieFilter, paiFilter, maeFilter, periodoInicio, periodoFim])
 
     const totalPages = Math.max(1, Math.ceil(filteredBirds.length / PER_PAGE))
     const pagedBirds = filteredBirds.slice((previewPage - 1) * PER_PAGE, previewPage * PER_PAGE)
@@ -231,6 +243,7 @@ export function RelatorioCriadouroPage() {
         const parts: string[] = []
         if (sexoFilter === 1) parts.push('Machos')
         else if (sexoFilter === 2) parts.push('Fêmeas')
+        if (sitFilter !== '') parts.push(`Status: ${SituacaoLabels[sitFilter] ?? sitFilter}`)
         if (especieFilter !== '') {
             const esp = especies.find(e => (e.especie_usuario_id ?? e.id) === especieFilter)
             if (esp) parts.push(`Espécie: ${esp.descr ?? ''}`)
@@ -342,6 +355,21 @@ export function RelatorioCriadouroPage() {
                         ))}
                     </div>
 
+                    {/* Status */}
+                    <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
+                        <select
+                            value={sitFilter}
+                            onChange={(e) => { setSitFilter(e.target.value === '' ? '' : Number(e.target.value)); resetPage() }}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        >
+                            <option value="">Todos os status</option>
+                            {Object.entries(SituacaoLabels).map(([val, label]) => (
+                                <option key={val} value={val}>{label}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Espécie */}
                     {especies.length > 0 && (
                         <div>
@@ -404,10 +432,10 @@ export function RelatorioCriadouroPage() {
                     </div>
 
                     {/* Limpar filtros */}
-                    {(sexoFilter !== 0 || especieFilter !== '' || paiFilter !== '' || maeFilter !== '' || periodoInicio || periodoFim) && (
+                    {(sexoFilter !== 0 || sitFilter !== '' || especieFilter !== '' || paiFilter !== '' || maeFilter !== '' || periodoInicio || periodoFim) && (
                         <button
                             onClick={() => {
-                                setSexoFilter(0); setEspecieFilter(''); setPaiFilter(''); setMaeFilter('')
+                                setSexoFilter(0); setSitFilter(''); setEspecieFilter(''); setPaiFilter(''); setMaeFilter('')
                                 setPeriodoInicio(''); setPeriodoFim(''); resetPage()
                             }}
                             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -473,13 +501,16 @@ export function RelatorioCriadouroPage() {
                                             key={b.passaro_id}
                                             className={`px-4 py-3 text-sm ${i > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''} ${i % 2 === 1 ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}
                                         >
-                                            <div className="flex items-baseline gap-2 flex-wrap mb-1">
+                                            <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
                                                 <span className="font-mono font-medium text-gray-900 dark:text-gray-100">{formatRingComplete(b.anel)}</span>
                                                 {b.descr && <span className="text-gray-700 dark:text-gray-300 font-medium">{b.descr}</span>}
                                                 <span className={`text-xs ${b.sexo === 1 ? 'text-blue-500' : b.sexo === 2 ? 'text-pink-500' : 'text-gray-400'}`}>{fmtSexo(b.sexo)}</span>
                                                 {b.dt_nasc && <span className="text-xs text-gray-400 dark:text-gray-500">Nasc. {fmtDate(b.dt_nasc)}</span>}
                                                 {b.mutacao?.descr && <span className="text-xs text-gray-400 dark:text-gray-500">· {b.mutacao.descr}</span>}
                                             </div>
+                                            {b.obs && (
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 italic mt-1 mb-0.5">{b.obs}</p>
+                                            )}
                                             <div className="flex flex-col gap-0.5 pl-0.5">
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                                     <span className="text-blue-400 mr-1">♂</span>{b.pai ? formatPassaroCompleto(b.pai as Passaro) : '—'}

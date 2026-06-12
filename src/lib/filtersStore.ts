@@ -26,6 +26,10 @@ interface PassarosFilters {
     especiesFilter: number[]
 }
 
+const defaultPosturas: PosturasFilters = { filterTypes: [], searchTerm: '' }
+const defaultCasais: CasaisFilters = { searchTerm: '' }
+const defaultPassaros: PassarosFilters = { sexoFilter: 'all', situacaoFilter: 'ativos', searchQuery: '', especiesFilter: [] }
+
 interface FiltersState {
     posturas: PosturasFilters
     casais: CasaisFilters
@@ -33,30 +37,23 @@ interface FiltersState {
     setPosturasFilters: (filters: Partial<PosturasFilters>) => void
     setCasaisFilters: (filters: Partial<CasaisFilters>) => void
     setPassarosFilters: (filters: Partial<PassarosFilters>) => void
+    resetAllFilters: () => void
 }
 
 export const useFiltersStore = create<FiltersState>()(
     persist(
         (set) => ({
-            posturas: {
-                filterTypes: [],
-                searchTerm: '',
-            },
-            casais: {
-                searchTerm: '',
-            },
-            passaros: {
-                sexoFilter: 'all',
-                situacaoFilter: 'ativos',
-                searchQuery: '',
-                especiesFilter: [],
-            },
+            posturas: defaultPosturas,
+            casais: defaultCasais,
+            passaros: defaultPassaros,
             setPosturasFilters: (filters) =>
                 set((state) => ({ posturas: { ...state.posturas, ...filters } })),
             setCasaisFilters: (filters) =>
                 set((state) => ({ casais: { ...state.casais, ...filters } })),
             setPassarosFilters: (filters) =>
                 set((state) => ({ passaros: { ...state.passaros, ...filters } })),
+            resetAllFilters: () =>
+                set({ posturas: defaultPosturas, casais: defaultCasais, passaros: defaultPassaros }),
         }),
         {
             name: 'meuplantel-filters',
@@ -66,12 +63,12 @@ export const useFiltersStore = create<FiltersState>()(
                 return {
                     ...s,
                     passaros: {
-                        sexoFilter: s.passaros?.sexoFilter ?? 'all',
-                        situacaoFilter: s.passaros?.situacaoFilter ?? 'ativos',
-                        searchQuery: s.passaros?.searchQuery ?? '',
+                        sexoFilter: s.passaros?.sexoFilter ?? defaultPassaros.sexoFilter,
+                        situacaoFilter: s.passaros?.situacaoFilter ?? defaultPassaros.situacaoFilter,
+                        searchQuery: s.passaros?.searchQuery ?? defaultPassaros.searchQuery,
                         especiesFilter: Array.isArray(s.passaros?.especiesFilter)
                             ? s.passaros.especiesFilter
-                            : [],
+                            : defaultPassaros.especiesFilter,
                     },
                 }
             },

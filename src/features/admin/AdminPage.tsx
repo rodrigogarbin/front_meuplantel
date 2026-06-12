@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useAuthStore } from '@/features/auth/authStore'
+import { useFiltersStore } from '@/lib/filtersStore'
 import { useAdminUsuarios, useAdminStats, impersonateUser, toggleVersao, deleteUsuario, bulkDeleteUsuarios } from './adminApi'
 import type { AdminUsuario, VersaoFilter, SortField, SortOrder } from './adminApi'
 import { useLoginStats, useLoginFalhas } from './loginStatsApi'
@@ -71,6 +72,7 @@ export function AdminPage() {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { user, impersonate } = useAuthStore()
+    const resetAllFilters = useFiltersStore(s => s.resetAllFilters)
     const [activeTab, setActiveTab] = useState<Tab>('dashboard')
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -180,6 +182,8 @@ export function AdminPage() {
                 },
                 result.expires_in
             )
+            resetAllFilters()
+            queryClient.clear()
             navigate('/')
         } catch {
             setLoadingId(null)
@@ -421,9 +425,9 @@ export function AdminPage() {
                                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Situação dos Pássaros</h2>
                                 <div className="section-card space-y-3">
                                     <BarItem label="No plantel" value={stats.passaros.no_plantel} total={stats.passaros.total} color="bg-green-500" />
-                                    <BarItem label="Vendidos" value={stats.passaros.vendidos} total={stats.passaros.total} color="bg-blue-500" />
-                                    <BarItem label="Mortos" value={stats.passaros.mortos} total={stats.passaros.total} color="bg-red-500" />
-                                    <BarItem label="Emprestados" value={stats.passaros.emprestados} total={stats.passaros.total} color="bg-amber-500" />
+                                    <BarItem label="Inativos" value={stats.passaros.inativos} total={stats.passaros.total} color="bg-blue-500" />
+                                    <BarItem label="Transferidos" value={stats.passaros.transferidos} total={stats.passaros.total} color="bg-red-500" />
+                                    <BarItem label="Óbitos" value={stats.passaros.obitos} total={stats.passaros.total} color="bg-amber-500" />
                                 </div>
                             </section>
                         )}

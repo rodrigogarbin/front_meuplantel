@@ -492,7 +492,6 @@ export function PassaroFormPage() {
             }
 
             // 3. Verifica se o pássaro foi marcado como Vendido (sit=2) e não era Vendido antes
-            // sit=2 = Vendido no backend (SituacaoEnum usa INATIVO=2, mas o domínio é Vendido)
             const SIT_VENDIDO = 2
             const novoSit = payload.sit
             const sitOriginal = originalSitRef.current

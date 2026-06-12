@@ -59,9 +59,9 @@ export interface AdminStats {
     passaros: {
         total: number
         no_plantel: number
-        vendidos: number
-        mortos: number
-        emprestados: number
+        inativos: number
+        transferidos: number
+        obitos: number
         machos: number
         femeas: number
         indefinidos: number

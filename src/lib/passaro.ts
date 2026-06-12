@@ -3,6 +3,7 @@
  */
 
 import type { Anel, Passaro } from '@/types'
+import { SituacaoLabels } from '@/types'
 
 /**
  * Formata a anilha no padrão ANO-NRO (ex: 2024-0123)
@@ -109,16 +110,21 @@ export function sexColor(sexo: number | null | undefined): string {
  * Retorna o texto da situação
  */
 export function situacaoText(sit: number | null | undefined): string {
-    return sit === 1 ? 'Ativo' : 'Inativo'
+    if (sit == null) return '—'
+    return SituacaoLabels[sit] ?? '—'
 }
 
 /**
  * Retorna a cor CSS da situação
  */
 export function situacaoColor(sit: number | null | undefined): string {
-    return sit === 1
-        ? 'text-emerald-600 bg-emerald-100'
-        : 'text-gray-600 bg-gray-100'
+    switch (sit) {
+        case 1: return 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30'  // Ativo
+        case 2: return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700/50'              // Inativo
+        case 3: return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30'              // Transferido
+        case 4: return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'                  // Óbito
+        default: return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700'
+    }
 }
 
 /**

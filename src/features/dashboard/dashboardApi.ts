@@ -46,9 +46,9 @@ export interface DashboardStats {
     }
     passarosPorSituacao: {
         plantel: number
-        vendidos: number
-        mortos: number
-        emprestados: number
+        inativos: number
+        transferidos: number
+        obitos: number
     }
     totalCasais: number
     casaisAtivos: number
@@ -128,9 +128,9 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
             },
             passarosPorSituacao: {
                 plantel: totalNascidos, // A API dados não separa por situação
-                vendidos: 0,
-                mortos: 0,
-                emprestados: 0,
+                inativos: 0,
+                transferidos: 0,
+                obitos: 0,
             },
             totalCasais: totaisAnoSelecionado?.gaiolas || 0,
             casaisAtivos: totaisAnoSelecionado?.gaiolas || 0,
@@ -169,9 +169,9 @@ async function fetchDashboardStats(anoSelecionado?: number): Promise<DashboardSt
             },
             passarosPorSituacao: {
                 plantel: 0,
-                vendidos: 0,
-                mortos: 0,
-                emprestados: 0,
+                inativos: 0,
+                transferidos: 0,
+                obitos: 0,
             },
             totalCasais: 0,
             casaisAtivos: 0,

@@ -198,6 +198,23 @@ export function usePassarosAtivos() {
 }
 
 /**
+ * Hook para buscar todos os pássaros sem filtro de status (para relatório)
+ */
+export function usePassarosTodos() {
+    return useQuery({
+        queryKey: ['passaros', 'todos-status'],
+        queryFn: async () => {
+            const params = new URLSearchParams({ per_page: '1000' })
+            const response = await api.get<PassarosResponse | Passaro[]>(`/api/v1/passaros?${params}`)
+            const data = response.data
+            if (Array.isArray(data)) return data
+            return (data as PassarosResponse).passaros ?? (data as PassarosResponse).data ?? []
+        },
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
+/**
  * Hook para buscar machos para autocomplete
  */
 export function useMachos() {
