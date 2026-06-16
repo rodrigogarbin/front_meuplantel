@@ -19,6 +19,8 @@ import { ChatPage } from '@/features/chat'
 import { CertificadoVerificacaoPage } from '@/features/certificado/CertificadoVerificacaoPage'
 import { UnsubscribePage } from '@/pages/UnsubscribePage'
 import { NpsEmailPage } from '@/pages/NpsEmailPage'
+import { TermosPage } from '@/pages/TermosPage'
+import { PrivacidadePage } from '@/pages/PrivacidadePage'
 import { MainLayout } from '@/components/layout'
 import { PrivateRoute } from './PrivateRoute'
 import { EmailVerificationGuard } from './EmailVerificationGuard'
@@ -248,6 +250,16 @@ export const router = createBrowserRouter([
         // Rota pública de pesquisa NPS via email (sem autenticação)
         path: '/nps',
         element: <NpsEmailPage />,
+    },
+    {
+        // Rota pública de Termos de Uso (sem autenticação)
+        path: '/termos',
+        element: <TermosPage />,
+    },
+    {
+        // Rota pública de Política de Privacidade (sem autenticação)
+        path: '/privacidade',
+        element: <PrivacidadePage />,
     },
     {
         // Catch-all para rotas não encontradas

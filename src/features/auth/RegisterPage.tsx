@@ -46,6 +46,7 @@ export function RegisterPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [success, setSuccess] = useState(false)
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const [termsAccepted, setTermsAccepted] = useState(false)
 
     const updateField = (field: keyof RegisterForm, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -63,6 +64,11 @@ export function RegisterPage() {
         e.preventDefault()
         setError(null)
         setFieldErrors({})
+
+        if (!termsAccepted) {
+            setError('Voce precisa aceitar os Termos de Uso e a Politica de Privacidade para continuar.')
+            return
+        }
 
         if (!captchaToken) {
             setError('Por favor, complete o captcha')
@@ -343,6 +349,26 @@ export function RegisterPage() {
                             )}
                         </div>
 
+                        {/* Aceite dos Termos */}
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                Li e aceito os{' '}
+                                <Link to="/termos" target="_blank" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                                    Termos de Uso
+                                </Link>
+                                {' '}e a{' '}
+                                <Link to="/privacidade" target="_blank" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                                    Politica de Privacidade
+                                </Link>
+                            </span>
+                        </label>
+
                         {/* Turnstile */}
                         <Turnstile
                             ref={turnstileRef}
@@ -356,7 +382,7 @@ export function RegisterPage() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isLoading || !captchaToken || (formData.senha !== formData.senha_confirmation && formData.senha_confirmation.length > 0)}
+                            disabled={isLoading || !captchaToken || !termsAccepted || (formData.senha !== formData.senha_confirmation && formData.senha_confirmation.length > 0)}
                             className="w-full btn btn-primary py-3.5 text-base shadow-lg shadow-primary-500/30 mt-2"
                         >
                             {isLoading ? (

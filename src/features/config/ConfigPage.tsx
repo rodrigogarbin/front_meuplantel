@@ -2,7 +2,7 @@
  * Página de Configurações
  */
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Topbar } from '@/components/ui/Topbar'
 import { useThemeStore, type ThemeMode } from '@/lib/theme'
 import { useAuthStore } from '@/features/auth/authStore'
@@ -256,6 +256,13 @@ export function ConfigPage() {
                                 <span className="text-gray-600 dark:text-gray-400">Desenvolvido por</span>
                                 <span className="text-gray-900 dark:text-gray-100 font-medium">MeuPlantel</span>
                             </div>
+                        </div>
+
+                        {/* Legal */}
+                        <div className="flex justify-center gap-4 text-xs text-gray-400 dark:text-gray-500 mt-3">
+                            <Link to="/termos" className="hover:underline">Termos de Uso</Link>
+                            <span>·</span>
+                            <Link to="/privacidade" className="hover:underline">Privacidade</Link>
                         </div>
                     </section>
 
