@@ -270,9 +270,11 @@ export function PassaroFormPage() {
     // Pré-preenche o formulário com dados da postura (quando vem de registro de filhote)
     useEffect(() => {
         if (!isEditing && postura && posturaId) {
-            // Extrai dados do casal (pais e espécie)
-            const paiId = postura.casal?.macho?.id
-            const maeId = postura.casal?.femea?.id
+            // Usa o casal de origem (biológico) se a postura foi transferida,
+            // caso contrário usa o casal atual
+            const casalPais = postura.casal_origem ?? postura.casal
+            const paiId = casalPais?.macho?.id
+            const maeId = casalPais?.femea?.id
             const especieId = postura.casal?.macho?.especie_usuario_id ?? postura.casal?.femea?.especie_usuario_id
 
             setFormData(prev => ({

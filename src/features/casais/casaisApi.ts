@@ -148,6 +148,18 @@ interface PosturaResponse {
             }
         }
     }
+    casal_origem?: {
+        id: number
+        nro: number
+        macho?: {
+            id: number
+            anel?: { ano: number; nro: number; sg_clube: string }
+        }
+        femea?: {
+            id: number
+            anel?: { ano: number; nro: number; sg_clube: string }
+        }
+    } | null
 }
 
 /**
