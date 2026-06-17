@@ -313,11 +313,6 @@ export function LoginPage() {
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                             Sistema de gerenciamento de aves
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                            <Link to="/termos" className="hover:underline">Termos de Uso</Link>
-                            {' · '}
-                            <Link to="/privacidade" className="hover:underline">Privacidade</Link>
-                        </p>
                     </div>
                 </div>
             </div>
