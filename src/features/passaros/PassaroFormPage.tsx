@@ -124,7 +124,8 @@ import { TagsInput } from '@/components/ui/TagsInput'
 import { PassaroAutocomplete } from '@/components/ui/PassaroAutocomplete'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { usePassaro, useCreatePassaro, useUpdatePassaro, useMachos, useFemeas, useUploadPassaroFoto } from './passarosApi'
+import { usePassaro, useCreatePassaro, useUpdatePassaro, useDeletePassaro, useMachos, useFemeas, useUploadPassaroFoto } from './passarosApi'
+import { Toast, useToast } from '@/components/ui'
 import { useEspecies } from '@/features/especies'
 import { usePostura } from '@/features/casais'
 import { useUserProfile } from '@/features/auth'
@@ -229,8 +230,12 @@ export function PassaroFormPage() {
     const createMutation = useCreatePassaro()
     const updateMutation = useUpdatePassaro()
     const uploadFotoMutation = useUploadPassaroFoto()
+    const deleteMutation = useDeletePassaro()
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending || uploadFotoMutation.isPending
+
+    // Toast
+    const { toast, showToast, hideToast } = useToast()
     const isLoading = (isEditing && loadingPassaro) || (!isEditing && posturaId && loadingPostura)
 
     // Debounced nro+ano+sg_clube+nro_criador para verificar duplicata de anel
@@ -514,6 +519,22 @@ export function PassaroFormPage() {
         } catch (error) {
             setSubmitError(getApiErrorMessage(error, 'Ocorreu um erro ao salvar. Tente novamente.'))
         }
+    }
+
+    // Handler para exclusão do pássaro
+    const handleDelete = () => {
+        if (!passaroId) return
+        if (!window.confirm('Excluir este pássaro? Esta ação não pode ser desfeita.')) return
+        deleteMutation.mutate(passaroId, {
+            onSuccess: () => {
+                showToast('Pássaro excluído com sucesso.', 'success')
+                setTimeout(() => navigate('/passaros', { replace: true }), 800)
+            },
+            onError: (error: unknown) => {
+                const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao excluir pássaro'
+                showToast(msg, 'error')
+            },
+        })
     }
 
     // Atualiza campo do formulário
@@ -960,6 +981,21 @@ export function PassaroFormPage() {
                     </div>
                 </section>
 
+                {/* Botão Excluir - visível apenas em modo edição */}
+                {isEditing && passaroId && (
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        className="w-full flex items-center justify-center gap-2 py-3 text-red-500 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        {deleteMutation.isPending ? 'Excluindo...' : 'Excluir ave'}
+                    </button>
+                )}
+
                 {/* Botões de Ação - Fixos no rodapé */}
                 <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 safe-bottom">
                     <div className="max-w-2xl mx-auto flex gap-3">
@@ -1003,6 +1039,9 @@ export function PassaroFormPage() {
                 onPular={() => { setVendaPassaro(null); navigate(getReturnPath()) }}
                 passaro={vendaPassaro}
             />
+
+            {/* Toast de feedback */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
         </div>
     )
 }
