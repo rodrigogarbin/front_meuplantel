@@ -61,6 +61,7 @@ export interface Passaro {
     mutacao_id?: number | null
     passaro_pai_id?: number | null
     passaro_mae_id?: number | null
+    transferido_em?: string | null
     anel?: Anel | null
     mutacao?: Mutacao | null
     // CasalResource retorna como 'especie'

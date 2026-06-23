@@ -9,6 +9,7 @@ const FLAG_ICONS: Record<FeatureFlagChave, string> = {
     assistente: '🤖',
     gestao: '📊',
     ancestrais: '🧬',
+    transferencia_passaros: '🔀',
 }
 
 export function FuncionalidadesTab() {
