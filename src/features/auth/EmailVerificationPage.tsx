@@ -1,8 +1,21 @@
 /**
  * Página de Solicitação/Verificação de E-mail
- * 
- * Exibida quando o usuário não tem email cadastrado ou precisa verificar
- * Também usada para alterar o email (via query param ?alterar=true)
+ *
+ * Suporta dois fluxos:
+ *
+ * FLUXO ANTIGO (needs_email=true) — usuário sem e-mail cadastrado
+ *   Step 'request' → digita e-mail → step 'verify' → código → step 'success'
+ *   Hooks: useRequestEmailVerification, useVerifyEmailCode, useResendEmailVerification
+ *
+ * FLUXO NOVO (!needs_email && !email_verified) — usuário com e-mail mas não verificado
+ *   Pula step 'request', vai direto para step 'verify' com e-mail já preenchido
+ *   Hooks: useVerificarEmailCodigo, useReenviarEmailVerificacao
+ *   Não exibe "Usar outro e-mail"
+ *
+ * Query params:
+ *   ?blocked=1        → grace period expirou, não permite fechar
+ *   ?email_verificado=1 → usuário clicou no link do e-mail, exibe step 'success' direto
+ *   ?alterar=true     → alterar e-mail (fluxo antigo)
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -11,11 +24,12 @@ import {
     useEmailVerificationStatus,
     useRequestEmailVerification,
     useVerifyEmailCode,
-    useResendEmailVerification
+    useResendEmailVerification,
+    useVerificarEmailCodigo,
+    useReenviarEmailVerificacao,
 } from './userApi'
 import { BirdLogo } from '@/components/BirdLogo'
 
-// Ícone de email
 function EmailIcon() {
     return (
         <svg className="w-16 h-16 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,7 +38,6 @@ function EmailIcon() {
     )
 }
 
-// Ícone de verificação
 function CheckIcon() {
     return (
         <svg className="w-16 h-16 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -39,8 +52,10 @@ export function EmailVerificationPage() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const isChangingEmail = searchParams.get('alterar') === 'true'
+    const isBlocked = searchParams.get('blocked') === '1'
+    const emailVerificado = searchParams.get('email_verificado') === '1'
 
-    const [step, setStep] = useState<Step>('request')
+    const [step, setStep] = useState<Step>(emailVerificado ? 'success' : 'request')
     const [email, setEmail] = useState('')
     const [code, setCode] = useState(['', '', '', '', '', ''])
     const [error, setError] = useState('')
@@ -50,20 +65,43 @@ export function EmailVerificationPage() {
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
     const { data: status, isLoading: isLoadingStatus } = useEmailVerificationStatus()
+
+    // Fluxo antigo
     const requestMutation = useRequestEmailVerification()
     const verifyMutation = useVerifyEmailCode()
     const resendMutation = useResendEmailVerification()
 
-    // Verifica se já tem verificação pendente ao carregar
+    // Fluxo novo
+    const verificarCodigoMutation = useVerificarEmailCodigo()
+    const reenviarMutation = useReenviarEmailVerificacao()
+
+    // Determina qual fluxo usar
+    // needs_email=true → fluxo antigo (sem e-mail cadastrado)
+    // !needs_email && !email_verified → fluxo novo (e-mail cadastrado mas não verificado)
+    const isNovoFluxo = status !== undefined && !status.needs_email && !status.email_verified
+
+    // Inicializa estado ao carregar status
     useEffect(() => {
-        if (status?.pending_email) {
+        if (!status || emailVerificado) return
+
+        if (status.pending_email) {
+            // Verificação pendente do fluxo antigo
             setEmail(status.pending_email)
             setStep('verify')
-        } else if (status?.email && !status.needs_email && status.email_verified && !isChangingEmail) {
-            // Email já verificado e não está alterando, redireciona
-            navigate('/', { replace: true })
+        } else if (isNovoFluxo && status.email) {
+            // Fluxo novo: pula direto para verify com e-mail preenchido
+            setEmail(status.email)
+            setStep('verify')
+            // Inicia countdown para reenvio
+            setResendCountdown(0)
+            setCanResend(true)
+        } else if (status.email && !status.needs_email && status.email_verified && !isChangingEmail) {
+            // Já verificado — redireciona (exceto se está bloqueado por outro motivo)
+            if (!isBlocked) {
+                navigate('/', { replace: true })
+            }
         }
-    }, [status, navigate, isChangingEmail])
+    }, [status, navigate, isChangingEmail, isBlocked, isNovoFluxo, emailVerificado])
 
     // Countdown para reenvio
     useEffect(() => {
@@ -75,7 +113,7 @@ export function EmailVerificationPage() {
         }
     }, [resendCountdown, step])
 
-    // Handler para solicitar verificação
+    // Handler para solicitar verificação (fluxo antigo)
     const handleRequestVerification = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -88,24 +126,20 @@ export function EmailVerificationPage() {
         try {
             await requestMutation.mutateAsync(email)
             setStep('verify')
-            setResendCountdown(120) // 2 minutos
+            setResendCountdown(120)
             setCanResend(false)
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } }
-            setError(error.response?.data?.message || 'Erro ao enviar código. Tente novamente.')
+            const axiosErr = err as { response?: { data?: { message?: string } } }
+            setError(axiosErr.response?.data?.message || 'Erro ao enviar código. Tente novamente.')
         }
     }
 
     // Handler para input do código
     const handleCodeChange = (index: number, value: string) => {
-        // Permite apenas números
         const digit = value.replace(/\D/g, '').slice(-1)
-
         const newCode = [...code]
         newCode[index] = digit
         setCode(newCode)
-
-        // Move para próximo input
         if (digit && index < 5) {
             inputRefs.current[index + 1]?.focus()
         }
@@ -128,7 +162,7 @@ export function EmailVerificationPage() {
         }
     }
 
-    // Handler para verificar código
+    // Handler para verificar código — usa o hook certo para cada fluxo
     const handleVerifyCode = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -140,30 +174,37 @@ export function EmailVerificationPage() {
         }
 
         try {
-            await verifyMutation.mutateAsync(fullCode)
+            if (isNovoFluxo) {
+                await verificarCodigoMutation.mutateAsync(fullCode)
+            } else {
+                await verifyMutation.mutateAsync(fullCode)
+            }
             setStep('success')
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } }
-            setError(error.response?.data?.message || 'Código inválido. Tente novamente.')
+            const axiosErr = err as { response?: { data?: { message?: string } } }
+            setError(axiosErr.response?.data?.message || 'Código inválido. Tente novamente.')
             setCode(['', '', '', '', '', ''])
             inputRefs.current[0]?.focus()
         }
     }
 
-    // Handler para reenviar código
+    // Handler para reenviar código — usa o hook certo para cada fluxo
     const handleResend = async () => {
         setError('')
         try {
-            await resendMutation.mutateAsync()
+            if (isNovoFluxo) {
+                await reenviarMutation.mutateAsync()
+            } else {
+                await resendMutation.mutateAsync()
+            }
             setResendCountdown(120)
             setCanResend(false)
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } }
-            setError(error.response?.data?.message || 'Erro ao reenviar. Tente novamente.')
+            const axiosErr = err as { response?: { data?: { message?: string } } }
+            setError(axiosErr.response?.data?.message || 'Erro ao reenviar. Tente novamente.')
         }
     }
 
-    // Handler para continuar após sucesso
     const handleContinue = () => {
         if (isChangingEmail) {
             navigate('/config/perfil', { replace: true })
@@ -172,12 +213,14 @@ export function EmailVerificationPage() {
         }
     }
 
-    // Handler para voltar ao passo anterior
     const handleBack = () => {
         setStep('request')
         setCode(['', '', '', '', '', ''])
         setError('')
     }
+
+    const isVerifying = verifyMutation.isPending || verificarCodigoMutation.isPending
+    const isResending = resendMutation.isPending || reenviarMutation.isPending
 
     if (isLoadingStatus) {
         return (
@@ -204,7 +247,7 @@ export function EmailVerificationPage() {
 
                 {/* Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                    {/* Step: Solicitar Email */}
+                    {/* Step: Solicitar Email (apenas fluxo antigo com needs_email=true) */}
                     {step === 'request' && (
                         <>
                             <div className="text-center mb-6">
@@ -262,13 +305,20 @@ export function EmailVerificationPage() {
                                     )}
                                 </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(isChangingEmail ? '/config/perfil' : '/', { replace: true })}
-                                    className="w-full py-3 px-4 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium rounded-xl transition-colors"
-                                >
-                                    {isChangingEmail ? 'Cancelar' : 'Validar depois'}
-                                </button>
+                                {/* Botão "Validar depois" apenas quando não está bloqueado */}
+                                {!isBlocked ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(isChangingEmail ? '/config/perfil' : '/', { replace: true })}
+                                        className="w-full py-3 px-4 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium rounded-xl transition-colors"
+                                    >
+                                        {isChangingEmail ? 'Cancelar' : 'Validar depois'}
+                                    </button>
+                                ) : (
+                                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">
+                                        Verifique seu e-mail para continuar usando o MeuPlantel.
+                                    </p>
+                                )}
                             </form>
                         </>
                     )}
@@ -320,10 +370,10 @@ export function EmailVerificationPage() {
 
                                 <button
                                     type="submit"
-                                    disabled={verifyMutation.isPending || code.join('').length !== 6}
+                                    disabled={isVerifying || code.join('').length !== 6}
                                     className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
                                 >
-                                    {verifyMutation.isPending ? (
+                                    {isVerifying ? (
                                         <>
                                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
                                             Verificando...
@@ -338,10 +388,10 @@ export function EmailVerificationPage() {
                                         <button
                                             type="button"
                                             onClick={handleResend}
-                                            disabled={resendMutation.isPending}
+                                            disabled={isResending}
                                             className="text-primary-500 dark:text-primary-400 hover:underline text-sm font-medium"
                                         >
-                                            {resendMutation.isPending ? 'Reenviando...' : 'Reenviar código'}
+                                            {isResending ? 'Reenviando...' : 'Reenviar código'}
                                         </button>
                                     ) : (
                                         <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -349,13 +399,23 @@ export function EmailVerificationPage() {
                                         </p>
                                     )}
 
-                                    <button
-                                        type="button"
-                                        onClick={handleBack}
-                                        className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm"
-                                    >
-                                        Usar outro e-mail
-                                    </button>
+                                    {/* "Usar outro e-mail" apenas no fluxo antigo e quando não está bloqueado */}
+                                    {!isNovoFluxo && !isBlocked && (
+                                        <button
+                                            type="button"
+                                            onClick={handleBack}
+                                            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm"
+                                        >
+                                            Usar outro e-mail
+                                        </button>
+                                    )}
+
+                                    {/* Mensagem informativa quando está bloqueado */}
+                                    {isBlocked && (
+                                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                                            Verifique seu e-mail para continuar usando o MeuPlantel.
+                                        </p>
+                                    )}
                                 </div>
                             </form>
                         </>

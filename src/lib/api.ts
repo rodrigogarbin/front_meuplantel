@@ -50,11 +50,21 @@ const processQueue = (error: Error | null) => {
 /**
  * Interceptor de Response
  * Trata erros 401 tentando refresh do token via cookie
+ * Trata erros 403 com code 'email_nao_verificado' redirecionando para verificação
  */
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+        // Redireciona para verificação de e-mail quando grace period expirou
+        if (error.response?.status === 403) {
+            const responseData = error.response.data as { code?: string } | undefined
+            if (responseData?.code === 'email_nao_verificado') {
+                window.location.href = '/verificar-email?blocked=1'
+                return Promise.reject(error)
+            }
+        }
 
         // Se não for erro 401 ou já tentamos retry, rejeita
         if (error.response?.status !== 401 || originalRequest._retry) {
