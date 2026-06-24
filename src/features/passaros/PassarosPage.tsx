@@ -3,9 +3,9 @@
  * Mobile-first com filtros, busca e infinite scroll
  */
 
-import { useState, useMemo, useRef, useCallback, useEffect, type FocusEvent } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Topbar, SearchInput, Chip, ChipGroup, BirdListSkeleton, EmptyState, EmptyStateOnboarding, ErrorState, PullToRefresh } from '@/components/ui'
+import { Topbar, SearchInput, BirdListSkeleton, EmptyState, EmptyStateOnboarding, ErrorState, PullToRefresh } from '@/components/ui'
 import { MultiSelectCheckbox } from '@/components/ui/MultiSelectCheckbox'
 import { BirdCard } from './BirdCard'
 import { BirdDetailsSheet } from './BirdDetailsSheet'
@@ -45,9 +45,6 @@ export function PassarosPage() {
 
         return () => clearTimeout(timer)
     }, [searchQuery])
-
-    // Estado de foco da busca (controla visibilidade dos chips)
-    const [isSearchFocused, setIsSearchFocused] = useState(false)
 
     // Estado do modal de detalhes
     const [selectedBird, setSelectedBird] = useState<Passaro | null>(null)
@@ -133,17 +130,6 @@ export function PassarosPage() {
         return () => window.removeEventListener('focus', handleFocus)
     }, [refetch])
 
-    // Chips ficam visíveis se a busca está focada OU se há filtro ativo diferente do padrão
-    const hasActiveFilter = sexoFilter !== 'all' || situacaoFilter !== 'ativos' || especiesFilter.length > 0
-    const showChips = isSearchFocused || hasActiveFilter
-
-    // Blur do container de filtros: fecha chips apenas se foco saiu do container inteiro
-    const handleFilterBlur = (e: FocusEvent<HTMLDivElement>) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setIsSearchFocused(false)
-        }
-    }
-
     // Handlers
     const handleCardClick = (bird: Passaro) => {
         setSelectedBird(bird)
@@ -173,60 +159,58 @@ export function PassarosPage() {
                 }
             />
 
-            {/* Área de filtros sticky — busca sempre visível, chips colapsáveis */}
-            <div
-                className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700"
-                onBlur={handleFilterBlur}
-            >
+            {/* Área de filtros sticky */}
+            <div className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700">
                 {/* Busca — sempre visível */}
                 <SearchInput
                     value={searchQuery}
                     onChange={setSearchQuery}
                     placeholder="Buscar por anilha ou descrição..."
-                    onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Filtros — colapsáveis em mobile e desktop */}
-                <div
-                    className={`transition-all duration-200 ease-in-out ${
-                        showChips
-                            ? 'max-h-60 opacity-100 mt-3 overflow-visible'
-                            : 'max-h-0 opacity-0 mt-0 overflow-hidden'
-                    }`}
-                >
-                    <div className="flex flex-col gap-2 md:grid md:grid-cols-3 md:gap-8">
-                        {/* Sexo */}
-                        <div className="flex flex-col gap-1">
-                            <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Sexo</span>
-                            <ChipGroup>
-                                <Chip label="Todos"    active={sexoFilter === 'all'}   onClick={() => setSexoFilter('all')} />
-                                <Chip label="♂ Machos" active={sexoFilter === 'macho'} onClick={() => setSexoFilter('macho')} />
-                                <Chip label="♀ Fêmeas" active={sexoFilter === 'femea'} onClick={() => setSexoFilter('femea')} />
-                            </ChipGroup>
-                        </div>
+                {/* Chips de filtro — sempre visíveis, scroll horizontal */}
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-3">
+                    {/* Sexo */}
+                    <button
+                        onClick={() => setSexoFilter('all')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${sexoFilter === 'all' ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                    >Todos</button>
+                    <button
+                        onClick={() => setSexoFilter('macho')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${sexoFilter === 'macho' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                    >♂ Machos</button>
+                    <button
+                        onClick={() => setSexoFilter('femea')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${sexoFilter === 'femea' ? 'bg-pink-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                    >♀ Fêmeas</button>
 
-                        {/* Situação */}
-                        <div className="flex flex-col gap-1">
-                            <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Situação</span>
-                            <ChipGroup>
-                                <Chip label="Ativos" active={situacaoFilter === 'ativos'} onClick={() => setSituacaoFilter('ativos')} />
-                                <Chip label="Todos"  active={situacaoFilter === 'todos'}  onClick={() => setSituacaoFilter('todos')} />
-                            </ChipGroup>
-                        </div>
+                    {/* Separador */}
+                    <div className="w-px bg-gray-300 dark:bg-gray-600 shrink-0 my-0.5" />
 
-                        {/* Espécie */}
-                        {especies.length > 0 && (
-                            <div className="flex flex-col gap-1">
-                                <span className="hidden md:block text-xs text-gray-400 dark:text-gray-500">Espécie</span>
+                    {/* Situação */}
+                    <button
+                        onClick={() => setSituacaoFilter('ativos')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${situacaoFilter === 'ativos' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                    >Ativos</button>
+                    <button
+                        onClick={() => setSituacaoFilter('todos')}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${situacaoFilter === 'todos' ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                    >Todos</button>
+
+                    {/* Espécie — dropdown compacto no final do scroll */}
+                    {especies.length > 0 && (
+                        <>
+                            <div className="w-px bg-gray-300 dark:bg-gray-600 shrink-0 my-0.5" />
+                            <div className="shrink-0">
                                 <MultiSelectCheckbox
-                                    placeholder="Todas as espécies"
+                                    placeholder="Espécie"
                                     options={especies.map((e) => ({ id: e.especie_usuario_id ?? e.id ?? 0, label: e.descr ?? '—' }))}
                                     value={especiesFilter}
                                     onChange={setEspeciesFilter}
                                 />
                             </div>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
 
