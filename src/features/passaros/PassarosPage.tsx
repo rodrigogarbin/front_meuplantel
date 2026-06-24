@@ -169,7 +169,7 @@ export function PassarosPage() {
                 />
 
                 {/* Chips de filtro — sempre visíveis, scroll horizontal */}
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide mt-3">
                     {/* Sexo */}
                     <button
                         onClick={() => setSexoFilter('all')}
