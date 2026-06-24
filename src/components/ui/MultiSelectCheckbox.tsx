@@ -28,6 +28,7 @@ interface MultiSelectCheckboxProps {
     error?: string
     hint?: string
     maxHeight?: string
+    compact?: boolean // estilo chip (px-3 py-1.5 rounded-full), sem borda de input
 }
 
 export function MultiSelectCheckbox({
@@ -39,6 +40,7 @@ export function MultiSelectCheckbox({
     error,
     hint,
     maxHeight = '300px',
+    compact = false,
 }: MultiSelectCheckboxProps) {
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -85,16 +87,10 @@ export function MultiSelectCheckbox({
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`
-                        w-full px-4 py-2.5 text-left
-                        bg-white dark:bg-gray-800
-                        border rounded-lg
-                        ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
-                        hover:border-gray-400 dark:hover:border-gray-500
-                        focus:outline-none focus:ring-2 focus:ring-blue-500
-                        transition-colors duration-200
-                        flex items-center justify-between
-                    `}
+                    className={compact
+                        ? `px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${value.length > 0 ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`
+                        : `w-full px-4 py-2.5 text-left bg-white dark:bg-gray-800 border rounded-lg ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} hover:border-gray-400 dark:hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 flex items-center justify-between`
+                    }
                 >
                     <span className={selectedLabels ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}>
                         {selectedLabels || placeholder}
