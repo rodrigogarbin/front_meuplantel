@@ -483,3 +483,22 @@ export function useUploadPassaroFoto() {
         },
     })
 }
+
+/**
+ * Hook para transferir um pássaro para outro usuário
+ */
+export function useTransferirPassaro() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async ({ passaroId, email }: { passaroId: number; email: string }) => {
+            const { data } = await api.post(`/api/v1/passaros/${passaroId}/transferir`, { email })
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['passaros'] })
+            queryClient.invalidateQueries({ queryKey: ['machos'] })
+            queryClient.invalidateQueries({ queryKey: ['femeas'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+        },
+    })
+}

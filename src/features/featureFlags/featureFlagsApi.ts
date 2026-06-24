@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
-export type FeatureFlagChave = 'financeiro' | 'certificados' | 'push_notifications' | 'medicamentos' | 'assistente' | 'gestao' | 'ancestrais'
+export type FeatureFlagChave = 'financeiro' | 'certificados' | 'push_notifications' | 'medicamentos' | 'assistente' | 'gestao' | 'ancestrais' | 'transferencia_passaros'
 export type MyFlags = Record<FeatureFlagChave, boolean>
 
 export interface AdminFeatureFlag {

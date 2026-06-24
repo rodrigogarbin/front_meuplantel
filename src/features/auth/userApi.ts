@@ -33,6 +33,7 @@ export interface EmailVerificationStatus {
     email_verified: boolean
     email: string | null
     pending_email: string | null
+    email_grace_expires_at?: string | null
 }
 
 interface EmailVerificationStatusResponse {
@@ -170,5 +171,40 @@ export function useVerifyEmailCode() {
 export function useResendEmailVerification() {
     return useMutation({
         mutationFn: resendEmailVerification,
+    })
+}
+
+// ============================================
+// Novo sistema de verificação de e-mail
+// (para usuários que já têm e-mail cadastrado)
+// ============================================
+
+/**
+ * Novo sistema: verifica código de 6 dígitos enviado no cadastro
+ */
+export function useVerificarEmailCodigo() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (codigo: string) => {
+            const { data } = await api.post<EmailVerificationResponse>('/api/v1/email/verificar-codigo', { codigo })
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['email', 'verification', 'status'] })
+            queryClient.invalidateQueries({ queryKey: ['user', 'profile'] })
+            queryClient.invalidateQueries({ queryKey: ['me'] })
+        },
+    })
+}
+
+/**
+ * Novo sistema: reenvia e-mail de verificação (não pede email pois já está no cadastro)
+ */
+export function useReenviarEmailVerificacao() {
+    return useMutation({
+        mutationFn: async () => {
+            const { data } = await api.post<EmailVerificationResponse>('/api/v1/email/reenviar')
+            return data
+        },
     })
 }

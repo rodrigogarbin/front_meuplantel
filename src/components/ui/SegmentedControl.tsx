@@ -14,6 +14,7 @@ interface SegmentedControlProps {
     onChange: (value: string | number) => void
     error?: string
     required?: boolean
+    disabled?: boolean
 }
 
 export function SegmentedControl({
@@ -23,6 +24,7 @@ export function SegmentedControl({
     onChange,
     error,
     required,
+    disabled,
 }: SegmentedControlProps) {
     return (
         <div className="w-full">
@@ -32,12 +34,13 @@ export function SegmentedControl({
                     {required && <span className="text-red-500 ml-1">*</span>}
                 </label>
             )}
-            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+            <div className={`flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
                 {options.map((option, index) => (
                     <button
                         key={option.value}
                         type="button"
-                        onClick={() => onChange(option.value)}
+                        onClick={() => !disabled && onChange(option.value)}
+                        disabled={disabled}
                         className={`
                             flex-1 px-4 py-2 text-sm font-medium transition-colors
                             ${index > 0 ? 'border-l border-gray-300 dark:border-gray-600' : ''}
@@ -45,6 +48,7 @@ export function SegmentedControl({
                                 ? 'bg-primary text-white'
                                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
                             }
+                            ${disabled ? 'cursor-not-allowed' : ''}
                         `}
                     >
                         {option.label}

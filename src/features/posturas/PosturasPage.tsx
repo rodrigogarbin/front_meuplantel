@@ -3,7 +3,7 @@
  * Exibe todas as posturas ativas com alertas de ações
  */
 
-import { useState, type FocusEvent } from 'react'
+import { useState } from 'react'
 import { Topbar, SearchInput, EmptyState, ErrorState, PullToRefresh, BottomSheet } from '@/components/ui'
 import { usePosturas, type PosturaListItem } from './posturasApi'
 import { SitPostura } from '@/types'
@@ -209,9 +209,6 @@ export function PosturasPage() {
     const { filterTypes, searchTerm } = posturasFilters
     const setSearchTerm = (v: string) => setPosturasFilters({ searchTerm: v })
 
-    // Estado de foco da busca (controla visibilidade dos chips de alerta)
-    const [isSearchFocused, setIsSearchFocused] = useState(false)
-
     const toggleFilter = (f: PosturasFilterType) => {
         setPosturasFilters({
             filterTypes: filterTypes.includes(f)
@@ -221,16 +218,6 @@ export function PosturasPage() {
     }
     const clearFilters = () => setPosturasFilters({ filterTypes: [] })
 
-    // Chips ficam visíveis se a busca está focada OU se há filtro de alerta ativo
-    const hasActiveAlertFilter = filterTypes.length > 0
-    const showAlertChips = isSearchFocused || hasActiveAlertFilter
-
-    // Blur do container de filtros: fecha chips apenas se foco saiu do container inteiro
-    const handleFilterBlur = (e: FocusEvent<HTMLDivElement>) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setIsSearchFocused(false)
-        }
-    }
 
     const [selectedPostura, setSelectedPostura] = useState<PosturaListItem | null>(null)
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
@@ -369,22 +356,16 @@ export function PosturasPage() {
             {/* Barra de busca e filtros sticky — busca sempre visível, chips colapsáveis */}
             <div
                 className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-900 px-4 pt-3 pb-3 border-b border-gray-200 dark:border-gray-700"
-                onBlur={handleFilterBlur}
             >
                 {/* Busca — sempre visível */}
                 <SearchInput
                     value={searchTerm}
                     onChange={setSearchTerm}
                     placeholder="Buscar... (use # para buscar por número do casal)"
-                    onFocus={() => setIsSearchFocused(true)}
                 />
 
-                {/* Chips de alerta — aparecem ao focar ou quando filtro ativo */}
-                <div
-                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                        showAlertChips ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
-                    }`}
-                >
+                {/* Chips de alerta — sempre visíveis */}
+                <div className="mt-3">
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                         <button
                             onClick={clearFilters}

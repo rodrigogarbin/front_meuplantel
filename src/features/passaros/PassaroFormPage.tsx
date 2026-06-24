@@ -37,9 +37,10 @@ interface AutocompleteMutacaoProps {
     placeholder?: string
     hint?: string
     options: { descr: string }[]
+    disabled?: boolean
 }
 
-function AutocompleteMutacao({ label, name, value, onChange, placeholder, hint, options }: AutocompleteMutacaoProps) {
+function AutocompleteMutacao({ label, name, value, onChange, placeholder, hint, options, disabled }: AutocompleteMutacaoProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [inputValue, setInputValue] = useState(value || '')
     const [highlighted, setHighlighted] = useState<number>(-1)
@@ -84,20 +85,21 @@ function AutocompleteMutacao({ label, name, value, onChange, placeholder, hint, 
                 ref={ref}
                 name={name}
                 value={inputValue}
+                disabled={disabled}
                 onChange={e => {
                     setInputValue(e.target.value)
                     onChange(e.target.value)
                     setIsOpen(true)
                     setHighlighted(-1)
                 }}
-                onFocus={() => setIsOpen(true)}
+                onFocus={() => !disabled && setIsOpen(true)}
                 onBlur={() => setTimeout(() => setIsOpen(false), 150)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
-                className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary border-gray-300 dark:border-gray-600"
+                className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 autoComplete="off"
             />
-            {isOpen && filtered.length > 0 && (
+            {!disabled && isOpen && filtered.length > 0 && (
                 <div className="absolute z-[9999] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-auto">
                     {filtered.map((opt, idx) => (
                         <button
@@ -134,6 +136,8 @@ import type { CreatePassaroPayload, Portador } from '@/types'
 import { getFotoUrl, formatRingComplete } from '@/lib/passaro'
 import { API_BASE_URL } from '@/lib/api'
 import { VendaRegistroSheet } from '@/features/financeiro/VendaRegistroSheet'
+import { TransferirPassaroSheet } from './TransferirPassaroSheet'
+import { useFeatureFlagsStore } from '@/features/featureFlags'
 
 // Opções de sexo para o segmented control
 const sexoOptions = [
@@ -217,6 +221,9 @@ export function PassaroFormPage() {
     // Guarda o sit original antes da edição para detectar mudança para Vendido
     const originalSitRef = useRef<number | null>(null)
 
+    // Estado para sheet de transferência
+    const [transferirOpen, setTransferirOpen] = useState(false)
+
     // Queries
     const { data: passaro, isLoading: loadingPassaro, error: errorPassaro } = usePassaro(passaroId)
     const { data: especies = [], isLoading: loadingEspecies } = useEspecies()
@@ -233,6 +240,12 @@ export function PassaroFormPage() {
     const deleteMutation = useDeletePassaro()
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending || uploadFotoMutation.isPending
+
+    // Ave transferida — bloqueia edição
+    const isTransferida = !!passaro?.transferido_em
+
+    // Feature flags
+    const podeTransferir = useFeatureFlagsStore((s) => s.isEnabled('transferencia_passaros'))
 
     // Toast
     const { toast, showToast, hideToast } = useToast()
@@ -664,6 +677,16 @@ export function PassaroFormPage() {
                     </div>
                 )}
 
+                {/* Banner: ave transferida */}
+                {isEditing && isTransferida && (
+                    <div className="mx-0 mb-0 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex gap-3 text-sm text-blue-700 dark:text-blue-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <span>Esta ave foi transferida. Os dados não podem ser alterados.</span>
+                    </div>
+                )}
+
                 {/* Card: Foto - Apenas ao editar pássaro existente */}
                 {isEditing && (
                     <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -758,7 +781,7 @@ export function PassaroFormPage() {
                                 onChange={(e) => updateField('especie_usuario_id', e.target.value)}
                                 options={especieOptions}
                                 placeholder="Selecione uma espécie"
-                                disabled={loadingEspecies}
+                                disabled={loadingEspecies || isTransferida}
                             />
                         )}
 
@@ -771,6 +794,7 @@ export function PassaroFormPage() {
                             placeholder={loadingMutacoes ? 'Carregando mutações...' : 'Ex: Verde Pastel'}
                             hint="Digite a mutação ou descrição do pássaro"
                             options={mutacoesSugestoes}
+                            disabled={isTransferida}
                         />
                     </div>
                 </section>
@@ -794,6 +818,7 @@ export function PassaroFormPage() {
                                 onChange={(e) => updateField('sg_clube', e.target.value.toUpperCase())}
                                 placeholder="Ex: FOB"
                                 maxLength={10}
+                                disabled={isTransferida}
                             />
 
                             <Input
@@ -802,6 +827,7 @@ export function PassaroFormPage() {
                                 value={formData.nro_criador}
                                 onChange={(e) => updateField('nro_criador', e.target.value)}
                                 placeholder="Ex: 123"
+                                disabled={isTransferida}
                             />
                         </div>
 
@@ -815,6 +841,7 @@ export function PassaroFormPage() {
                                 placeholder="Ex: 1"
                                 error={errors.nro}
                                 required
+                                disabled={isTransferida}
                             />
 
                             <Input
@@ -828,6 +855,7 @@ export function PassaroFormPage() {
                                 max={new Date().getFullYear() + 1}
                                 error={errors.ano}
                                 required
+                                disabled={isTransferida}
                             />
                         </div>
 
@@ -866,6 +894,7 @@ export function PassaroFormPage() {
                             onChange={(e) => updateField('dt_nasc', e.target.value)}
                             error={errors.dt_nasc}
                             required
+                            disabled={isTransferida}
                         />
 
                         <SegmentedControl
@@ -875,6 +904,7 @@ export function PassaroFormPage() {
                             onChange={(value) => updateField('sexo', value as number)}
                             error={errors.sexo}
                             required
+                            disabled={isTransferida}
                         />
 
                         <Select
@@ -884,6 +914,7 @@ export function PassaroFormPage() {
                             onChange={(e) => updateField('sit', Number(e.target.value))}
                             options={situacaoOptions}
                             required
+                            disabled={isTransferida}
                         />
                     </div>
                 </section>
@@ -910,6 +941,7 @@ export function PassaroFormPage() {
                                         options={machos}
                                         placeholder="Buscar pai..."
                                         isLoading={loadingMachos}
+                                        disabled={isTransferida}
                                     />
                                 </div>
                             </div>
@@ -924,6 +956,7 @@ export function PassaroFormPage() {
                                         options={femeas}
                                         placeholder="Buscar mãe..."
                                         isLoading={loadingFemeas}
+                                        disabled={isTransferida}
                                     />
                                 </div>
                             </div>
@@ -948,6 +981,7 @@ export function PassaroFormPage() {
                             onChange={(tags) => updateField('portador', tags)}
                             placeholder="Digite e pressione Enter"
                             hint="Mutações que o pássaro porta com certeza"
+                            disabled={isTransferida}
                         />
 
                         <TagsInput
@@ -956,6 +990,7 @@ export function PassaroFormPage() {
                             onChange={(tags) => updateField('pportador', tags)}
                             placeholder="Digite e pressione Enter"
                             hint="Mutações que o pássaro possivelmente porta"
+                            disabled={isTransferida}
                         />
                     </div>
                 </section>
@@ -977,12 +1012,13 @@ export function PassaroFormPage() {
                             onChange={(e) => updateField('obs', e.target.value)}
                             placeholder="Anotações sobre o pássaro..."
                             rows={3}
+                            disabled={isTransferida}
                         />
                     </div>
                 </section>
 
-                {/* Botão Excluir - visível apenas em modo edição */}
-                {isEditing && passaroId && (
+                {/* Botão Excluir - visível apenas em modo edição e quando não transferida */}
+                {isEditing && passaroId && !isTransferida && (
                     <button
                         type="button"
                         onClick={handleDelete}
@@ -996,6 +1032,20 @@ export function PassaroFormPage() {
                     </button>
                 )}
 
+                {/* Botão Transferir ave - visível apenas em modo edição, quando não transferida e com flag ativa */}
+                {podeTransferir && isEditing && passaroId && !isTransferida && (
+                    <button
+                        type="button"
+                        onClick={() => setTransferirOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 py-3 text-blue-600 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors mt-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Transferir ave
+                    </button>
+                )}
+
                 {/* Botões de Ação - Fixos no rodapé */}
                 <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 safe-bottom">
                     <div className="max-w-2xl mx-auto flex gap-3">
@@ -1004,33 +1054,44 @@ export function PassaroFormPage() {
                             onClick={() => navigate('/passaros')}
                             className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98] transition-all"
                         >
-                            Cancelar
+                            Voltar
                         </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Salvando...
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Salvar
-                                </>
-                            )}
-                        </button>
+                        {!isTransferida && (
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Salvar
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </form>
+
+            {/* Sheet de transferência de ave */}
+            {passaroId && (
+                <TransferirPassaroSheet
+                    passaroId={passaroId}
+                    open={transferirOpen}
+                    onClose={() => setTransferirOpen(false)}
+                />
+            )}
 
             {/* Sheet de registro de venda (abre quando pássaro é marcado como Vendido) */}
             <VendaRegistroSheet
