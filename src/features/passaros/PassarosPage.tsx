@@ -197,20 +197,20 @@ export function PassarosPage() {
                         className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${situacaoFilter === 'todos' ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
                     >Todos</button>
 
+                    {/* Espécie — compact usa portal para escapar do overflow-x-auto */}
+                    {especies.length > 0 && (
+                        <>
+                            <div className="w-px bg-gray-300 dark:bg-gray-600 shrink-0 my-0.5" />
+                            <MultiSelectCheckbox
+                                compact
+                                placeholder="Espécie"
+                                options={especies.map((e) => ({ id: e.especie_usuario_id ?? e.id ?? 0, label: e.descr ?? '—' }))}
+                                value={especiesFilter}
+                                onChange={setEspeciesFilter}
+                            />
+                        </>
+                    )}
                 </div>
-
-                {/* Espécie — linha separada para o dropdown funcionar fora do overflow-x-auto */}
-                {especies.length > 0 && (
-                    <div className="mt-2">
-                        <MultiSelectCheckbox
-                            compact
-                            placeholder="Todas as espécies"
-                            options={especies.map((e) => ({ id: e.especie_usuario_id ?? e.id ?? 0, label: e.descr ?? '—' }))}
-                            value={especiesFilter}
-                            onChange={setEspeciesFilter}
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Lista de pássaros */}
