@@ -22,28 +22,50 @@ export function QrScanner({ onResult, onClose }: QrScannerProps) {
         const scanner = new Html5Qrcode(containerId)
         scannerRef.current = scanner
 
-        scanner.start(
-            { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            (decodedText) => {
-                if (hasResult.current) return
-                hasResult.current = true
-                scanner.stop().catch(() => {})
-                onResult(decodedText)
-            },
-            () => {}
-        ).catch((err) => {
-            const msg = err?.message || String(err)
-            if (msg.includes('NotAllowedError') || msg.includes('Permission')) {
-                setError('Permissão da câmera negada. Habilite nas configurações do navegador.')
-            } else if (msg.includes('NotFoundError') || msg.includes('no camera')) {
-                setError('Nenhuma câmera encontrada no dispositivo.')
-            } else {
-                setError('Não foi possível acessar a câmera.')
+        let cancelled = false
+
+        async function startScanner() {
+            // Verifica permissão antes de iniciar (evita erro silencioso no iOS)
+            if (navigator.permissions) {
+                try {
+                    const permission = await navigator.permissions.query({ name: 'camera' as PermissionName })
+                    if (permission.state === 'denied') {
+                        setError('Permissão da câmera negada. Acesse as configurações do dispositivo para habilitar.')
+                        return
+                    }
+                } catch {
+                    // Navegador não suporta permissions API — continua normalmente
+                }
             }
-        })
+
+            if (cancelled) return
+
+            scanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    if (hasResult.current) return
+                    hasResult.current = true
+                    scanner.stop().catch(() => {})
+                    onResult(decodedText)
+                },
+                () => {}
+            ).catch((err) => {
+                const msg = err?.message || String(err)
+                if (msg.includes('NotAllowedError') || msg.includes('Permission')) {
+                    setError('Permissão da câmera negada. Habilite nas configurações do navegador.')
+                } else if (msg.includes('NotFoundError') || msg.includes('no camera')) {
+                    setError('Nenhuma câmera encontrada no dispositivo.')
+                } else {
+                    setError('Não foi possível acessar a câmera.')
+                }
+            })
+        }
+
+        startScanner()
 
         return () => {
+            cancelled = true
             scanner.stop().catch(() => {})
         }
     }, [onResult])

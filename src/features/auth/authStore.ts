@@ -56,9 +56,13 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     set({ isLoading: true })
 
+                    // PWA instalado sempre mantém sessão persistente
+                    const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                    const effectiveRememberMe = isPWA ? true : rememberMe
+
                     const response = await axios.post<{ data: LoginResponse }>(
                         `${API_BASE_URL}/api/v1/login`,
-                        { username, senha, captcha_token: captchaToken, rememberMe },
+                        { username, senha, captcha_token: captchaToken, rememberMe: effectiveRememberMe },
                         { withCredentials: true }
                     )
 
@@ -70,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
                         expiresAt,
                         isAuthenticated: true,
                         isLoading: false,
-                        rememberMe,
+                        rememberMe: effectiveRememberMe,
                     })
                 } catch (error) {
                     set({ isLoading: false })
@@ -179,7 +183,9 @@ export const useAuthStore = create<AuthState>()(
             autoRefreshIfNeeded: async (): Promise<void> => {
                 const { expiresAt, rememberMe, isImpersonating } = get()
 
-                if (!rememberMe || isImpersonating || !expiresAt) {
+                // PWA instalado sempre tenta renovar (independente de rememberMe)
+                const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                if ((!rememberMe && !isPWA) || isImpersonating || !expiresAt) {
                     return
                 }
 
