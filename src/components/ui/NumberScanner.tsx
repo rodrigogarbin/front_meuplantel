@@ -35,6 +35,22 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
         cancelledRef.current = false
 
         async function init() {
+            // 0. Verifica permissão antes de solicitar câmera (evita erro silencioso no iOS)
+            if (navigator.permissions) {
+                try {
+                    const permission = await navigator.permissions.query({ name: 'camera' as PermissionName })
+                    if (permission.state === 'denied') {
+                        setErrorMsg('Permissão da câmera negada. Acesse as configurações do dispositivo para habilitar.')
+                        setState('error')
+                        return
+                    }
+                } catch {
+                    // Navegador não suporta permissions API — continua normalmente
+                }
+            }
+
+            if (cancelledRef.current) return
+
             // 1. Inicia câmera
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
