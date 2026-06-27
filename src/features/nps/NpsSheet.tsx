@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSubmitNps, snoozeNps } from './npsApi'
 
 interface NpsSheetProps {
@@ -24,6 +25,10 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
     const [nota, setNota] = useState<number | null>(null)
     const [sugestao, setSugestao] = useState('')
     const submitNps = useSubmitNps()
+    const queryClient = useQueryClient()
+
+    const isCritico = nota !== null && nota <= 7
+    const sugestaoObrigatoria = isCritico && sugestao.trim() === ''
 
     function handleSelectNota(n: number) {
         setNota(n)
@@ -45,7 +50,11 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
         submitNps.mutate(
             { nota, sugestao: sugestao || undefined, origem: 'app' },
             {
-                onSuccess: () => setStep(3),
+                onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: ['nps', 'pendente'] })
+                    snoozeNps(90)
+                    setStep(3)
+                },
                 onError: () => setStep('error'),
             }
         )
@@ -105,33 +114,43 @@ export function NpsSheet({ onClose }: NpsSheetProps) {
 
                 {step === 2 && (
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                            O que poderiamos melhorar?
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                            {isCritico ? (
+                                <>
+                                    O que podemos melhorar?{' '}
+                                    <span className="text-red-500">*</span>
+                                </>
+                            ) : (
+                                'Alguma sugestao? (opcional)'
+                            )}
                         </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            Sua sugestao e opcional, mas muito valiosa.
-                        </p>
 
                         <textarea
                             value={sugestao}
                             onChange={(e) => setSugestao(e.target.value)}
-                            placeholder="Ex: seria legal ter relatorio mensal..."
+                            placeholder={
+                                isCritico
+                                    ? 'Conte-nos o que podemos fazer melhor... (obrigatorio)'
+                                    : 'Alguma sugestao ou comentario? (opcional)'
+                            }
                             rows={4}
                             maxLength={2000}
                             className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
                         />
 
                         <div className="flex gap-3">
-                            <button
-                                onClick={handleSkip}
-                                disabled={submitNps.isPending}
-                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-all active:scale-[0.98] hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
-                            >
-                                Pular
-                            </button>
+                            {!isCritico && (
+                                <button
+                                    onClick={handleSkip}
+                                    disabled={submitNps.isPending}
+                                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-all active:scale-[0.98] hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+                                >
+                                    Pular
+                                </button>
+                            )}
                             <button
                                 onClick={handleSend}
-                                disabled={submitNps.isPending}
+                                disabled={submitNps.isPending || sugestaoObrigatoria}
                                 className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                             >
                                 {submitNps.isPending ? 'Enviando...' : 'Enviar'}
