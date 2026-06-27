@@ -23,6 +23,9 @@ export function NpsEmailPage() {
 
     const linkInvalido = !uid || !token
 
+    const isCritico = nota !== null && nota <= 7
+    const sugestaoObrigatoria = isCritico && sugestao.trim() === ''
+
     // Se nota pre-selecionada na URL, pula direto para sugestao
     useEffect(() => {
         if (nota !== null && !isNaN(nota) && nota >= 0 && nota <= 10) {
@@ -110,31 +113,43 @@ export function NpsEmailPage() {
                         </div>
                     </div>
 
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        O que poderiamos melhorar?
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        {isCritico ? (
+                            <>
+                                O que podemos melhorar?{' '}
+                                <span className="text-red-500">*</span>
+                            </>
+                        ) : (
+                            'Alguma sugestao? (opcional)'
+                        )}
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Opcional</p>
 
                     <textarea
                         value={sugestao}
                         onChange={(e) => setSugestao(e.target.value)}
-                        placeholder="Escreva sua sugestao aqui..."
+                        placeholder={
+                            isCritico
+                                ? 'Conte-nos o que podemos fazer melhor... (obrigatorio)'
+                                : 'Alguma sugestao ou comentario? (opcional)'
+                        }
                         rows={4}
                         maxLength={2000}
                         className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
                     />
 
                     <div className="flex gap-3">
-                        <button
-                            onClick={() => handleSubmit(true)}
-                            disabled={submitNps.isPending}
-                            className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        >
-                            Pular
-                        </button>
+                        {!isCritico && (
+                            <button
+                                onClick={() => handleSubmit(true)}
+                                disabled={submitNps.isPending}
+                                className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            >
+                                Pular
+                            </button>
+                        )}
                         <button
                             onClick={() => handleSubmit(false)}
-                            disabled={submitNps.isPending}
+                            disabled={submitNps.isPending || sugestaoObrigatoria}
                             className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
                         >
                             {submitNps.isPending ? 'Enviando...' : 'Enviar'}
