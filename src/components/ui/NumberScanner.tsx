@@ -1,7 +1,7 @@
 /**
  * Componente NumberScanner
  * Abre a câmera e usa OCR (Tesseract.js) para ler números automaticamente
- * Requer leituras consecutivas iguais para confirmar o número (estabilidade)
+ * Usa sistema de votação (vote window) para confirmar o número com estabilidade
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -13,7 +13,8 @@ interface NumberScannerProps {
 
 type ScanState = 'loading' | 'scanning' | 'result' | 'error'
 
-const REQUIRED_CONSECUTIVE = 2
+const VOTE_WINDOW = 5
+const VOTE_THRESHOLD = 3
 
 export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -22,12 +23,11 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
     const workerRef = useRef<Awaited<ReturnType<typeof import('tesseract.js')['createWorker']>> | null>(null)
     const scanningRef = useRef(false)
     const cancelledRef = useRef(false)
-    const lastNumberRef = useRef<number | null>(null)
-    const consecutiveCountRef = useRef(0)
+    const recentReadingsRef = useRef<number[]>([])
     const [state, setState] = useState<ScanState>('loading')
     const [detectedNumber, setDetectedNumber] = useState<number | null>(null)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
-    const [confidence, setConfidence] = useState(0) // 0 to REQUIRED_CONSECUTIVE
+    const [confidence, setConfidence] = useState(0)
     const [previewNumber, setPreviewNumber] = useState<number | null>(null)
 
     // Inicia câmera + worker
@@ -89,6 +89,9 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 }
                 await worker.setParameters({
                     tessedit_char_whitelist: '0123456789',
+                    // PSM 7 = single text line; OEM 1 = LSTM only
+                    tessedit_pageseg_mode: '7' as unknown as import('tesseract.js').PSM,
+                    tessedit_ocr_engine_mode: '1',
                 })
                 workerRef.current = worker
                 setState('scanning')
@@ -134,14 +137,14 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 canvas.height = video.videoHeight
                 ctx.drawImage(video, 0, 0)
 
-                // Recorta a região central
-                const cropW = Math.floor(canvas.width * 0.6)
-                const cropH = Math.floor(canvas.height * 0.25)
+                // Recorta a região central — 70%×30%
+                const cropW = Math.floor(canvas.width * 0.7)
+                const cropH = Math.floor(canvas.height * 0.30)
                 const cropX = Math.floor((canvas.width - cropW) / 2)
                 const cropY = Math.floor((canvas.height - cropH) / 2)
 
-                // Escala para ~400px de largura para OCR mais rápido
-                const scale = Math.min(1, 400 / cropW)
+                // Escala para ~800px de largura para OCR mais preciso
+                const scale = Math.min(1, 800 / cropW)
                 const outW = Math.floor(cropW * scale)
                 const outH = Math.floor(cropH * scale)
 
@@ -152,15 +155,41 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 if (!cropCtx) return
                 cropCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH)
 
-                // Pré-processamento: alto contraste preto/branco para OCR mais rápido
+                // Grayscale conversion
                 const imageData = cropCtx.getImageData(0, 0, outW, outH)
                 const data = imageData.data
-                for (let i = 0; i < data.length; i += 4) {
-                    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-                    const bw = gray > 128 ? 255 : 0
-                    data[i] = bw
-                    data[i + 1] = bw
-                    data[i + 2] = bw
+                const grayscale = new Uint8Array(outW * outH)
+                for (let i = 0; i < grayscale.length; i++) {
+                    const idx = i * 4
+                    grayscale[i] = Math.round(data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114)
+                }
+
+                // Otsu threshold
+                const hist = new Int32Array(256)
+                for (const g of grayscale) hist[g]++
+                const total = outW * outH
+                let sum = 0
+                for (let i = 0; i < 256; i++) sum += i * hist[i]
+                let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 128
+                for (let t = 0; t < 256; t++) {
+                    wB += hist[t]
+                    if (wB === 0) continue
+                    wF = total - wB
+                    if (wF === 0) break
+                    sumB += t * hist[t]
+                    const mB = sumB / wB
+                    const mF = (sum - sumB) / wF
+                    const variance = wB * wF * (mB - mF) ** 2
+                    if (variance > maxVar) { maxVar = variance; threshold = t }
+                }
+
+                // Apply threshold
+                for (let i = 0; i < grayscale.length; i++) {
+                    const bw = grayscale[i] > threshold ? 255 : 0
+                    const idx = i * 4
+                    data[idx] = bw
+                    data[idx + 1] = bw
+                    data[idx + 2] = bw
                 }
                 cropCtx.putImageData(imageData, 0, 0)
 
@@ -171,26 +200,32 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 const digits = text.replace(/\D/g, '').trim()
                 const numero = parseInt(digits, 10)
 
-                if (numero && numero > 0) {
-                    if (numero === lastNumberRef.current) {
-                        consecutiveCountRef.current++
-                    } else {
-                        lastNumberRef.current = numero
-                        consecutiveCountRef.current = 1
-                    }
+                // Vote-based: keep last VOTE_WINDOW readings (0 = failed read)
+                const readings = recentReadingsRef.current
+                readings.push(numero && numero > 0 ? numero : 0)
+                if (readings.length > VOTE_WINDOW) readings.shift()
 
-                    setPreviewNumber(numero)
-                    setConfidence(consecutiveCountRef.current)
+                // Count votes for most frequent non-zero number
+                const voteCounts: Record<number, number> = {}
+                for (const r of readings) {
+                    if (r > 0) voteCounts[r] = (voteCounts[r] ?? 0) + 1
+                }
 
-                    if (consecutiveCountRef.current >= REQUIRED_CONSECUTIVE) {
-                        setDetectedNumber(numero)
+                let bestNum = 0, bestVotes = 0
+                for (const [n, v] of Object.entries(voteCounts)) {
+                    if (v > bestVotes) { bestVotes = v; bestNum = Number(n) }
+                }
+
+                if (bestNum > 0) {
+                    setPreviewNumber(bestNum)
+                    setConfidence(bestVotes)
+
+                    if (bestVotes >= VOTE_THRESHOLD) {
+                        setDetectedNumber(bestNum)
                         setState('result')
                         return
                     }
                 } else {
-                    // Leitura falhou - reseta a contagem
-                    lastNumberRef.current = null
-                    consecutiveCountRef.current = 0
                     setPreviewNumber(null)
                     setConfidence(0)
                 }
@@ -220,8 +255,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
         setPreviewNumber(null)
         setConfidence(0)
         setErrorMsg(null)
-        lastNumberRef.current = null
-        consecutiveCountRef.current = 0
+        recentReadingsRef.current = []
         scanningRef.current = false
         setState('scanning')
     }
@@ -263,7 +297,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                 {state === 'scanning' && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className={`w-[60%] h-[15%] border-2 rounded-xl relative transition-colors duration-300 ${
-                            confidence >= REQUIRED_CONSECUTIVE
+                            confidence >= VOTE_THRESHOLD
                                 ? 'border-emerald-400'
                                 : confidence > 0
                                     ? 'border-amber-400'
@@ -334,7 +368,7 @@ export function NumberScanner({ onResult, onClose }: NumberScannerProps) {
                             <div className="flex items-center gap-3">
                                 <span className="text-white font-bold text-lg">{previewNumber}</span>
                                 <div className="flex gap-1">
-                                    {Array.from({ length: REQUIRED_CONSECUTIVE }).map((_, i) => (
+                                    {Array.from({ length: VOTE_THRESHOLD }).map((_, i) => (
                                         <div
                                             key={i}
                                             className={`w-3 h-3 rounded-full transition-colors duration-200 ${
