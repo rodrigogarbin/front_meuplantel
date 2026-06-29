@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import type { Casal, Postura } from '@/types'
 import { BottomSheet } from '@/components/ui'
 import { useCasais, useTransferirPostura } from './casaisApi'
+import { formatPassaroCompleto } from '@/lib/passaro'
 
 interface TransferPosturaSheetProps {
     casal: Casal | null
@@ -139,9 +140,12 @@ export function TransferPosturaSheet({ casal, postura, isOpen, onClose, onSucces
                                                     Casal Nº {c.nro}
                                                 </p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                    {c.macho?.anel ? `${c.macho.anel.sg_clube || ''} ${c.macho.anel.nro}/${c.macho.anel.ano}` : c.descr_pai || '—'}
-                                                    {' × '}
-                                                    {c.femea?.anel ? `${c.femea.anel.sg_clube || ''} ${c.femea.anel.nro}/${c.femea.anel.ano}` : c.descr_mae || '—'}
+                                                    <span className="text-blue-500 font-bold">♂</span>{' '}
+                                                    {c.macho ? formatPassaroCompleto(c.macho) : (c.descr_pai || '—')}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                    <span className="text-pink-500 font-bold">♀</span>{' '}
+                                                    {c.femea ? formatPassaroCompleto(c.femea) : (c.descr_mae || '—')}
                                                 </p>
                                             </div>
                                             {isSelected && (

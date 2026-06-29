@@ -52,7 +52,7 @@ export function formatPassaroCompleto(passaro: Passaro | null | undefined): stri
 
     const anel = formatRingComplete(passaro.anel)
     // Busca descrição em várias fontes possíveis
-    const descr = passaro.descr || passaro.mutacao?.descricao || ''
+    const descr = passaro.descr || passaro.mutacao?.descr || ''
 
     return descr ? `${anel} - ${descr}` : anel
 }
