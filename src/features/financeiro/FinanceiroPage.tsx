@@ -243,6 +243,7 @@ export function FinanceiroPage() {
                                         <ApexLineChart
                                             labels={lineChartData.labels}
                                             series={lineChartData.series}
+                                            formatter={formatCurrency}
                                         />
                                     </div>
                                 </section>
@@ -255,7 +256,7 @@ export function FinanceiroPage() {
                                         Receitas por categoria
                                     </h2>
                                     <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                                        <ApexPieChart data={pieReceitas} />
+                                        <ApexPieChart data={pieReceitas} formatter={formatCurrency} />
                                     </div>
                                 </section>
                             )}
@@ -267,7 +268,7 @@ export function FinanceiroPage() {
                                         Despesas por categoria
                                     </h2>
                                     <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                                        <ApexPieChart data={pieDespesas} />
+                                        <ApexPieChart data={pieDespesas} formatter={formatCurrency} />
                                     </div>
                                 </section>
                             )}

@@ -16,9 +16,10 @@ interface LineChartSerie {
 interface ApexLineChartProps {
     labels: string[]
     series: LineChartSerie[]
+    formatter?: (val: number) => string
 }
 
-export function ApexLineChart({ labels, series }: ApexLineChartProps) {
+export function ApexLineChart({ labels, series, formatter }: ApexLineChartProps) {
     const theme = useThemeStore((state) => state.mode)
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
@@ -62,7 +63,7 @@ export function ApexLineChart({ labels, series }: ApexLineChartProps) {
                     colors: isDark ? '#9CA3AF' : '#6B7280',
                     fontSize: '12px',
                 },
-                formatter: (val) => Math.round(val).toString(),
+                formatter: (val) => formatter ? formatter(val) : Math.round(val).toString(),
             },
         },
         grid: {
@@ -85,7 +86,7 @@ export function ApexLineChart({ labels, series }: ApexLineChartProps) {
         tooltip: {
             theme: isDark ? 'dark' : 'light',
             y: {
-                formatter: (val) => val.toString(),
+                formatter: (val) => formatter ? formatter(val) : val.toString(),
             },
         },
         dataLabels: {

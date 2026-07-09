@@ -15,9 +15,10 @@ interface PieChartData {
 
 interface ApexPieChartProps {
     data: PieChartData[]
+    formatter?: (val: number) => string
 }
 
-export function ApexPieChart({ data }: ApexPieChartProps) {
+export function ApexPieChart({ data, formatter }: ApexPieChartProps) {
     const theme = useThemeStore((state) => state.mode)
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
@@ -63,7 +64,7 @@ export function ApexPieChart({ data }: ApexPieChartProps) {
                             fontSize: '24px',
                             fontWeight: 700,
                             color: isDark ? '#F9FAFB' : '#111827',
-                            formatter: (val) => val.toString(),
+                            formatter: (val) => formatter ? formatter(Number(val)) : val.toString(),
                         },
                         total: {
                             show: true,
@@ -73,7 +74,7 @@ export function ApexPieChart({ data }: ApexPieChartProps) {
                             color: isDark ? '#9CA3AF' : '#6B7280',
                             formatter: (w) => {
                                 const total = w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0)
-                                return total.toString()
+                                return formatter ? formatter(total) : total.toString()
                             },
                         },
                     },
@@ -86,7 +87,7 @@ export function ApexPieChart({ data }: ApexPieChartProps) {
         tooltip: {
             theme: isDark ? 'dark' : 'light',
             y: {
-                formatter: (val) => val.toString(),
+                formatter: (val) => formatter ? formatter(val) : val.toString(),
             },
         },
     }), [data, isDark])
